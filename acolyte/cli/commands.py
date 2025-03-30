@@ -16,8 +16,6 @@ from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
 
-from acolyte.core.llm.config import export_llm_config_to_file, import_llm_config_from_file
-
 # 创建控制台对象
 console = Console()
 
@@ -194,6 +192,32 @@ class AcolyteClient:
         response = await self.client.get(f"/prompts/{prompt_id}")
         response.raise_for_status()
         return response.json()
+        
+    async def export_config(self):
+        """导出配置到文件
+        
+        Returns:
+            导出结果
+        """
+        response = await self.client.post("/config/export")
+        response.raise_for_status()
+        return response.json()
+        
+    async def import_config(self, name: str = None):
+        """从配置文件导入LLM配置
+        
+        Args:
+            name: 可选的LLM名称
+            
+        Returns:
+            导入结果
+        """
+        params = {}
+        if name:
+            params = {"name": name}
+        response = await self.client.post("/config/import", params=params)
+        response.raise_for_status()
+        return response.json()
 
 
 # CLI命令组
@@ -242,12 +266,12 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             if llm_config:
                 # 导入配置
                 with console.status(f"[bold green]从配置导入LLM {llm_config}...[/]"):
-                    imported_llms = import_llm_config_from_file(llm_config)
+                    result = await client.import_config(llm_config)
                     
-                if imported_llms:
+                if result["status"] == "success" and "llms" in result:
                     # 添加到ID列表
-                    for imported_llm in imported_llms:
-                        llm_ids.append(imported_llm.id)
+                    for imported_llm in result["llms"]:
+                        llm_ids.append(imported_llm["id"])
                     console.print(f"[bold green]已导入LLM配置: {llm_config}[/]")
                 else:
                     console.print(f"[bold yellow]警告:[/] 未找到名为 {llm_config} 的LLM配置")
@@ -346,11 +370,14 @@ def history(status, limit):
             table.add_column("创建时间", style="blue")
             
             for task in tasks:
+                # 检查created_at字段是否存在
+                created_at = task.get("created_at", "未知")
+                
                 table.add_row(
                     str(task["id"]),
                     task["processing_mode"],
                     task["status"],
-                    task["created_at"]
+                    created_at
                 )
                 
             console.print(table)
@@ -534,11 +561,8 @@ def delete_llm(llm_id):
                 
                 # 导出更新后的配置到文件
                 with console.status("[bold green]更新配置文件...[/]"):
-                    from acolyte.core.llm.config import export_llm_config_to_file
-                    if export_llm_config_to_file():
-                        console.print("[bold green]配置文件已更新[/]")
-                    else:
-                        console.print("[bold yellow]配置文件更新失败[/]")
+                    result = await client.export_config()
+                    console.print(f"[bold green]{result['message']}[/]")
                     
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
@@ -595,10 +619,8 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
             # 导出配置
             if save_to_config:
                 with console.status("[bold green]保存配置到文件...[/]"):
-                    if export_llm_config_to_file():
-                        console.print("[bold green]配置已保存到文件[/]")
-                    else:
-                        console.print("[bold yellow]配置保存失败[/]")
+                    result = await client.export_config()
+                    console.print(f"[bold green]{result['message']}[/]")
                 
         finally:
             await client.close()
@@ -610,10 +632,17 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
 @config.command()
 def export_config():
     """将数据库中的LLM配置导出到配置文件"""
-    if export_llm_config_to_file():
-        console.print("[bold green]LLM配置已成功导出到配置文件[/]")
-    else:
-        console.print("[bold red]导出LLM配置失败[/]")
+    async def _export_config():
+        client = AcolyteClient()
+        try:
+            with console.status("[bold green]导出配置中...[/]"):
+                result = await client.export_config()
+            console.print(f"[bold green]{result['message']}[/]")
+        finally:
+            await client.close()
+            
+    # 运行异步函数
+    asyncio.run(_export_config())
 
 
 @config.command()
@@ -623,31 +652,43 @@ def import_config(name):
     
     例如: acolyte config import-config -n "Claude-3"
     """
-    try:
-        imported_llms = import_llm_config_from_file(name)
-        if imported_llms:
-            console.print(f"[bold green]已导入 {len(imported_llms)} 个LLM配置[/]")
+    async def _import_config():
+        client = AcolyteClient()
+        try:
+            with console.status("[bold green]导入配置中...[/]"):
+                result = await client.import_config(name)
             
-            # 显示导入的配置
-            table = Table(title="导入的LLM配置")
-            table.add_column("ID", style="cyan")
-            table.add_column("名称", style="green")
-            table.add_column("模型", style="blue")
-            table.add_column("角色", style="yellow")
-            
-            for llm in imported_llms:
-                table.add_row(
-                    str(llm["id"]),
-                    llm["name"],
-                    llm["model_name"],
-                    llm["role"]
-                )
+            if result["status"] == "success":
+                console.print(f"[bold green]{result['message']}[/]")
                 
-            console.print(table)
-        else:
-            console.print("[bold yellow]未导入任何LLM配置[/]")
-    except Exception as e:
-        console.print(f"[bold red]导入失败: {str(e)}[/]")
+                # 显示导入的配置
+                imported_llms = result.get("llms", [])
+                if imported_llms:
+                    table = Table(title="导入的LLM配置")
+                    table.add_column("ID", style="cyan")
+                    table.add_column("名称", style="green")
+                    table.add_column("模型", style="blue")
+                    table.add_column("角色", style="yellow")
+                    
+                    for llm in imported_llms:
+                        table.add_row(
+                            str(llm["id"]),
+                            llm["name"],
+                            llm["model_name"],
+                            llm["role"]
+                        )
+                        
+                    console.print(table)
+            else:
+                console.print(f"[bold yellow]{result['message']}[/]")
+                
+        except Exception as e:
+            console.print(f"[bold red]导入失败: {str(e)}[/]")
+        finally:
+            await client.close()
+            
+    # 运行异步函数
+    asyncio.run(_import_config())
 
 
 @config.command()
@@ -665,15 +706,13 @@ def list_prompts():
             table.add_column("版本", style="green")
             table.add_column("目标模型", style="blue")
             table.add_column("状态", style="yellow")
-            table.add_column("创建时间", style="magenta")
             
             for prompt in prompts:
                 table.add_row(
                     str(prompt["id"]),
                     prompt["version"],
                     prompt["model_target"] or "通用",
-                    "激活" if prompt["is_active"] else "禁用",
-                    prompt["created_at"]
+                    "激活" if prompt["is_active"] else "禁用"
                 )
                 
             console.print(table)

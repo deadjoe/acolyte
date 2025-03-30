@@ -8,11 +8,12 @@ from acolyte.core.db.database import db
 from acolyte.core.db.models import LlmConfig, LlmRole
 
 
-def import_llm_config_from_file(llm_name: Optional[str] = None) -> List[Dict]:
+def import_llm_config_from_file(llm_name: Optional[str] = None, verbose: bool = False) -> List[Dict]:
     """从配置文件导入LLM配置
 
     Args:
         llm_name: 可选，指定要导入的LLM名称
+        verbose: 是否输出详细日志
 
     Returns:
         导入的LLM配置信息列表（字典格式）
@@ -24,14 +25,17 @@ def import_llm_config_from_file(llm_name: Optional[str] = None) -> List[Dict]:
     
     # 筛选配置
     llm_configs = config.llm_configs
-    print(f"从配置文件中读取到 {len(llm_configs)} 个LLM配置")
+    if verbose:
+        print(f"从配置文件中读取到 {len(llm_configs)} 个LLM配置")
     
     if llm_name:
         llm_configs = [cfg for cfg in llm_configs if cfg.name == llm_name]
-        print(f"按名称筛选后剩余 {len(llm_configs)} 个LLM配置 (查找名称: {llm_name})")
+        if verbose:
+            print(f"按名称筛选后剩余 {len(llm_configs)} 个LLM配置 (查找名称: {llm_name})")
     
     if not llm_configs:
-        print("没有找到可导入的LLM配置")
+        if verbose:
+            print("没有找到可导入的LLM配置")
         return []
         
     # 导入配置

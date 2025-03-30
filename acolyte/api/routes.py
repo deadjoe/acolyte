@@ -1,10 +1,11 @@
 """
 API路由定义
 """
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 from sqlalchemy.orm import Session
 
 from acolyte.core.db.database import db
@@ -52,9 +53,9 @@ class LlmConfigResponse(BaseModel):
     base_url: str
     model_name: str
     description: Optional[str] = None
-    role: LlmRole
+    role: str  # 使用字符串而不是枚举
     is_default: bool
-
+    
     class Config:
         orm_mode = True
 
@@ -69,10 +70,11 @@ class TaskCreate(BaseModel):
 class TaskResponse(BaseModel):
     id: int
     content: str
-    processing_mode: ProcessingMode
+    processing_mode: str  # 使用字符串而不是枚举
     status: str
-    created_at: str
     prompt_id: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -87,7 +89,6 @@ class TaskResultResponse(BaseModel):
     hidden_intent_index: Optional[float] = None
     credibility_score: Optional[float] = None
     is_review_result: bool
-    created_at: str
     raw_response: Optional[str] = None
 
     class Config:
@@ -100,7 +101,6 @@ class PromptResponse(BaseModel):
     model_target: Optional[str] = None
     description: Optional[str] = None
     is_active: bool
-    created_at: str
     content: Optional[str] = None
 
     class Config:
@@ -121,7 +121,9 @@ def create_llm(llm_config: LlmConfigCreate, session: Session = Depends(get_db)):
         role=llm_config.role,
         is_default=llm_config.is_default
     )
-    return new_llm
+    
+    # 使用to_dict方法
+    return new_llm.to_dict()
 
 
 @router.get("/llms", response_model=List[LlmConfigResponse])
@@ -136,7 +138,10 @@ def get_llms(
         query = query.filter(LlmConfig.role == role)
     if is_default is not None:
         query = query.filter(LlmConfig.is_default == is_default)
-    return query.all()
+    
+    # 获取查询结果并使用to_dict转换
+    results = query.all()
+    return [item.to_dict() for item in results]
 
 
 @router.get("/llms/{llm_id}", response_model=LlmConfigResponse)
@@ -145,7 +150,9 @@ def get_llm(llm_id: int, session: Session = Depends(get_db)):
     llm = session.query(LlmConfig).filter(LlmConfig.id == llm_id).first()
     if not llm:
         raise HTTPException(status_code=404, detail="LLM配置不存在")
-    return llm
+    
+    # 使用to_dict方法
+    return llm.to_dict()
 
 
 @router.put("/llms/{llm_id}", response_model=LlmConfigResponse)
@@ -156,7 +163,9 @@ def update_llm(llm_id: int, llm_config: LlmConfigUpdate, session: Session = Depe
     updated_llm = llm_manager.update_llm(llm_id, **update_data)
     if not updated_llm:
         raise HTTPException(status_code=404, detail="LLM配置不存在")
-    return updated_llm
+    
+    # 使用to_dict方法
+    return updated_llm.to_dict()
 
 
 @router.delete("/llms/{llm_id}")
@@ -217,7 +226,12 @@ def get_tasks(
     query = session.query(Task)
     if status:
         query = query.filter(Task.status == status)
-    return query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 获取查询结果
+    results = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 使用to_dict转换
+    return [task.to_dict() for task in results]
 
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
@@ -226,7 +240,7 @@ def get_task(task_id: int, session: Session = Depends(get_db)):
     task = session.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
-    return task
+    return task.to_dict()
 
 
 @router.get("/tasks/{task_id}/results", response_model=List[TaskResultResponse])
@@ -242,12 +256,8 @@ def get_task_results(
 
     results = session.query(TaskResult).filter(TaskResult.task_id == task_id).all()
     
-    # 如果不包含原始响应，清空raw_response字段
-    if not include_raw_response:
-        for result in results:
-            result.raw_response = None
-            
-    return results
+    # 使用to_dict方法转换，并控制是否包含原始响应
+    return [r.to_dict(include_raw_response=include_raw_response) for r in results]
 
 
 @router.get("/tasks/{task_id}/final-result", response_model=TaskResultResponse)
@@ -263,9 +273,7 @@ def get_task_final_result(
     
     if task.final_result_id:
         final_result = session.query(TaskResult).filter(TaskResult.id == task.final_result_id).first()
-        if not include_raw_response:
-            final_result.raw_response = None
-        return final_result
+        return final_result.to_dict(include_raw_response=include_raw_response)
     
     # 如果没有最终结果但任务已完成，查找是否有评议结果
     if task.status == "completed":
@@ -275,11 +283,39 @@ def get_task_final_result(
         ).first()
         
         if review_result:
-            if not include_raw_response:
-                review_result.raw_response = None
-            return review_result
+            return review_result.to_dict(include_raw_response=include_raw_response)
     
     raise HTTPException(status_code=404, detail="任务最终结果不存在")
+
+
+# 配置路由
+@router.post("/config/export")
+def export_config():
+    """导出LLM配置到配置文件"""
+    from acolyte.core.llm.config import export_llm_config_to_file
+    success = export_llm_config_to_file()
+    if success:
+        return {"status": "success", "message": "配置已成功导出到文件"}
+    else:
+        raise HTTPException(status_code=500, detail="导出配置文件失败")
+
+
+@router.post("/config/import")
+def import_config(name: Optional[str] = None):
+    """从配置文件导入LLM配置"""
+    from acolyte.core.llm.config import import_llm_config_from_file
+    try:
+        imported_llms = import_llm_config_from_file(name, verbose=False)
+        if imported_llms:
+            return {
+                "status": "success", 
+                "message": f"已导入 {len(imported_llms)} 个LLM配置",
+                "llms": imported_llms
+            }
+        else:
+            return {"status": "warning", "message": "未导入任何LLM配置"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"导入配置失败: {str(e)}")
 
 
 # Prompt路由
@@ -295,7 +331,10 @@ def get_prompts(
         query = query.filter(Prompt.model_target == model_target)
     if active_only:
         query = query.filter(Prompt.is_active == True)
-    return query.order_by(Prompt.version.desc()).all()
+    
+    # 获取查询结果并使用to_dict转换
+    results = query.order_by(Prompt.version.desc()).all()
+    return [item.to_dict(include_content=False) for item in results]
 
 
 @router.get("/prompts/{prompt_id}", response_model=PromptResponse)
@@ -314,11 +353,8 @@ def get_prompt(prompt_id: int, include_content: bool = True, session: Session = 
     if not prompt:
         raise HTTPException(status_code=404, detail="Prompt不存在")
     
-    # 如果不包含内容，将content置为None
-    if not include_content:
-        prompt.content = None
-        
-    return prompt
+    # 使用to_dict方法，指定是否包含内容
+    return prompt.to_dict(include_content=include_content)
 
 
 @router.get("/prompts/{prompt_id}/content")

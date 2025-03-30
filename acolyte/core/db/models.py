@@ -68,6 +68,21 @@ class LlmConfig(Base):
         back_populates="llm_configs"
     )
     reviewer_votes = relationship("ReviewerVote", back_populates="reviewer")
+    
+    def to_dict(self):
+        """转换为字典，不包含关系和日期"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "api_key": self.api_key,
+            "base_url": self.base_url,
+            "model_name": self.model_name,
+            "role": self.role.value,
+            "is_default": self.is_default,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
 
 
 class Prompt(Base):
@@ -86,6 +101,21 @@ class Prompt(Base):
 
     # 关系
     tasks = relationship("Task", back_populates="prompt")
+    
+    def to_dict(self, include_content=False):
+        """转换为字典，不包含关系和日期"""
+        result = {
+            "id": self.id,
+            "version": self.version,
+            "model_target": self.model_target,
+            "description": self.description,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+        if include_content:
+            result["content"] = self.content
+        return result
 
 
 class TaskResult(Base):
@@ -107,6 +137,23 @@ class TaskResult(Base):
     # 关系 - 延迟定义Task关联
     llm_config = relationship("LlmConfig", back_populates="task_results")
     votes = relationship("ReviewerVote", back_populates="voted_result")
+    
+    def to_dict(self, include_raw_response=False):
+        """转换为字典，不包含关系和日期"""
+        result = {
+            "id": self.id,
+            "task_id": self.task_id,
+            "llm_id": self.llm_id,
+            "bias_index": self.bias_index,
+            "misleading_index": self.misleading_index,
+            "hidden_intent_index": self.hidden_intent_index,
+            "credibility_score": self.credibility_score,
+            "is_review_result": self.is_review_result,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+        if include_raw_response:
+            result["raw_response"] = self.raw_response
+        return result
 
 
 class Task(Base):
@@ -132,6 +179,21 @@ class Task(Base):
         back_populates="tasks"
     )
     reviewer_votes = relationship("ReviewerVote", back_populates="task")
+    
+    def to_dict(self, include_content=True):
+        """转换为字典，不包含关系和日期"""
+        result = {
+            "id": self.id,
+            "processing_mode": self.processing_mode.value,
+            "status": self.status.value,
+            "prompt_id": self.prompt_id,
+            "final_result_id": self.final_result_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+        if include_content:
+            result["content"] = self.content
+        return result
 
 
 # 添加延迟定义的Task关系到TaskResult

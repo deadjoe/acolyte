@@ -50,26 +50,39 @@ def get_config_path() -> Path:
     return default_path
 
 
-def load_config() -> AppConfig:
-    """加载配置"""
+def load_config(verbose=False) -> AppConfig:
+    """加载配置
+    
+    Args:
+        verbose: 是否输出详细日志
+    
+    Returns:
+        应用配置对象
+    """
     config_path = get_config_path()
-    print(f"从 {config_path} 加载配置")
+    if verbose:
+        print(f"从 {config_path} 加载配置")
     
     if config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-                print(f"配置文件内容: {json.dumps(config_data, ensure_ascii=False, indent=2)[:200]}...")
+                if verbose:
+                    print(f"配置文件内容: {json.dumps(config_data, ensure_ascii=False, indent=2)[:200]}...")
                 config_obj = AppConfig(**config_data)
-                print(f"配置加载完成，包含 {len(config_obj.llm_configs)} 个LLM配置")
+                if verbose:
+                    print(f"配置加载完成，包含 {len(config_obj.llm_configs)} 个LLM配置")
                 return config_obj
         except Exception as e:
-            print(f"加载配置文件失败: {e}")
+            if verbose:
+                print(f"加载配置文件失败: {e}")
     else:
-        print(f"配置文件 {config_path} 不存在")
+        if verbose:
+            print(f"配置文件 {config_path} 不存在")
     
     # 返回默认配置
-    print("返回默认配置")
+    if verbose:
+        print("返回默认配置")
     return AppConfig()
 
 
@@ -90,4 +103,4 @@ def save_config(config: AppConfig) -> bool:
 
 
 # 提供全局配置实例
-config = load_config()
+config = load_config(verbose=False)
