@@ -25,6 +25,8 @@ def main():
             print(f"描述: {prompt.description}")
             print(f"文件路径: {prompt.file_path}")
             print(f"内容长度: {len(prompt.content) if prompt.content else 0} 字符")
+            print(f"创建时间: {prompt.created_at}")
+            print(f"是否激活: {prompt.is_active}")
             print("-" * 40)
 
 

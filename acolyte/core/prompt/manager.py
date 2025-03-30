@@ -23,23 +23,29 @@ class PromptManager:
         if prompt_dir is None:
             # 获取当前文件所在目录
             current_dir = Path(__file__).resolve().parent
-            # 打印当前目录
             print(f"当前目录: {current_dir}")
             
-            # 向上查找到项目根目录
+            # 向上查找，回到上层直到找到项目根目录
             root_dir = current_dir
             
-            # 查找到项目根目录
-            while not (root_dir / "prompt").exists() and root_dir != root_dir.parent:
+            # 向上一级一级查找直到找到包含prompt目录的目录
+            while root_dir != root_dir.parent:
+                # 如果当前目录包含prompt目录，就停止查找
+                if (root_dir.parent / "prompt").exists():
+                    root_dir = root_dir.parent
+                    break
+                # 否则继续向上查找
                 root_dir = root_dir.parent
                 print(f"向上查找: {root_dir}")
-                
+            
+            # 检查项目根目录下是否存在prompt目录
             if (root_dir / "prompt").exists():
                 print(f"找到prompt目录: {root_dir / 'prompt'}")
+                prompt_dir = str(root_dir / "prompt")
             else:
                 print(f"未找到prompt目录，使用默认目录")
-                
-            prompt_dir = str(root_dir / "prompt")
+                prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
+            
             print(f"最终prompt目录: {prompt_dir}")
 
         self.prompt_dir = prompt_dir
