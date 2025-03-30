@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="Acolyte Logo" width="200"/>
+</p>
+
 # Acolyte
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
