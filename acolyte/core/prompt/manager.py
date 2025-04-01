@@ -8,6 +8,10 @@ from typing import Dict, List, Optional
 
 from acolyte.core.db.database import db
 from acolyte.core.db.models import Prompt
+from acolyte.utils.logging import get_logger
+
+# 获取模块日志记录器
+logger = get_logger(__name__)
 
 
 class PromptManager:
@@ -19,11 +23,13 @@ class PromptManager:
         Args:
             prompt_dir: prompt模板目录路径，默认为项目根目录下的prompt目录
         """
+        logger.info("初始化Prompt管理器")
+        
         # 默认使用项目根目录下的prompt目录
         if prompt_dir is None:
             # 获取当前文件所在目录
             current_dir = Path(__file__).resolve().parent
-            print(f"当前目录: {current_dir}")
+            logger.debug(f"当前目录: {current_dir}")
             
             # 向上查找，回到上层直到找到项目根目录
             root_dir = current_dir
@@ -36,17 +42,17 @@ class PromptManager:
                     break
                 # 否则继续向上查找
                 root_dir = root_dir.parent
-                print(f"向上查找: {root_dir}")
+                logger.debug(f"向上查找: {root_dir}")
             
             # 检查项目根目录下是否存在prompt目录
             if (root_dir / "prompt").exists():
-                print(f"找到prompt目录: {root_dir / 'prompt'}")
+                logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
                 prompt_dir = str(root_dir / "prompt")
             else:
-                print(f"未找到prompt目录，使用默认目录")
+                logger.warning(f"未找到prompt目录，将使用默认目录并尝试创建")
                 prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
             
-            print(f"最终prompt目录: {prompt_dir}")
+            logger.info(f"最终选择的prompt目录: {prompt_dir}")
 
         self.prompt_dir = prompt_dir
         self._ensure_prompt_dir_exists()
@@ -66,15 +72,16 @@ class PromptManager:
             r"bias-detection-prompt_v(\d+(?:\.\d+)*)(?:_([a-zA-Z0-9]+))?\.md"
         )
 
-        print(f"扫描prompt目录: {self.prompt_dir}")
+        logger.info(f"扫描prompt目录: {self.prompt_dir}")
         all_files = list(Path(self.prompt_dir).glob("*.md"))
-        print(f"找到 {len(all_files)} 个MD文件: {[f.name for f in all_files]}")
+        logger.info(f"找到 {len(all_files)} 个MD文件")
+        logger.debug(f"文件列表: {[f.name for f in all_files]}")
 
         for file in all_files:
-            print(f"处理文件: {file.name}")
+            logger.debug(f"处理文件: {file.name}")
             match = prompt_pattern.match(file.name)
             if match:
-                print(f"  - 正则匹配成功: {file.name}")
+                logger.debug(f"正则匹配成功: {file.name}")
                 version = match.group(1)
                 model_target = match.group(2) or "general"
                 prompt_files.append({
@@ -83,8 +90,9 @@ class PromptManager:
                     "version": version,
                     "model_target": model_target,
                 })
+                logger.info(f"解析prompt: {file.name}, 版本: {version}, 目标: {model_target}")
             elif file.name == "bias-detection-prompt_v3.md":
-                print(f"  - 特殊格式匹配: {file.name}")
+                logger.debug(f"特殊格式匹配: {file.name}")
                 # Special case for the v3 prompt with different naming format
                 prompt_files.append({
                     "path": str(file),
@@ -92,47 +100,64 @@ class PromptManager:
                     "version": "3.0",
                     "model_target": "claude",
                 })
+                logger.info(f"解析特殊prompt: {file.name}, 版本: 3.0, 目标: claude")
 
         # 按版本号排序，最新版本优先
         prompt_files.sort(key=lambda x: [int(p) for p in x["version"].split(".")], reverse=True)
+        logger.debug(f"排序后的prompt列表: {[p['filename'] for p in prompt_files]}")
         return prompt_files
 
     def sync_prompt_files_to_db(self):
         """将prompt文件同步到数据库"""
         prompt_files = self.scan_prompt_files()
-        print(f"找到 {len(prompt_files)} 个prompt文件需要同步")
+        logger.info(f"找到 {len(prompt_files)} 个prompt文件需要同步")
 
-        with db.session_scope() as session:
-            for prompt_info in prompt_files:
-                print(f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}")
-                # 检查是否已存在
-                existing_prompt = session.query(Prompt).filter_by(
-                    version=prompt_info["version"],
-                    model_target=prompt_info["model_target"]
-                ).first()
+        try:
+            with db.session_scope() as session:
+                for prompt_info in prompt_files:
+                    logger.info(f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}")
+                    
+                    try:
+                        # 检查是否已存在
+                        existing_prompt = session.query(Prompt).filter_by(
+                            version=prompt_info["version"],
+                            model_target=prompt_info["model_target"]
+                        ).first()
 
-                # 读取文件内容
-                with open(prompt_info["path"], "r", encoding="utf-8") as f:
-                    content = f.read()
-                    print(f"  - 读取文件内容: {len(content)} 字符")
+                        # 读取文件内容
+                        try:
+                            with open(prompt_info["path"], "r", encoding="utf-8") as f:
+                                content = f.read()
+                                logger.debug(f"读取文件内容: {len(content)} 字符")
+                        except Exception as e:
+                            logger.error(f"读取文件 {prompt_info['path']} 失败: {str(e)}", exc_info=True)
+                            continue
 
-                if existing_prompt:
-                    print(f"  - 更新已有prompt记录 (ID: {existing_prompt.id})")
-                    # 更新已有记录
-                    existing_prompt.content = content
-                    existing_prompt.file_path = prompt_info["path"]
-                else:
-                    print(f"  - 创建新prompt记录")
-                    # 创建新记录
-                    new_prompt = Prompt(
-                        version=prompt_info["version"],
-                        model_target=prompt_info["model_target"],
-                        content=content,
-                        file_path=prompt_info["path"],
-                        description=f"Bias detection prompt v{prompt_info['version']} "
-                                   f"for {prompt_info['model_target']}"
-                    )
-                    session.add(new_prompt)
+                        if existing_prompt:
+                            logger.info(f"更新已有prompt记录 (ID: {existing_prompt.id})")
+                            # 更新已有记录
+                            existing_prompt.content = content
+                            existing_prompt.file_path = prompt_info["path"]
+                        else:
+                            logger.info(f"创建新prompt记录")
+                            # 创建新记录
+                            new_prompt = Prompt(
+                                version=prompt_info["version"],
+                                model_target=prompt_info["model_target"],
+                                content=content,
+                                file_path=prompt_info["path"],
+                                description=f"Bias detection prompt v{prompt_info['version']} "
+                                           f"for {prompt_info['model_target']}"
+                            )
+                            session.add(new_prompt)
+                    except Exception as e:
+                        logger.error(f"处理prompt {prompt_info['filename']} 时发生错误: {str(e)}", exc_info=True)
+            
+            logger.info("Prompt同步完成")
+            return True
+        except Exception as e:
+            logger.error(f"同步prompt文件到数据库失败: {str(e)}", exc_info=True)
+            return False
 
     def get_latest_prompt(self, model_target: str = None) -> Optional[Prompt]:
         """获取最新版本的prompt

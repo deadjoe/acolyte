@@ -14,86 +14,106 @@
 [![Package Manager: uv](https://img.shields.io/badge/Package%20Manager-uv-purple)](https://github.com/astral-sh/uv)
 [![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red)]()
 
-Acolyte是一个内容分析评估系统，支持通过Web界面、CLI和API三种方式提交内容，由单个或多个LLM进行分析评估，特别关注内容的偏见、误导性和隐藏意图等方面。
+Acolyte is a content analysis and evaluation system that supports content submission through Web interface, CLI, and API. The system analyzes content using single or multiple LLMs, with a special focus on detecting bias, misleading content, and hidden intent in text.
 
-## 功能特点
+## Key Features
 
-- 支持Web、CLI和API三种使用方式
-- 支持单个或多个LLM同时评估内容
-- 提供多LLM评议汇总功能
-- 保存历史任务记录
-- 支持多种LLM供应商（Anthropic Claude、OpenAI、Google Gemini）
-- 支持LLM配置管理
-- 基于评估框架的内容分析
-- 内容分析包括偏见检测、误导性内容检测和隐藏意图检测
-- 提供量化评分系统，包括偏见指数、误导性指数、隐藏意图指数和综合可信度分数
+- Three access methods: Web interface, CLI, and API
+- Support for evaluation using single or multiple LLMs simultaneously
+- Multi-LLM review aggregation functionality
+- Historical task record storage and retrieval
+- Support for multiple LLM providers (Anthropic Claude, OpenAI, Google Gemini)
+- LLM configuration management
+- Framework-based content analysis
+- Content analysis including bias detection, misleading content detection, and hidden intent detection
+- Quantitative scoring system with bias index, misleading index, hidden intent index, and overall credibility score
+- Comprehensive logging system with configurable levels and output destinations
 
-## 安装
+## Installation
 
-使用uv创建虚拟环境并安装依赖：
+Create a virtual environment and install dependencies using uv:
 
 ```bash
-# 创建虚拟环境
+# Create virtual environment
 uv venv
 
-# 安装依赖
+# Install dependencies
 uv pip install -r requirements.txt
 
-# 开发模式安装
+# Install in development mode
 uv pip install -e .
 ```
 
-## 使用方法
+## Usage
 
-### 启动API服务
+### Starting the API Service
 
 ```bash
+# Basic start
 uv run -m acolyte.main
+
+# Start with custom log level
+ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.main
+
+# Enable file logging
+ACOLYTE_LOG_TO_FILE=1 uv run -m acolyte.main
+
+# Specify log directory
+ACOLYTE_LOG_DIR=/path/to/logs ACOLYTE_LOG_TO_FILE=1 uv run -m acolyte.main
+
+# Specify custom port
+ACOLYTE_PORT=8080 uv run -m acolyte.main
 ```
 
-### 使用CLI工具
+### Using the CLI Tool
 
 ```bash
-# 分析内容
+# Analyze content
 uv run -m acolyte.cli.main analyze content.txt --mode=single
 
-# 使用配置文件中指定的LLM
+# Use a specific LLM from the configuration file
 uv run -m acolyte.cli.main analyze content.txt --llm-config "Claude-3"
 
-# 查看历史记录
-uv run -m acolyte.cli.main history --limit=5
+# Use multiple LLMs with review
+uv run -m acolyte.cli.main analyze content.txt --mode=multiple_with_review --llm 1 --llm 2
 
-# 显示特定任务结果
+# View history
+uv run -m acolyte.cli.main history list --limit=5
+
+# Show specific task results
 uv run -m acolyte.cli.main show 123 --raw
 
-# 添加LLM配置
+# Add LLM configuration
 uv run -m acolyte.cli.main config add-llm -n "Claude-3" -k "your-api-key" -u "https://api.anthropic.com" -m "claude-3-opus-20240229"
 
-# 导出LLM配置到文件
+# Export LLM configuration to file
 uv run -m acolyte.cli.main config export-config
 
-# 从配置文件导入LLM配置
+# Import LLM configuration from file
 uv run -m acolyte.cli.main config import-config --name "Claude-3"
 
-# 列出LLM配置
+# List LLM configurations
 uv run -m acolyte.cli.main config list-llms
 
-# 列出Prompt配置
+# List Prompt configurations
 uv run -m acolyte.cli.main config list-prompts
 
-# 显示特定Prompt内容
+# Show specific Prompt content
 uv run -m acolyte.cli.main config show-prompt 1
 
-# 同步Prompt文件
+# Synchronize Prompt files
 uv run -m acolyte.cli.main config sync-prompts
 
-# 删除LLM配置
+# Delete LLM configuration
 uv run -m acolyte.cli.main config delete-llm 1
+
+# Set log level for CLI operations
+ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.cli.main analyze content.txt
 ```
 
-### 配置文件
+### Configuration File
 
-配置文件默认位于 `~/.config/acolyte/config.json`，可以通过环境变量 `ACOLYTE_CONFIG_PATH` 指定其他位置。配置文件示例：
+The configuration file is located by default at `~/.config/acolyte/config.json`, and you can specify another location through the environment variable `ACOLYTE_CONFIG_PATH`. Configuration file example:
 
 ```json
 {

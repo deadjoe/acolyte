@@ -8,6 +8,11 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from acolyte.utils.logging import get_logger
+
+# 获取配置模块的日志记录器
+logger = get_logger("acolyte.config")
+
 
 class LlmConfigModel(BaseModel):
     """LLM配置模型"""
@@ -60,45 +65,47 @@ def load_config(verbose=False) -> AppConfig:
         应用配置对象
     """
     config_path = get_config_path()
-    if verbose:
-        print(f"从 {config_path} 加载配置")
+    logger.info(f"从 {config_path} 加载配置")
     
     if config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-                if verbose:
-                    print(f"配置文件内容: {json.dumps(config_data, ensure_ascii=False, indent=2)[:200]}...")
+                logger.debug(f"配置文件加载成功: {len(str(config_data))} 字节")
+                
+                # 尝试解析成配置对象
                 config_obj = AppConfig(**config_data)
-                if verbose:
-                    print(f"配置加载完成，包含 {len(config_obj.llm_configs)} 个LLM配置")
+                logger.info(f"配置加载完成，包含 {len(config_obj.llm_configs)} 个LLM配置")
                 return config_obj
         except Exception as e:
-            if verbose:
-                print(f"加载配置文件失败: {e}")
+            logger.error(f"加载配置文件失败: {str(e)}", exc_info=True)
     else:
-        if verbose:
-            print(f"配置文件 {config_path} 不存在")
+        logger.warning(f"配置文件 {config_path} 不存在，将使用默认配置")
     
     # 返回默认配置
-    if verbose:
-        print("返回默认配置")
+    logger.info("返回默认配置")
     return AppConfig()
 
 
 def save_config(config: AppConfig) -> bool:
     """保存配置"""
     config_path = get_config_path()
+    logger.info(f"保存配置到 {config_path}")
     
     try:
         # 确保目录存在
         config_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.debug(f"确保配置目录存在: {config_path.parent}")
         
+        # 将配置序列化为JSON并写入文件
+        json_data = config.model_dump_json(indent=2)
         with open(config_path, "w", encoding="utf-8") as f:
-            f.write(config.model_dump_json(indent=2))
+            f.write(json_data)
+        
+        logger.info(f"配置文件保存成功: {len(json_data)} 字节")
         return True
     except Exception as e:
-        print(f"保存配置文件失败: {e}")
+        logger.error(f"保存配置文件失败: {str(e)}", exc_info=True)
         return False
 
 

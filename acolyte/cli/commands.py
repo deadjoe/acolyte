@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import sys
+import traceback
 from typing import List, Optional
 
 import click
@@ -15,6 +16,11 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
+
+from acolyte.utils.logging import get_logger
+
+# 创建日志记录器
+logger = get_logger("acolyte.cli")
 
 # 创建控制台对象
 console = Console()
@@ -30,10 +36,12 @@ class AcolyteClient:
             base_url: API基础URL，默认从环境变量或配置文件获取
         """
         self.base_url = base_url or os.environ.get("ACOLYTE_API_URL", "http://localhost:8000/api")
+        logger.info(f"初始化API客户端: {self.base_url}")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=60.0)
 
     async def close(self):
         """关闭客户端连接"""
+        logger.debug("关闭API客户端连接")
         await self.client.aclose()
 
     async def analyze(self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None):
@@ -48,6 +56,9 @@ class AcolyteClient:
         Returns:
             任务响应
         """
+        logger.info(f"提交内容分析任务: 模式={mode}, 内容长度={len(content)}")
+        logger.debug(f"LLM IDs: {llm_ids}, Prompt ID: {prompt_id}")
+        
         data = {
             "content": content,
             "processing_mode": mode,
@@ -57,9 +68,18 @@ class AcolyteClient:
         if prompt_id:
             data["prompt_id"] = prompt_id
 
-        response = await self.client.post("/tasks", json=data)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = await self.client.post("/tasks", json=data)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"任务提交成功: ID={result.get('id')}")
+            return result
+        except httpx.HTTPStatusError as e:
+            logger.error(f"提交任务失败: 状态码={e.response.status_code}, 错误={e.response.text}", exc_info=True)
+            raise
+        except Exception as e:
+            logger.error(f"提交任务时发生异常: {str(e)}", exc_info=True)
+            raise
 
     async def get_task(self, task_id: int):
         """获取任务
@@ -192,6 +212,36 @@ class AcolyteClient:
         response = await self.client.get(f"/prompts/{prompt_id}")
         response.raise_for_status()
         return response.json()
+    
+    async def delete_task(self, task_id: int):
+        """删除特定任务
+        
+        Args:
+            task_id: 任务ID
+            
+        Returns:
+            删除结果
+        """
+        response = await self.client.delete(f"/tasks/{task_id}")
+        response.raise_for_status()
+        return response.json()
+    
+    async def clear_tasks(self, confirm: bool = False, status: str = None):
+        """清空所有任务
+        
+        Args:
+            confirm: 确认删除
+            status: 可选，按状态筛选
+            
+        Returns:
+            清空结果
+        """
+        params = {"confirm": confirm}
+        if status:
+            params["status"] = status
+        response = await self.client.delete("/tasks", params=params)
+        response.raise_for_status()
+        return response.json()
         
     async def export_config(self):
         """导出配置到文件
@@ -244,111 +294,200 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
     例如: acolyte analyze content.txt --mode=multiple
     """
     async def _analyze():
+        logger.info(f"启动内容分析: 模式={mode}, 等待结果={wait}")
+        logger.debug(f"参数: file={file}, llm={llm}, llm_config={llm_config}, prompt={prompt}")
+        
         client = AcolyteClient()
         try:
             # 获取内容
             content = ""
             if file:
-                with open(file, "r", encoding="utf-8") as f:
-                    content = f.read()
+                logger.info(f"从文件读取内容: {file}")
+                try:
+                    with open(file, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    logger.debug(f"读取文件成功: {len(content)} 字符")
+                except Exception as e:
+                    logger.error(f"读取文件失败: {str(e)}", exc_info=True)
+                    console.print(f"[bold red]错误:[/] 读取文件 '{file}' 失败: {str(e)}")
+                    return
             elif text:
+                logger.info("使用直接提供的文本内容")
                 content = text
             else:
                 # 从标准输入读取
                 if not sys.stdin.isatty():
+                    logger.info("从标准输入读取内容")
                     content = sys.stdin.read()
                 else:
+                    logger.error("未提供任何内容来源")
                     console.print("[bold red]错误:[/] 必须提供文件、文本或通过管道输入内容")
                     return
+                    
+            if not content.strip():
+                logger.error("内容为空")
+                console.print("[bold red]错误:[/] 内容不能为空")
+                return
 
-            # 如果指定了配置文件中的LLM名称，导入它
-            llm_ids = list(llm)
+            # 获取LLM ID列表
+            llm_ids = list(llm) if llm else []
             if llm_config:
                 # 导入配置
+                logger.info(f"尝试从配置文件导入LLM: {llm_config}")
                 with console.status(f"[bold green]从配置导入LLM {llm_config}...[/]"):
-                    result = await client.import_config(llm_config)
-                    
-                if result["status"] == "success" and "llms" in result:
-                    # 添加到ID列表
-                    for imported_llm in result["llms"]:
-                        llm_ids.append(imported_llm["id"])
-                    console.print(f"[bold green]已导入LLM配置: {llm_config}[/]")
-                else:
-                    console.print(f"[bold yellow]警告:[/] 未找到名为 {llm_config} 的LLM配置")
+                    try:
+                        result = await client.import_config(llm_config)
+                        
+                        if result["status"] == "success" and "llms" in result:
+                            # 添加到ID列表
+                            for imported_llm in result["llms"]:
+                                llm_ids.append(imported_llm["id"])
+                            logger.info(f"成功导入LLM: {llm_config}, ID: {llm_ids}")
+                            console.print(f"[bold green]已导入LLM配置: {llm_config}[/]")
+                        else:
+                            logger.warning(f"未找到名为 {llm_config} 的LLM配置")
+                            console.print(f"[bold yellow]警告:[/] 未找到名为 {llm_config} 的LLM配置")
+                    except Exception as e:
+                        logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
+                        console.print(f"[bold red]导入LLM配置失败:[/] {str(e)}")
+                        return
 
             # 显示处理中
-            with console.status("[bold green]提交任务中...[/]"):
-                task = await client.analyze(content, mode, llm_ids if llm_ids else None, prompt)
-                task_id = task["id"]
-                console.print(f"[bold green]任务已提交[/] - ID: {task_id}")
+            logger.info(f"提交任务: 模式={mode}, LLM IDs={llm_ids}, Prompt ID={prompt}")
+            try:
+                with console.status("[bold green]提交任务中...[/]"):
+                    task = await client.analyze(content, mode, llm_ids if llm_ids else None, prompt)
+                    task_id = task["id"]
+                    logger.info(f"任务已提交: ID={task_id}")
+                    console.print(f"[bold green]任务已提交[/] - ID: {task_id}")
+            except Exception as e:
+                logger.error(f"提交任务失败: {str(e)}", exc_info=True)
+                console.print(f"[bold red]提交任务失败:[/] {str(e)}")
+                return
 
             # 等待任务完成
             if wait:
+                logger.info(f"等待任务 {task_id} 完成")
                 task_status = task["status"]
                 with Progress() as progress:
                     task_progress = progress.add_task("[cyan]处理中...", total=None)
+                    status_check_count = 0
                     while task_status not in ["completed", "failed"]:
                         await asyncio.sleep(2)
-                        task_info = await client.get_task(task_id)
-                        task_status = task_info["status"]
+                        status_check_count += 1
+                        try:
+                            task_info = await client.get_task(task_id)
+                            task_status = task_info["status"]
+                            logger.debug(f"任务状态检查 #{status_check_count}: {task_status}")
+                        except Exception as e:
+                            logger.error(f"获取任务状态失败: {str(e)}", exc_info=True)
+                            console.print(f"[bold red]获取任务状态失败:[/] {str(e)}")
+                            break
 
                 # 获取结果
                 if task_status == "completed":
+                    logger.info(f"任务 {task_id} 已完成，尝试获取最终结果")
                     try:
                         final_result = await client.get_task_final_result(task_id)
+                        logger.info("成功获取任务最终结果")
                         # 显示结果
                         _display_result(final_result)
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 404:
+                            logger.warning(f"任务 {task_id} 无最终结果，尝试获取所有结果")
                             # 获取所有结果
-                            results = await client.get_task_results(task_id, include_raw_response=True)
-                            console.print("[bold yellow]任务已完成，但无最终结果，显示所有结果:[/]")
-                            for i, result in enumerate(results, 1):
-                                console.print(f"\n[bold]结果 {i}:[/]")
-                                _display_result(result)
+                            try:
+                                results = await client.get_task_results(task_id, include_raw_response=True)
+                                logger.info(f"获取到 {len(results)} 个任务结果")
+                                console.print("[bold yellow]任务已完成，但无最终结果，显示所有结果:[/]")
+                                for i, result in enumerate(results, 1):
+                                    console.print(f"\n[bold]结果 {i}:[/]")
+                                    _display_result(result)
+                            except Exception as e2:
+                                logger.error(f"获取任务结果失败: {str(e2)}", exc_info=True)
+                                console.print(f"[bold red]获取任务结果失败:[/] {str(e2)}")
                         else:
-                            raise e
+                            logger.error(f"获取任务最终结果失败: 状态码={e.response.status_code}, 错误={e.response.text}", exc_info=True)
+                            console.print(f"[bold red]获取任务最终结果失败:[/] {str(e)}")
                 else:
+                    logger.error(f"任务 {task_id} 处理失败，最终状态: {task_status}")
                     console.print("[bold red]任务处理失败[/]")
+        except Exception as e:
+            logger.error(f"分析过程中发生异常: {str(e)}", exc_info=True)
+            console.print(f"[bold red]执行分析时发生错误:[/] {str(e)}")
         finally:
             await client.close()
 
     def _display_result(result):
         """显示任务结果"""
+        logger.debug(f"显示任务结果: ID={result.get('id', 'unknown')}")
+        
+        # 检查结果中的指标
+        missing_metrics = []
+        if result.get("bias_index") is None:
+            missing_metrics.append("bias_index")
+        if result.get("misleading_index") is None:
+            missing_metrics.append("misleading_index")
+        if result.get("hidden_intent_index") is None:
+            missing_metrics.append("hidden_intent_index")
+        if result.get("credibility_score") is None:
+            missing_metrics.append("credibility_score")
+            
+        if missing_metrics:
+            logger.warning(f"任务结果缺少部分指标: {', '.join(missing_metrics)}")
+        
         # 显示评分
         table = Table(title="分析评分")
         table.add_column("指标", style="cyan")
         table.add_column("分数", style="green")
         
         if result.get("bias_index") is not None:
-            table.add_row("偏见指数 (BI)", f"{result['bias_index']:.2f}")
+            bias_index = result["bias_index"]
+            table.add_row("偏见指数 (BI)", f"{bias_index:.2f}")
+            logger.info(f"偏见指数 (BI): {bias_index:.2f}")
         if result.get("misleading_index") is not None:
-            table.add_row("误导性指数 (MI)", f"{result['misleading_index']:.2f}")
+            misleading_index = result["misleading_index"]
+            table.add_row("误导性指数 (MI)", f"{misleading_index:.2f}")
+            logger.info(f"误导性指数 (MI): {misleading_index:.2f}")
         if result.get("hidden_intent_index") is not None:
-            table.add_row("隐藏意图指数 (HI)", f"{result['hidden_intent_index']:.2f}")
+            hidden_intent_index = result["hidden_intent_index"]
+            table.add_row("隐藏意图指数 (HI)", f"{hidden_intent_index:.2f}")
+            logger.info(f"隐藏意图指数 (HI): {hidden_intent_index:.2f}")
         if result.get("credibility_score") is not None:
-            table.add_row("综合可信度 (CS)", f"{result['credibility_score']:.2f}")
+            credibility_score = result["credibility_score"]
+            table.add_row("综合可信度 (CS)", f"{credibility_score:.2f}")
+            logger.info(f"综合可信度 (CS): {credibility_score:.2f}")
             
         console.print(table)
         
         # 显示原始响应
         if result.get("raw_response"):
+            has_raw_response = True
+            logger.debug("结果包含原始响应")
             console.print("\n[bold]详细分析:[/]")
             console.print(Markdown(result["raw_response"]))
+        else:
+            logger.debug("结果不包含原始响应")
 
     # 运行异步函数
     asyncio.run(_analyze())
 
 
-@cli.command()
+@cli.group()
+def history():
+    """历史任务记录管理"""
+    pass
+
+
+@history.command()
 @click.option("--status", "-s", help="按状态筛选")
 @click.option("--limit", "-l", type=int, default=10, help="显示数量限制")
-def history(status, limit):
+def list(status, limit):
     """查看历史任务记录
     
-    例如: acolyte history --status=completed --limit=5
+    例如: acolyte history list --status=completed --limit=5
     """
-    async def _history():
+    async def _list():
         client = AcolyteClient()
         try:
             # 构建API请求参数
@@ -386,7 +525,95 @@ def history(status, limit):
             await client.close()
             
     # 运行异步函数
-    asyncio.run(_history())
+    asyncio.run(_list())
+
+
+@history.command()
+@click.argument("task_id", type=int)
+def delete(task_id):
+    """删除特定任务
+    
+    例如: acolyte history delete 123
+    """
+    async def _delete():
+        client = AcolyteClient()
+        try:
+            # 先获取任务信息
+            try:
+                with console.status(f"[bold green]获取任务 {task_id} 信息...[/]"):
+                    task = await client.get_task(task_id)
+                
+                # 显示任务信息
+                console.print(Panel(
+                    f"ID: {task['id']}\n"
+                    f"处理模式: {task['processing_mode']}\n"
+                    f"状态: {task['status']}\n"
+                    f"创建时间: {task.get('created_at', '未知')}",
+                    title="将删除以下任务"
+                ))
+                
+                # 确认删除
+                confirm = click.confirm("确认删除?", default=False)
+                if not confirm:
+                    console.print("[bold yellow]已取消删除[/]")
+                    return
+                
+                # 执行删除
+                with console.status(f"[bold green]删除任务 {task_id}...[/]"):
+                    result = await client.delete_task(task_id)
+                
+                console.print(f"[bold green]{result['message']}[/]")
+                
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    console.print(f"[bold red]错误:[/] ID为{task_id}的任务不存在")
+                else:
+                    console.print(f"[bold red]错误:[/] {str(e)}")
+                    
+        finally:
+            await client.close()
+            
+    # 运行异步函数
+    asyncio.run(_delete())
+
+
+@history.command()
+@click.option("--status", "-s", help="可选，只清空特定状态的任务")
+@click.option("--force", "-f", is_flag=True, help="跳过确认直接执行")
+def clear(status, force):
+    """清空所有任务历史
+    
+    例如: acolyte history clear --status=failed
+    """
+    async def _clear():
+        client = AcolyteClient()
+        try:
+            # 提示确认
+            if status:
+                message = f"将清空所有[bold]{status}[/]状态的任务"
+            else:
+                message = "将清空[bold]所有[/]任务历史记录"
+            
+            console.print(f"[bold yellow]警告:[/] {message}")
+            
+            # 如果没有使用--force，请求用户确认
+            if not force and not click.confirm("确认清空?", default=False):
+                console.print("[bold yellow]已取消操作[/]")
+                return
+            
+            # 执行清空
+            with console.status("[bold green]清空任务历史中...[/]"):
+                result = await client.clear_tasks(confirm=True, status=status)
+            
+            console.print(f"[bold green]{result['message']}[/]")
+            
+        except httpx.HTTPStatusError as e:
+            console.print(f"[bold red]错误:[/] {e.response.json().get('detail', str(e))}")
+        finally:
+            await client.close()
+            
+    # 运行异步函数
+    asyncio.run(_clear())
 
 
 @cli.command()
@@ -559,10 +786,8 @@ def delete_llm(llm_id):
                 
                 console.print(f"[bold green]{result['message']}[/]")
                 
-                # 导出更新后的配置到文件
-                with console.status("[bold green]更新配置文件...[/]"):
-                    result = await client.export_config()
-                    console.print(f"[bold green]{result['message']}[/]")
+                # 提示用户可以手动导出配置
+                console.print("[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]")
                     
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
@@ -616,11 +841,9 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
             else:
                 console.print(f"[bold red]连接测试失败[/] - {test_result.get('message', '未知错误')}")
                 
-            # 导出配置
+            # 提示用户可以手动导出配置
             if save_to_config:
-                with console.status("[bold green]保存配置到文件...[/]"):
-                    result = await client.export_config()
-                    console.print(f"[bold green]{result['message']}[/]")
+                console.print("[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]")
                 
         finally:
             await client.close()
@@ -757,12 +980,19 @@ def show_prompt(prompt_id):
                 prompt = await client.get_prompt(prompt_id)
                 
             # 显示Prompt信息
-            console.print(Panel(
+            panel_content = (
                 f"ID: {prompt['id']}\n"
                 f"版本: {prompt['version']}\n"
                 f"目标模型: {prompt['model_target'] or '通用'}\n"
-                f"状态: {'激活' if prompt['is_active'] else '禁用'}\n"
-                f"创建时间: {prompt['created_at']}",
+                f"状态: {'激活' if prompt['is_active'] else '禁用'}"
+            )
+            
+            # 如果存在创建时间，显示它
+            if 'created_at' in prompt and prompt['created_at']:
+                panel_content += f"\n创建时间: {prompt['created_at']}"
+                
+            console.print(Panel(
+                panel_content,
                 title="Prompt信息"
             ))
             

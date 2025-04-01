@@ -3,11 +3,16 @@ LLM客户端实现
 """
 import json
 import time
+import traceback
 from typing import Any, Dict, Optional
 
 import requests
 
 from acolyte.core.db.models import LlmConfig
+from acolyte.utils.logging import get_logger
+
+# 获取模块日志记录器
+logger = get_logger(__name__)
 
 
 class LlmClient:
@@ -35,6 +40,7 @@ class LlmClient:
         Returns:
             处理结果字典
         """
+        logger.debug(f"{self.__class__.__name__} process_content调用: 内容长度={len(content)}字符, 提示词长度={len(prompt)}字符")
         raise NotImplementedError("子类必须实现此方法")
 
 
@@ -51,10 +57,12 @@ class AnthropicClient(LlmClient):
         Returns:
             处理结果字典，包含原始响应和解析后的结果
         """
+        logger.debug(f"Claude处理内容: 模型={self.model_name}, 内容长度={len(content)}字符")
         start_time = time.time()
 
         # 构建最终提示
         final_prompt = f"{prompt}\n\n要分析的文章：\n\n{content}"
+        logger.debug(f"最终提示长度: {len(final_prompt)}字符")
 
         # 构建API请求
         headers = {
@@ -80,6 +88,7 @@ class AnthropicClient(LlmClient):
             else:
                 url = f"{self.base_url}/v1/{endpoint}"
             
+            logger.info(f"发送请求到Anthropic API: {url}")
             response = requests.post(
                 url,
                 headers=headers,
@@ -88,17 +97,24 @@ class AnthropicClient(LlmClient):
             )
             response.raise_for_status()
             response_data = response.json()
+            logger.debug(f"收到Anthropic API响应: {len(str(response_data))}字符")
 
             # 提取响应内容
             raw_response = response_data["content"][0]["text"]
+            logger.debug(f"原始响应长度: {len(raw_response)}字符")
 
             # 解析响应提取评分
+            logger.debug("开始解析响应提取评分...")
             result = self._parse_response(raw_response)
+            logger.info(f"评分解析结果: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, "
+                      f"HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
 
             # 添加处理时间和元数据
-            result["processing_time"] = time.time() - start_time
+            elapsed_time = time.time() - start_time
+            result["processing_time"] = elapsed_time
             result["model"] = self.model_name
             result["llm_name"] = self.name
+            logger.info(f"处理完成: 耗时={elapsed_time:.2f}秒")
 
             return {
                 "success": True,
@@ -107,6 +123,8 @@ class AnthropicClient(LlmClient):
             }
 
         except Exception as e:
+            logger.error(f"API调用异常: {str(e)}")
+            logger.debug(f"异常详情: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),
@@ -123,6 +141,7 @@ class AnthropicClient(LlmClient):
         Returns:
             解析后的结果字典，包含评分和分析
         """
+        logger.debug("开始解析响应文本...")
         result = {
             "bias_index": None,
             "misleading_index": None,
@@ -140,44 +159,85 @@ class AnthropicClient(LlmClient):
         }
 
         try:
+            # 记录响应中是否包含关键标记
+            has_bi_marker = "偏见指数 (BI)" in response
+            has_mi_marker = "误导性指数 (MI)" in response
+            has_hi_marker = "隐藏意图指数 (HI)" in response
+            has_cs_marker = "综合可信度" in response
+            logger.debug(f"响应中的标记: BI={has_bi_marker}, MI={has_mi_marker}, "
+                        f"HI={has_hi_marker}, CS={has_cs_marker}")
+
+            # 提取前50行用于调试
+            first_lines = "\n".join(response.split("\n")[:50])
+            logger.debug(f"响应前50行:\n{first_lines}")
+
             # 提取量化评分部分
             if "偏见指数 (BI):" in response or "偏见指数 (BI)" in response:
                 bi_match = next((line for line in response.split("\n") 
                                 if "偏见指数" in line and "=" in line), None)
                 if bi_match:
-                    result["bias_index"] = float(bi_match.split("=")[1].strip())
+                    logger.debug(f"找到偏见指数行: {bi_match}")
+                    try:
+                        result["bias_index"] = float(bi_match.split("=")[1].strip())
+                        logger.debug(f"提取的偏见指数: {result['bias_index']}")
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"解析偏见指数失败: {str(e)}, 行: {bi_match}")
 
             if "误导性指数 (MI):" in response or "误导性指数 (MI)" in response:
                 mi_match = next((line for line in response.split("\n") 
                                 if "误导性指数" in line and "=" in line), None)
                 if mi_match:
-                    result["misleading_index"] = float(mi_match.split("=")[1].strip())
+                    logger.debug(f"找到误导性指数行: {mi_match}")
+                    try:
+                        result["misleading_index"] = float(mi_match.split("=")[1].strip())
+                        logger.debug(f"提取的误导性指数: {result['misleading_index']}")
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"解析误导性指数失败: {str(e)}, 行: {mi_match}")
 
             if "隐藏意图指数 (HI):" in response or "隐藏意图指数 (HI)" in response:
                 hi_match = next((line for line in response.split("\n") 
                                 if "隐藏意图指数" in line and "=" in line), None)
                 if hi_match:
-                    result["hidden_intent_index"] = float(hi_match.split("=")[1].strip())
+                    logger.debug(f"找到隐藏意图指数行: {hi_match}")
+                    try:
+                        result["hidden_intent_index"] = float(hi_match.split("=")[1].strip())
+                        logger.debug(f"提取的隐藏意图指数: {result['hidden_intent_index']}")
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"解析隐藏意图指数失败: {str(e)}, 行: {hi_match}")
 
             if "综合可信度 (CS):" in response or "综合可信度分数 (CS)" in response:
                 cs_match = next((line for line in response.split("\n") 
                                 if "综合可信度" in line and "=" in line), None)
                 if cs_match:
-                    result["credibility_score"] = float(cs_match.split("=")[1].strip())
+                    logger.debug(f"找到综合可信度行: {cs_match}")
+                    try:
+                        result["credibility_score"] = float(cs_match.split("=")[1].strip())
+                        logger.debug(f"提取的综合可信度: {result['credibility_score']}")
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"解析综合可信度失败: {str(e)}, 行: {cs_match}")
 
             # 提取分析前背景
+            logger.debug("开始提取分析前背景...")
             background_start = response.find("### 1. 分析前背景总结")
             if background_start != -1:
+                logger.debug(f"找到背景部分开始位置: {background_start}")
                 bias_start = response.find("### 2. 偏见检测发现", background_start)
                 if bias_start != -1:
                     background_text = response[background_start:bias_start].strip()
                     # 移除标题
                     background_text = background_text.replace("### 1. 分析前背景总结", "").strip()
                     result["analysis"]["background"] = background_text
+                    logger.debug(f"提取到背景内容，长度: {len(background_text)}字符")
+                else:
+                    logger.warning("未找到偏见检测发现部分，无法完整提取背景")
+            else:
+                logger.warning("未找到分析前背景部分")
 
             # 提取偏见发现
+            logger.debug("开始提取偏见发现...")
             bias_start = response.find("### 2. 偏见检测发现")
             if bias_start != -1:
+                logger.debug(f"找到偏见部分开始位置: {bias_start}")
                 misleading_start = response.find("### 3. 误导性内容检测", bias_start)
                 if misleading_start != -1:
                     bias_text = response[bias_start:misleading_start].strip()
@@ -185,10 +245,17 @@ class AnthropicClient(LlmClient):
                     bias_items = [line.strip() for line in bias_text.split("\n") 
                                 if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["bias_findings"] = bias_items
+                    logger.debug(f"提取到偏见发现项: {len(bias_items)}项")
+                else:
+                    logger.warning("未找到误导性内容检测部分，无法完整提取偏见发现")
+            else:
+                logger.warning("未找到偏见检测发现部分")
 
             # 提取误导性内容发现
+            logger.debug("开始提取误导性内容发现...")
             misleading_start = response.find("### 3. 误导性内容检测")
             if misleading_start != -1:
+                logger.debug(f"找到误导性内容部分开始位置: {misleading_start}")
                 hidden_intent_start = response.find("### 4. 隐藏意图检测", misleading_start)
                 if hidden_intent_start != -1:
                     misleading_text = response[misleading_start:hidden_intent_start].strip()
@@ -196,10 +263,17 @@ class AnthropicClient(LlmClient):
                     misleading_items = [line.strip() for line in misleading_text.split("\n") 
                                     if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["misleading_findings"] = misleading_items
+                    logger.debug(f"提取到误导性内容发现项: {len(misleading_items)}项")
+                else:
+                    logger.warning("未找到隐藏意图检测部分，无法完整提取误导性内容发现")
+            else:
+                logger.warning("未找到误导性内容检测部分")
 
             # 提取隐藏意图发现
+            logger.debug("开始提取隐藏意图发现...")
             hidden_intent_start = response.find("### 4. 隐藏意图检测")
             if hidden_intent_start != -1:
+                logger.debug(f"找到隐藏意图部分开始位置: {hidden_intent_start}")
                 overall_start = response.find("### 5. 整体评估", hidden_intent_start)
                 if overall_start != -1:
                     hidden_intent_text = response[hidden_intent_start:overall_start].strip()
@@ -207,37 +281,115 @@ class AnthropicClient(LlmClient):
                     hidden_intent_items = [line.strip() for line in hidden_intent_text.split("\n") 
                                         if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["hidden_intent_findings"] = hidden_intent_items
+                    logger.debug(f"提取到隐藏意图发现项: {len(hidden_intent_items)}项")
+                else:
+                    logger.warning("未找到整体评估部分，无法完整提取隐藏意图发现")
+            else:
+                logger.warning("未找到隐藏意图检测部分")
 
             # 提取整体评估
+            logger.debug("开始提取整体评估...")
             overall_start = response.find("### 5. 整体评估")
             if overall_start != -1:
+                logger.debug(f"找到整体评估部分开始位置: {overall_start}")
                 quantitative_start = response.find("### 6. 量化评分", overall_start)
                 if quantitative_start != -1:
                     overall_text = response[overall_start:quantitative_start].strip()
                     # 移除标题
                     overall_text = overall_text.replace("### 5. 整体评估", "").strip()
                     result["analysis"]["overall_assessment"] = overall_text
+                    logger.debug(f"提取到整体评估内容，长度: {len(overall_text)}字符")
+                else:
+                    logger.warning("未找到量化评分部分，无法完整提取整体评估")
+            else:
+                logger.warning("未找到整体评估部分")
 
             # 提取可信度分类
+            logger.debug("开始提取可信度分类...")
             if "可信度分类:" in response:
-                class_match = next((line for line in response.split("\n") 
-                                    if "可信度分类:" in line), None)
-                if class_match:
-                    result["analysis"]["credibility_classification"] = class_match.split(":")[1].strip()
+                logger.debug("响应中包含可信度分类标记")
+                try:
+                    class_match = next((line for line in response.split("\n") 
+                                      if "可信度分类:" in line), None)
+                    if class_match:
+                        result["analysis"]["credibility_classification"] = class_match.split(":")[1].strip()
+                        logger.debug(f"提取到可信度分类: {result['analysis']['credibility_classification']}")
+                    else:
+                        logger.warning("虽然找到可信度分类标记，但未能提取分类值")
+                except Exception as e:
+                    logger.warning(f"提取可信度分类时出错: {str(e)}")
+            else:
+                logger.warning("未找到可信度分类标记")
 
             # 提取分析局限性
+            logger.debug("开始提取分析局限性...")
             limitations_start = response.find("### 7. 分析局限与不确定性")
             if limitations_start != -1:
+                logger.debug(f"找到分析局限部分开始位置: {limitations_start}")
                 limitations_text = response[limitations_start:].strip()
                 # 提取列表项
                 limitations_items = [line.strip() for line in limitations_text.split("\n") 
-                                    if line.strip().startswith("-") or line.strip().startswith("*")]
+                                   if line.strip().startswith("-") or line.strip().startswith("*")]
                 result["analysis"]["limitations"] = limitations_items
+                logger.debug(f"提取到分析局限项: {len(limitations_items)}项")
+            else:
+                logger.warning("未找到分析局限与不确定性部分")
+
+            # 尝试提取更通用的格式
+            if result["bias_index"] is None or result["misleading_index"] is None or \
+               result["hidden_intent_index"] is None or result["credibility_score"] is None:
+                logger.info("使用备用方法尝试提取评分...")
+                
+                # 查找加权评分和最终分数部分
+                for line in response.split("\n"):
+                    line = line.strip()
+                    # 通用的提取模式
+                    if any(k in line.lower() for k in ["bias_index", "偏见指数", "加权bi"]) and "=" in line and result["bias_index"] is None:
+                        try:
+                            value = float(line.split("=")[1].strip())
+                            result["bias_index"] = value
+                            logger.info(f"备用方法提取偏见指数: {value}")
+                        except Exception as e:
+                            logger.warning(f"备用提取偏见指数失败: {str(e)}")
+                            
+                    if any(k in line.lower() for k in ["misleading_index", "误导性指数", "加权mi"]) and "=" in line and result["misleading_index"] is None:
+                        try:
+                            value = float(line.split("=")[1].strip())
+                            result["misleading_index"] = value
+                            logger.info(f"备用方法提取误导性指数: {value}")
+                        except Exception as e:
+                            logger.warning(f"备用提取误导性指数失败: {str(e)}")
+                            
+                    if any(k in line.lower() for k in ["hidden_intent_index", "隐藏意图指数", "加权hi"]) and "=" in line and result["hidden_intent_index"] is None:
+                        try:
+                            value = float(line.split("=")[1].strip())
+                            result["hidden_intent_index"] = value
+                            logger.info(f"备用方法提取隐藏意图指数: {value}")
+                        except Exception as e:
+                            logger.warning(f"备用提取隐藏意图指数失败: {str(e)}")
+                            
+                    if any(k in line.lower() for k in ["credibility_score", "综合可信度", "最终cs"]) and "=" in line and result["credibility_score"] is None:
+                        try:
+                            value = float(line.split("=")[1].strip())
+                            result["credibility_score"] = value
+                            logger.info(f"备用方法提取综合可信度: {value}")
+                        except Exception as e:
+                            logger.warning(f"备用提取综合可信度失败: {str(e)}")
 
         except Exception as e:
             # 如果解析失败，添加错误信息但返回原始响应
-            result["parse_error"] = str(e)
+            error_msg = str(e)
+            result["parse_error"] = error_msg
+            logger.error(f"解析响应时出现异常: {error_msg}")
+            logger.debug(f"异常详情: {traceback.format_exc()}")
 
+        # 记录最终结果
+        logger.info("解析结果汇总:")
+        logger.info(f"  偏见指数: {result['bias_index']}")
+        logger.info(f"  误导性指数: {result['misleading_index']}")
+        logger.info(f"  隐藏意图指数: {result['hidden_intent_index']}")
+        logger.info(f"  综合可信度: {result['credibility_score']}")
+        
         return result
 
 
