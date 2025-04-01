@@ -1,159 +1,159 @@
-# Acolyte Content Analysis System Design Document
+# Acolyte内容分析系统设计文档
 
-## 1. System Overview
-Acolyte is a content analysis and evaluation system focused on detecting bias, misleading content, and hidden intent in text. The system supports content submission through Web interface, CLI, and API, which is then analyzed by single or multiple LLMs. The system supports result aggregation, multi-LLM review, and history query functionality.
+## 1. 系统概述
+Acolyte是一个内容分析评估系统，专注于检测文本内容中的偏见、误导性和隐藏意图。系统支持通过Web界面、CLI和API三种方式提交内容，由单个或多个LLM进行分析评估。系统支持结果聚合、多LLM评议和历史记录查询功能。
 
-## 2. System Architecture
-The system adopts a front-end and back-end separation architecture:
-- **Backend**: Python-based API service using FastAPI
-- **Frontend**: Web interface based on Tailwind CSS and shadcn UI components
-- **CLI Client**: Command-line tool using Click and Rich for rich text display
-- **Storage**: SQLite database with SQLAlchemy ORM
-- **Logging**: Comprehensive unified logging system with multi-level support
+## 2. 系统架构
+系统采用前后端分离架构：
+- **后端**：基于Python的API服务，使用FastAPI
+- **前端**：基于Tailwind CSS和shadcn UI组件的Web界面
+- **CLI客户端**：使用Click和Rich实现富文本显示的命令行工具
+- **存储**：SQLite数据库与SQLAlchemy ORM
+- **日志**：全面的统一日志系统，支持多级别日志记录
 
-## 3. Core Function Modules
-### 3.1 LLM Management Module
-- LLM configuration management (name, API key, base URL, model name)
-- LLM connection testing
-- Default LLM settings
-- Reviewer role LLM settings
-- LLM status monitoring and error handling
+## 3. 核心功能模块
+### 3.1 LLM管理模块
+- LLM配置管理（名称、API密钥、基础URL、模型名称）
+- LLM连接测试
+- 默认LLM设置
+- 评议者角色LLM设置
+- LLM状态监控和错误处理
 
-### 3.2 Content Processing Module
-- Single LLM processing workflow
-- Multiple LLM parallel processing workflow
-- Multiple LLM review aggregation process
-  - Single reviewer mode: A designated reviewer processes all evaluation results
-  - Multiple reviewer voting mode: Multiple reviewers assess the results, with the most voted result being adopted
-- Prompt template management and version control
+### 3.2 内容处理模块
+- 单LLM处理流程
+- 多LLM并行处理流程
+- 多LLM评议汇总流程
+  - 单评议者模式：指定一个评议者处理所有评估结果
+  - 多评议者投票模式：多个评议者评估结果，采用投票最多的结果
+- 提示词模板管理和版本控制
 
-### 3.3 Task Management Module
-- Task creation and execution
-- Task status tracking
-- Historical task storage and query
-- Task result visualization
+### 3.3 任务管理模块
+- 任务创建和执行
+- 任务状态跟踪
+- 历史任务存储和查询
+- 任务结果可视化
 
-### 3.4 API Service Module
-- RESTful API interfaces
-- Multi-language support (Chinese by default, English optional)
-- Request/response logging
-- Error handling and reporting
+### 3.4 API服务模块
+- RESTful API接口
+- 多语言支持（默认中文，可选英文）
+- 请求/响应日志记录
+- 错误处理和报告
 
-### 3.5 Logging System
-- Unified logging module with configurable levels
-- Console and file-based logging outputs
-- Structured log format with contextual information
-- Component-specific logging integration
-- Diagnostic support for error analysis
+### 3.5 日志系统
+- 统一日志模块，具有可配置级别
+- 控制台和文件日志输出
+- 结构化日志格式与上下文信息
+- 组件特定日志集成
+- 错误分析诊断支持
 
-## 4. Database Design
-### 4.1 Table Structure
-- **llm_configs**: LLM configuration information (name, API key, base URL, model name, etc.)
-- **prompts**: Prompt templates (version, content, description, creation time, etc.)
-- **tasks**: Task records (ID, submission time, text content, processing method, status, etc.)
-- **task_results**: Task results (task ID, LLM ID, raw response, processed results, scores, etc.)
-- **task_llms**: Association between tasks and LLMs (task ID, LLM ID list, whether reviewer)
-- **reviewer_votes**: Reviewer voting records (task ID, reviewer ID, result ID voted for)
+## 4. 数据库设计
+### 4.1 表结构
+- **llm_configs**：LLM配置信息（名称、API密钥、基础URL、模型名称等）
+- **prompts**：提示词模板（版本、内容、描述、创建时间等）
+- **tasks**：任务记录（ID、提交时间、文本内容、处理方法、状态等）
+- **task_results**：任务结果（任务ID、LLM ID、原始响应、处理结果、分数等）
+- **task_llms**：任务与LLM的关联（任务ID、LLM ID列表、是否评议者）
+- **reviewer_votes**：评议者投票记录（任务ID、评议者ID、投票的结果ID）
 
-### 4.2 Database Relationships
-- One-to-many relationship between tasks and task_results
-- Many-to-many relationship between tasks and llm_configs (through task_llms)
-- One-to-many relationship between prompts and tasks
-- One-to-many relationship between llm_configs and task_results
+### 4.2 数据库关系
+- tasks与task_results的一对多关系
+- tasks与llm_configs通过task_llms的多对多关系
+- prompts与tasks的一对多关系
+- llm_configs与task_results的一对多关系
 
-## 5. Prompt Management Strategy
-### 5.1 Storage Methods
-- **File System**: Maintain the prompt directory as the primary storage for easy version control and direct editing
-- **Database Mirror**: Synchronize the latest prompt versions to the database for convenient API access
-- **Version Tracking**: Record different versions in the database to support historical version queries and rollbacks
-- **Model-Specific Prompts**: Support variant prompts optimized for specific LLM models
+## 5. 提示词管理策略
+### 5.1 存储方式
+- **文件系统**：维护prompt目录作为主存储，便于版本控制和直接编辑
+- **数据库镜像**：将最新版本同步到数据库中，便于API访问
+- **版本追踪**：在数据库中记录不同版本，支持历史版本查询和回滚
+- **模型特定提示词**：支持为特定LLM模型优化的变体提示词
 
-### 5.2 Prompt Loading Process
-1. Scan the prompt directory to get the latest versions during system startup
-2. Compare with database records and synchronize any updates to the database
-3. Prioritize reading from the database during runtime for efficient access
-4. Support special format detection (like the Claude-specific `_v3.md` format)
-5. Log all prompt loading and synchronization operations
+### 5.2 提示词加载流程
+1. 系统启动时扫描prompt目录，获取最新版本
+2. 与数据库记录比较，并将更新同步到数据库
+3. 运行时优先从数据库中读取，提高访问效率
+4. 支持特殊格式检测（如Claude特定的`_v3.md`格式）
+5. 记录所有提示词加载和同步操作
 
-## 6. Interface Design
-### 6.1 Web Interface
-- Content submission and processing method selection
-- LLM configuration management
-- Historical task query and result display
-- Multi-language support switching
-- Result visualization with metrics and charts
+## 6. 接口设计
+### 6.1 Web界面
+- 内容提交和处理方法选择
+- LLM配置管理
+- 历史任务查询和结果显示
+- 多语言支持切换
+- 结果可视化，包括指标和图表
 
-### 6.2 API Interface
-- `/api/tasks`: Create tasks, get task status and results
-- `/api/llms`: LLM configuration management
-- `/api/prompts`: Prompt template management
-- `/api/config`: System configuration management
-- `/api/tasks/{id}/results`: Get detailed analysis results for a specific task
+### 6.2 API接口
+- `/api/tasks`：创建任务、获取任务状态和结果
+- `/api/llms`：LLM配置管理
+- `/api/prompts`：提示词模板管理
+- `/api/config`：系统配置管理
+- `/api/tasks/{id}/results`：获取特定任务的详细分析结果
 
-### 6.3 CLI Commands
-- `analyze`: Content analysis and evaluation
-- `config`: LLM and system configuration management
-- `history`: Historical record query
-- `show`: Display specific task results
-- `llm`: LLM management operations
-- `prompt`: Prompt template operations
+### 6.3 CLI命令
+- `analyze`：内容分析和评估
+- `config`：LLM和系统配置管理
+- `history`：历史记录查询
+- `show`：显示特定任务结果
+- `llm`：LLM管理操作
+- `prompt`：提示词模板操作
 
-## 7. Implementation Process
-### 7.1 Task Submission Process
-1. Receive user-submitted content and processing method selection
-2. Select corresponding LLMs based on processing method (single/multiple)
-3. Retrieve the latest prompt template (with model-specific targeting if available)
-4. Parallel call to LLMs to process content
-5. If review is needed, enter the review process:
-   - Single reviewer: Send all results to a designated reviewer LLM for aggregation
-   - Multiple reviewers:
-     a. Send all results to each reviewer
-     b. Collect votes from each reviewer
-     c. Count voting results and select the result with the most votes
-6. Parse results and extract key information and scores
-7. Format returned results and store task records
-8. Log all operations and capture any errors with contextual information
+## 7. 实现过程
+### 7.1 任务提交流程
+1. 接收用户提交的内容和处理方法选择
+2. 根据处理方法（单个/多个）选择对应的LLM
+3. 获取最新的提示词模板（如果有模型特定的则优先使用）
+4. 并行调用LLM处理内容
+5. 如果需要评议，进入评议流程：
+   - 单评议者：将所有结果发送给指定的评议者LLM进行汇总
+   - 多评议者：
+     a. 将所有结果发送给每个评议者
+     b. 收集每个评议者的投票
+     c. 统计投票结果，选择得票最多的结果
+6. 解析结果并提取关键信息和分数
+7. 格式化返回结果并存储任务记录
+8. 记录所有操作，并捕获任何错误及其上下文信息
 
-### 7.2 Result Presentation Strategy
-- **Web Interface**: Beautifully formatted text + graphical score display
-- **CLI**: Concise text format with neat layout using Rich library
-- **API**: Standard JSON response with consistently structured data
-- **Logs**: Detailed system logs for diagnostics and monitoring
+### 7.2 结果呈现策略
+- **Web界面**：美观格式化文本+图形化分数显示
+- **CLI**：使用Rich库的简洁文本格式，整齐布局
+- **API**：标准JSON响应，结构一致的数据
+- **日志**：详细的系统日志，用于诊断和监控
 
-### 7.3 Error Handling Strategy
-1. API-level error handling with appropriate HTTP status codes
-2. Comprehensive error logging with traceback information
-3. User-friendly error messages with actionable suggestions
-4. Graceful degradation when partial system failures occur
-5. Automatic retry for transient API failures
+### 7.3 错误处理策略
+1. API级别错误处理，使用适当的HTTP状态码
+2. 全面的错误日志记录，包含回溯信息
+3. 用户友好的错误消息，提供可操作的建议
+4. 系统部分故障时的优雅降级
+5. 针对瞬时API故障的自动重试
 
-## 8. Extensibility Design
-- **Batch Processing Interface**: Reserved API design for batch text processing
-- **Multi-language Support**: Internationalization architecture design
-- **Custom Evaluation Framework**: Support for user-defined prompt templates
-- **Plugin System**: Reserved plugin mechanism for future feature extensions
-- **Advanced Analytics**: Framework for aggregating results across multiple analyses
-- **API Integration**: Support for integration with external content management systems
-- **Custom Logging**: Configurable logging outputs for different deployment environments
+## 8. 扩展性设计
+- **批处理接口**：预留批量文本处理的API设计
+- **多语言支持**：国际化架构设计
+- **自定义评估框架**：支持用户自定义提示词模板
+- **插件系统**：预留未来功能扩展的插件机制
+- **高级分析**：跨多次分析聚合结果的框架
+- **API集成**：支持与外部内容管理系统的集成
+- **自定义日志**：可配置的日志输出，适应不同部署环境
 
-## 9. Logging System Design
-### 9.1 Logging Infrastructure
-- Centralized logging configuration in `utils/logging.py`
-- Environment variable control: `ACOLYTE_LOG_LEVEL`, `ACOLYTE_LOG_TO_FILE`, `ACOLYTE_LOG_DIR`
-- Support for multiple output destinations (console, file)
-- Different log formats for different outputs (simplified for console, detailed for files)
+## 9. 日志系统设计
+### 9.1 日志基础架构
+- 在`utils/logging.py`中集中配置日志
+- 环境变量控制：`ACOLYTE_LOG_LEVEL`、`ACOLYTE_LOG_TO_FILE`、`ACOLYTE_LOG_DIR`
+- 支持多种输出目的地（控制台、文件）
+- 不同输出使用不同日志格式（控制台简化版、文件详细版）
 
-### 9.2 Log Levels
-- **DEBUG**: Detailed development and diagnostic information
-- **INFO**: General operational events and milestones
-- **WARNING**: Potential issues that don't prevent operation
-- **ERROR**: Errors that allow the application to continue running
-- **CRITICAL**: Severe errors that may cause application failure
+### 9.2 日志级别
+- **DEBUG**：详细的开发和诊断信息
+- **INFO**：一般操作事件和里程碑
+- **WARNING**：不影响操作的潜在问题
+- **ERROR**：允许应用程序继续运行的错误
+- **CRITICAL**：可能导致应用程序故障的严重错误
 
-### 9.3 Module-Specific Logging
-- API request/response logging
-- Database transaction logging
-- LLM client interaction logging
-- Task processing workflow logging
-- Configuration management logging
-- CLI command execution logging
+### 9.3 模块特定日志
+- API请求/响应日志
+- 数据库事务日志
+- LLM客户端交互日志
+- 任务处理工作流日志
+- 配置管理日志
+- CLI命令执行日志
