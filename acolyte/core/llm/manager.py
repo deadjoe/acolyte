@@ -234,7 +234,7 @@ class LlmManager:
             llm.role = role
             return True
 
-    def test_connection(self, llm_id: int = None, api_key: str = None, 
+    async def test_connection(self, llm_id: int = None, api_key: str = None, 
                         base_url: str = None, model_name: str = None) -> Dict:
         """测试LLM连接
 
@@ -247,6 +247,15 @@ class LlmManager:
         Returns:
             测试结果字典，包含是否成功、响应时间等信息
         """
+        import asyncio
+        import time
+        from acolyte.core.llm.client import get_client_for_llm
+        from acolyte.core.llm.providers.anthropic import AnthropicClient
+        from acolyte.core.llm.providers.deepseek import DeepSeekClient
+        from acolyte.core.llm.providers.gemini import GeminiClient
+        from acolyte.core.llm.providers.ollama import OllamaClient
+        from acolyte.core.llm.providers.openai import OpenAIClient
+        
         try:
             # 记录测试类型
             if llm_id is not None:
@@ -256,46 +265,61 @@ class LlmManager:
                 logger.debug(f"base_url: {base_url}, model_name: {model_name}")
                 
             # 获取连接参数
-            connection_params = {}
             if llm_id is not None:
-                llm = self.get_llm(llm_id)
-                if llm:
-                    logger.debug(f"使用现有LLM配置: 名称={llm.name}, 模型={llm.model_name}")
-                    connection_params = {
-                        'api_key': llm.api_key,
-                        'base_url': llm.base_url,
-                        'model_name': llm.model_name
-                    }
-                else:
+                llm_config = self.get_llm(llm_id)
+                if not llm_config:
                     logger.warning(f"LLM配置不存在: ID={llm_id}")
                     return {
                         'success': False,
                         'message': 'LLM配置不存在'
                     }
+                logger.debug(f"使用现有LLM配置: 名称={llm_config.name}, 模型={llm_config.model_name}")
             else:
-                if api_key and base_url and model_name:
-                    connection_params = {
-                        'api_key': api_key,
-                        'base_url': base_url,
-                        'model_name': model_name
-                    }
-                else:
+                if not all([api_key, base_url, model_name]):
                     logger.error("测试连接参数不完整")
                     return {
                         'success': False,
                         'message': '连接参数不完整'
                     }
-
-            # TODO: 实现实际的连接测试逻辑
-            logger.debug("执行连接测试逻辑...")
+                # 创建临时配置对象
+                from acolyte.core.db.models import LlmConfig as LlmConfigModel
+                llm_config = LlmConfigModel(
+                    name="测试连接",
+                    api_key=api_key,
+                    base_url=base_url,
+                    model_name=model_name
+                )
             
-            # 当前仅模拟成功响应
-            logger.info("连接测试成功")
-            return {
-                'success': True,  # 假设测试成功
-                'response_time': 0.5,  # 假设响应时间0.5秒
-                'message': '连接测试成功'
-            }
+            # 创建对应的客户端
+            logger.debug("获取适合的LLM客户端")
+            client = get_client_for_llm(llm_config)
+            
+            # 开始测试连接
+            logger.info(f"测试连接: {client.__class__.__name__}")
+            start_time = time.time()
+            
+            # 执行实际的连接测试
+            test_result = await client._test_connection()
+            
+            # 计算响应时间
+            response_time = time.time() - start_time
+            
+            # 处理测试结果
+            if test_result.get('success', False):
+                logger.info(f"LLM连接测试成功: 耗时={response_time:.2f}秒")
+                return {
+                    'success': True,
+                    'response_time': response_time,
+                    'message': test_result.get('message', '连接测试成功')
+                }
+            else:
+                logger.warning(f"LLM连接测试失败: {test_result.get('message', '未知错误')}")
+                return {
+                    'success': False,
+                    'response_time': response_time,
+                    'message': test_result.get('message', '连接测试失败')
+                }
+                
         except Exception as e:
             logger.error(f"测试LLM连接失败: {str(e)}", exc_info=True)
             return {
