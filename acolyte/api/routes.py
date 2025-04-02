@@ -13,8 +13,7 @@ from acolyte.core.db.database import db
 from acolyte.core.db.models import (
     LlmRole, ProcessingMode, TaskStatus
 )
-from acolyte.core.services.llm_service import LlmService
-from acolyte.core.services.task_service import TaskService
+from acolyte.core.services import LlmService, PromptService, TaskService
 from acolyte.utils.logging import get_logger
 
 # 获取路由模块日志记录器
@@ -98,6 +97,24 @@ class TaskResultResponse(BaseModel):
         orm_mode = True
 
 
+class PromptCreate(BaseModel):
+    version: str
+    model_target: str = "general"
+    content: str
+    description: Optional[str] = None
+    file_path: Optional[str] = None
+    is_active: bool = True
+
+
+class PromptUpdate(BaseModel):
+    version: Optional[str] = None
+    model_target: Optional[str] = None
+    content: Optional[str] = None
+    description: Optional[str] = None
+    file_path: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class PromptResponse(BaseModel):
     id: int
     version: str
@@ -105,6 +122,9 @@ class PromptResponse(BaseModel):
     description: Optional[str] = None
     is_active: bool
     content: Optional[str] = None
+    file_path: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -284,3 +304,116 @@ async def get_task_results(
         raise HTTPException(status_code=status_code, detail=result.get("error", "获取任务结果失败"))
     
     return result.get("results", [])
+
+
+# 提示词路由
+@router.get("/prompts", response_model=List[PromptResponse])
+async def get_prompts(
+    model_target: Optional[str] = None,
+    version: Optional[str] = None
+):
+    """获取提示词列表"""
+    prompt_service = PromptService()
+    result = await prompt_service.get_prompts(model_target=model_target, version=version)
+    
+    if not result.get("success", False):
+        raise HTTPException(status_code=500, detail=result.get("error", "获取提示词列表失败"))
+    
+    return result.get("prompts", [])
+
+
+@router.get("/prompts/latest", response_model=PromptResponse)
+async def get_latest_prompt(model_target: Optional[str] = None):
+    """获取最新版本的提示词"""
+    prompt_service = PromptService()
+    result = await prompt_service.get_latest_prompt(model_target=model_target)
+    
+    if not result.get("success", False):
+        status_code = 404 if "未找到" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "获取最新提示词失败"))
+    
+    return result
+
+
+@router.get("/prompts/{prompt_id}", response_model=PromptResponse)
+async def get_prompt(prompt_id: int):
+    """获取特定提示词"""
+    prompt_service = PromptService()
+    result = await prompt_service.get_prompt(prompt_id)
+    
+    if not result.get("success", False):
+        status_code = 404 if "不存在" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "获取提示词失败"))
+    
+    return result
+
+
+@router.post("/prompts", response_model=PromptResponse)
+async def create_prompt(prompt_data: PromptCreate):
+    """创建新提示词"""
+    prompt_service = PromptService()
+    result = await prompt_service.create_prompt(prompt_data.dict())
+    
+    if not result.get("success", False):
+        raise HTTPException(status_code=500, detail=result.get("error", "创建提示词失败"))
+    
+    return result
+
+
+@router.put("/prompts/{prompt_id}", response_model=PromptResponse)
+async def update_prompt(prompt_id: int, prompt_data: PromptUpdate):
+    """更新提示词"""
+    prompt_service = PromptService()
+    result = await prompt_service.update_prompt(prompt_id, prompt_data.dict(exclude_unset=True))
+    
+    if not result.get("success", False):
+        status_code = 404 if "不存在" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "更新提示词失败"))
+    
+    return result
+
+
+@router.delete("/prompts/{prompt_id}")
+async def delete_prompt(prompt_id: int, delete_file: bool = False):
+    """删除提示词"""
+    prompt_service = PromptService()
+    result = await prompt_service.delete_prompt(prompt_id, delete_file=delete_file)
+    
+    if not result.get("success", False):
+        status_code = 404 if "不存在" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "删除提示词失败"))
+    
+    return {"status": "success", "message": f"提示词 {prompt_id} 已删除", "file_deleted": result.get("file_deleted", False)}
+
+
+@router.post("/prompts/sync")
+async def sync_prompts():
+    """同步提示词文件到数据库"""
+    prompt_service = PromptService()
+    result = await prompt_service.sync_prompts()
+    
+    if not result.get("success", False):
+        raise HTTPException(status_code=500, detail=result.get("error", "同步提示词失败"))
+    
+    return {
+        "status": "success", 
+        "message": result.get("message", "提示词同步成功"),
+        "count": result.get("count", 0)
+    }
+
+
+@router.patch("/prompts/{prompt_id}/status")
+async def set_prompt_status(prompt_id: int, is_active: bool):
+    """设置提示词活跃状态"""
+    prompt_service = PromptService()
+    result = await prompt_service.set_active_status(prompt_id, is_active)
+    
+    if not result.get("success", False):
+        status_code = 404 if "不存在" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "设置提示词状态失败"))
+    
+    return {
+        "status": "success", 
+        "message": result.get("message", f"提示词状态已设置为 {'活跃' if is_active else '非活跃'}"),
+        "is_active": is_active
+    }

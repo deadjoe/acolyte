@@ -1,6 +1,15 @@
 """
-服务层模块
+业务服务层
 
-提供业务逻辑实现，作为API路由和数据库操作之间的中间层。
-服务层负责协调不同组件的工作，实现业务规则，并处理异常。
+该模块提供了访问核心业务逻辑的服务层，作为API层和数据层之间的桥梁。
 """
+
+from acolyte.core.services.llm_service import LlmService
+from acolyte.core.services.prompt_service import PromptService
+from acolyte.core.services.task_service import TaskService
+
+__all__ = [
+    "LlmService",
+    "PromptService", 
+    "TaskService"
+]
