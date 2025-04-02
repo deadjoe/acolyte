@@ -3,6 +3,8 @@ LLM服务
 
 处理LLM配置管理和使用的业务逻辑，作为API路由和LLM客户端之间的中间层。
 """
+import asyncio
+import time
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -221,18 +223,33 @@ class LlmService:
         logger.info(f"测试LLM连接: ID={llm_id}")
         
         try:
-            # 使用LLM管理器测试连接
-            result = self.llm_manager.test_connection(llm_id=llm_id)
+            # 获取LLM配置
+            async def _get_llm(session: Session):
+                return session.query(LlmConfig).filter_by(id=llm_id).first()
             
-            logger.info(f"LLM连接测试结果: ID={llm_id}, 状态={result.get('status', 'unknown')}")
-            return {**result, "success": result.get("status") == "success"}
+            llm_config = await run_in_session(_get_llm)
+            if not llm_config:
+                logger.warning(f"LLM配置不存在: ID={llm_id}")
+                return {
+                    "success": False,
+                    "message": "LLM配置不存在"
+                }
+            
+            # 创建LLM客户端
+            from acolyte.core.llm.client import get_client_for_llm
+            client = get_client_for_llm(llm_config)
+            
+            # 测试连接
+            result = await client._test_connection()
+            
+            logger.info(f"LLM连接测试结果: ID={llm_id}, 成功={result.get('success', False)}")
+            return result
             
         except Exception as e:
             logger.error(f"LLM连接测试失败: {str(e)}", exc_info=True)
             return {
-                "status": "error", 
-                "message": f"连接测试失败: {str(e)}", 
-                "success": False
+                "success": False, 
+                "message": f"连接测试失败: {str(e)}"
             }
     
     async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict:
@@ -257,13 +274,36 @@ class LlmService:
             llm_config = await run_in_session(_get_llm)
             
             if not llm_config:
+                logger.warning(f"LLM配置不存在: ID={llm_id}")
                 return {"error": "LLM配置不存在", "success": False}
             
             # 获取LLM客户端
             client = get_client_for_llm(llm_config)
             
             # 处理内容
-            result = client.process_content(content=content, prompt=prompt)
+            start_time = time.time()
+            result = await client.process_content(content=content, prompt=prompt)
+            elapsed_time = time.time() - start_time
+            
+            # 记录处理结果
+            if result.get("success", False):
+                logger.info(f"内容处理成功: LLM={llm_config.name}, 耗时={elapsed_time:.2f}秒")
+                
+                # 添加处理时间
+                if isinstance(result.get("result"), dict):
+                    result["result"]["processing_time"] = elapsed_time
+                
+                # 记录评分结果
+                scores = result.get("result", {})
+                logger.info(
+                    f"评分结果: "
+                    f"BI={scores.get('bias_index')}, "
+                    f"MI={scores.get('misleading_index')}, "
+                    f"HI={scores.get('hidden_intent_index')}, "
+                    f"CS={scores.get('credibility_score')}"
+                )
+            else:
+                logger.warning(f"内容处理失败: {result.get('error', '未知错误')}")
             
             return result
             
