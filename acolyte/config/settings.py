@@ -29,6 +29,7 @@ class AppConfig(BaseModel):
     """应用配置模型"""
     database_url: str = "sqlite:///acolyte.db"
     default_prompt_version: Optional[str] = None
+    prompt_dir: Optional[str] = None
     llm_configs: List[LlmConfigModel] = []
 
 

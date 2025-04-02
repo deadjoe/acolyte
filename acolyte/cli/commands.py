@@ -190,13 +190,21 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def sync_prompts(self):
+    async def sync_prompts(self, prompt_dir=None):
         """同步Prompt
-
+        
+        Args:
+            prompt_dir: 可选的prompt目录路径
+            
         Returns:
             同步结果
         """
-        response = await self.client.post("/prompts/sync")
+        data = {}
+        if prompt_dir:
+            data = {"prompt_dir": prompt_dir}
+            logger.debug(f"使用prompt_dir参数: {prompt_dir}")
+        
+        response = await self.client.post("/prompts/sync", json=data)
         response.raise_for_status()
         return response.json()
         
@@ -369,16 +377,42 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             if wait:
                 logger.info(f"等待任务 {task_id} 完成")
                 task_status = task["status"]
+                check_interval = 2  # 初始检查间隔(秒)
+                max_check_interval = 10  # 最大检查间隔(秒)
+                max_checks = 60  # 最大检查次数
+                
                 with Progress() as progress:
                     task_progress = progress.add_task("[cyan]处理中...", total=None)
                     status_check_count = 0
+                    last_status = None
+                    
                     while task_status not in ["completed", "failed"]:
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(check_interval)
                         status_check_count += 1
+                        
+                        # 超过最大检查次数则放弃等待
+                        if status_check_count > max_checks:
+                            logger.warning(f"达到最大检查次数({max_checks})，停止等待")
+                            console.print(f"[bold yellow]警告:[/] 达到最大等待时间，任务 {task_id} 仍在处理中")
+                            break
+                            
                         try:
                             task_info = await client.get_task(task_id)
                             task_status = task_info["status"]
-                            logger.debug(f"任务状态检查 #{status_check_count}: {task_status}")
+                            
+                            # 状态变化时重置检查间隔
+                            if task_status != last_status:
+                                logger.info(f"任务状态变更: {last_status or '初始'} -> {task_status}")
+                                last_status = task_status
+                                check_interval = 2  # 重置为初始检查间隔
+                            else:
+                                # 状态未变化时，逐渐增加检查间隔，但不超过最大值
+                                check_interval = min(check_interval * 1.5, max_check_interval)
+                            
+                            logger.debug(f"任务状态检查 #{status_check_count}: {task_status}，下次检查间隔: {check_interval:.1f}秒")
+                            
+                            # 更新进度条描述
+                            progress.update(task_progress, description=f"[cyan]任务处理中 ({task_status})...")
                         except Exception as e:
                             logger.error(f"获取任务状态失败: {str(e)}", exc_info=True)
                             console.print(f"[bold red]获取任务状态失败:[/] {str(e)}")
@@ -506,7 +540,7 @@ def list(status, limit):
             table.add_column("ID", style="cyan")
             table.add_column("处理模式", style="green")
             table.add_column("状态", style="yellow")
-            table.add_column("创建时间", style="blue")
+            table.add_column("创建时间", style="bright_blue")
             
             for task in tasks:
                 # 检查created_at字段是否存在
@@ -723,7 +757,7 @@ def list_llms():
             table = Table(title="LLM配置")
             table.add_column("ID", style="cyan")
             table.add_column("名称", style="green")
-            table.add_column("模型", style="blue")
+            table.add_column("模型", style="bright_blue")
             table.add_column("角色", style="yellow")
             table.add_column("默认", style="magenta")
             
@@ -890,7 +924,7 @@ def import_config(name):
                     table = Table(title="导入的LLM配置")
                     table.add_column("ID", style="cyan")
                     table.add_column("名称", style="green")
-                    table.add_column("模型", style="blue")
+                    table.add_column("模型", style="red")
                     table.add_column("角色", style="yellow")
                     
                     for llm in imported_llms:
@@ -927,7 +961,7 @@ def list_prompts():
             table = Table(title="Prompt配置")
             table.add_column("ID", style="cyan")
             table.add_column("版本", style="green")
-            table.add_column("目标模型", style="blue")
+            table.add_column("目标模型", style="bright_blue")
             table.add_column("状态", style="yellow")
             
             for prompt in prompts:
@@ -948,13 +982,24 @@ def list_prompts():
 
 
 @config.command()
-def sync_prompts():
-    """同步Prompt文件到数据库"""
+@click.option("--prompt-dir", "-d", help="指定prompt目录路径")
+def sync_prompts(prompt_dir):
+    """同步Prompt文件到数据库
+    
+    例如: acolyte config sync-prompts --prompt-dir=/path/to/prompts
+    """
     async def _sync_prompts():
         client = AcolyteClient()
         try:
+            # 使用环境变量获取prompt_dir
+            env_prompt_dir = os.environ.get("ACOLYTE_PROMPT_DIR")
+            
+            # 命令行参数优先于环境变量
+            final_prompt_dir = prompt_dir or env_prompt_dir
+            logger.info(f"使用prompt目录: {final_prompt_dir}")
+            
             with console.status("[bold green]同步Prompt文件中...[/]"):
-                result = await client.sync_prompts()
+                result = await client.sync_prompts(prompt_dir=final_prompt_dir)
                 
             console.print(f"[bold green]{result['message']}[/]")
                 

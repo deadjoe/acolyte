@@ -25,34 +25,58 @@ class PromptManager:
         """
         logger.info("初始化Prompt管理器")
         
-        # 默认使用项目根目录下的prompt目录
-        if prompt_dir is None:
-            # 获取当前文件所在目录
-            current_dir = Path(__file__).resolve().parent
-            logger.debug(f"当前目录: {current_dir}")
-            
-            # 向上查找，回到上层直到找到项目根目录
-            root_dir = current_dir
-            
-            # 向上一级一级查找直到找到包含prompt目录的目录
-            while root_dir != root_dir.parent:
-                # 如果当前目录包含prompt目录，就停止查找
-                if (root_dir.parent / "prompt").exists():
-                    root_dir = root_dir.parent
-                    break
-                # 否则继续向上查找
-                root_dir = root_dir.parent
-                logger.debug(f"向上查找: {root_dir}")
-            
-            # 检查项目根目录下是否存在prompt目录
-            if (root_dir / "prompt").exists():
-                logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
-                prompt_dir = str(root_dir / "prompt")
+        # 如果传入了prompt_dir，直接使用
+        if prompt_dir:
+            logger.info(f"使用传入的prompt目录: {prompt_dir}")
+        else:
+            # 否则尝试从其他来源获取
+            logger.debug("未提供prompt_dir参数，尝试从其他来源获取")
+            # 首先检查环境变量
+            env_prompt_dir = os.environ.get("ACOLYTE_PROMPT_DIR")
+            if env_prompt_dir:
+                logger.info(f"从环境变量获取prompt目录: {env_prompt_dir}")
+                prompt_dir = env_prompt_dir
             else:
-                logger.warning(f"未找到prompt目录，将使用默认目录并尝试创建")
-                prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
+                # 检查配置文件
+                try:
+                    from acolyte.config.settings import config
+                    if config.prompt_dir:
+                        logger.info(f"从配置文件获取prompt目录: {config.prompt_dir}")
+                        prompt_dir = config.prompt_dir
+                    else:
+                        logger.debug("配置文件中未设置prompt_dir")
+                except Exception as e:
+                    logger.warning(f"尝试从配置文件加载prompt_dir时出错: {str(e)}")
             
-            logger.info(f"最终选择的prompt目录: {prompt_dir}")
+            # 如果仍然没有找到prompt_dir，尝试自动查找
+            if not prompt_dir:
+                logger.debug("尝试自动查找prompt目录")
+                # 获取当前文件所在目录
+                current_dir = Path(__file__).resolve().parent
+                logger.debug(f"当前目录: {current_dir}")
+                
+                # 向上查找，回到上层直到找到项目根目录
+                root_dir = current_dir
+                
+                # 向上一级一级查找直到找到包含prompt目录的目录
+                while root_dir != root_dir.parent:
+                    # 如果当前目录包含prompt目录，就停止查找
+                    if (root_dir.parent / "prompt").exists():
+                        root_dir = root_dir.parent
+                        break
+                    # 否则继续向上查找
+                    root_dir = root_dir.parent
+                    logger.debug(f"向上查找: {root_dir}")
+                
+                # 检查项目根目录下是否存在prompt目录
+                if (root_dir / "prompt").exists():
+                    logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
+                    prompt_dir = str(root_dir / "prompt")
+                else:
+                    logger.warning(f"未找到prompt目录，将使用默认目录并尝试创建")
+                    prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
+        
+        logger.info(f"最终选择的prompt目录: {prompt_dir}")
 
         self.prompt_dir = prompt_dir
         self._ensure_prompt_dir_exists()
@@ -168,20 +192,39 @@ class PromptManager:
         Returns:
             最新版本的Prompt对象
         """
-        with db.session_scope() as session:
-            query = session.query(Prompt).filter(Prompt.is_active == True)
+        try:
+            with db.session_scope() as session:
+                # 获取所有活跃的prompts
+                logger.info(f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}")
+                query = session.query(Prompt).filter(Prompt.is_active == True)
+                
+                # 如果指定了模型目标，优先获取针对该模型的prompt
+                if model_target:
+                    model_specific_prompt = query.filter(Prompt.model_target == model_target).first()
+                    if model_specific_prompt:
+                        logger.info(f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}")
+                        return model_specific_prompt
+                    logger.info(f"未找到针对模型 {model_target} 的特定prompt，寻找通用prompt")
+                
+                # 检查数据库中的prompts
+                all_prompts = query.all()
+                if all_prompts:
+                    for p in all_prompts:
+                        logger.debug(f"数据库中的prompt: ID={p.id}, 版本={p.version}, 目标={p.model_target}")
+                else:
+                    logger.warning("数据库中没有找到任何活跃的prompt模板")
 
-            if model_target:
-                query = query.filter(Prompt.model_target == model_target)
-            else:
-                # 如果没有指定model_target，优先获取通用版本
-                query = query.filter(Prompt.model_target == "general")
-
-            # 按版本号排序，获取最新版本
-            # 注意：这里假设版本号格式为"x.y.z"，需要按数字大小而非字符串排序
-            # SQLite不支持复杂的字符串排序，这里简化处理仅按字符串排序
-            # 在实际实现中可能需要更复杂的排序逻辑
-            return query.order_by(Prompt.version.desc()).first()
+                # 直接获取第一个prompt
+                first_prompt = query.first()
+                if first_prompt:
+                    logger.info(f"找到第一个活跃prompt: ID={first_prompt.id}, 版本={first_prompt.version}, 目标={first_prompt.model_target}")
+                    return first_prompt
+                else:
+                    logger.warning("无法获取任何prompt模板")
+                    return None
+        except Exception as e:
+            logger.error(f"获取最新prompt时出错: {str(e)}", exc_info=True)
+            return None
 
     def get_prompt_by_version(self, version: str, model_target: str = None) -> Optional[Prompt]:
         """根据版本号获取prompt

@@ -66,6 +66,33 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
         # 记录请求信息
         logger.debug(f"收到请求: {request.method} {request.url.path}")
         
+        # 记录请求头和查询参数
+        logger.debug(f"请求头: {dict(request.headers)}")
+        logger.debug(f"查询参数: {dict(request.query_params)}")
+        
+        # 克隆请求体而不消耗它
+        body = await request.body()
+        
+        # 如果有请求体，记录内容
+        if body:
+            try:
+                # 尝试解析为JSON
+                body_text = body.decode('utf-8')
+                json_body = json.loads(body_text)
+                logger.debug(f"请求体(JSON): {json_body}")
+            except:
+                # 如果不是JSON，显示原始内容
+                if len(body) < 500:
+                    logger.debug(f"请求体(原始): {body}")
+                else:
+                    logger.debug(f"请求体(原始): 内容太长，长度为 {len(body)} 字节")
+                    
+        # 创建具有相同主体的新请求
+        from starlette.requests import Request
+        async def receive():
+            return {"type": "http.request", "body": body}
+        request._receive = receive
+        
         try:
             # 处理请求
             response = await call_next(request)

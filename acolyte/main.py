@@ -53,7 +53,7 @@ def main():
             "acolyte.api.app:app",
             host="0.0.0.0",
             port=port,
-            reload=True,
+            reload=False,  # 设置为False避免多个进程并行运行
             log_level="error"  # 只显示错误日志，不显示访问日志
         )
     except Exception as e:

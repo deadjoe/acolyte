@@ -89,19 +89,91 @@ class AnthropicClient(LlmClient):
                 url = f"{self.base_url}/v1/{endpoint}"
             
             logger.info(f"发送请求到Anthropic API: {url}")
-            response = requests.post(
-                url,
-                headers=headers,
-                json=data,
-                timeout=60
-            )
-            response.raise_for_status()
-            response_data = response.json()
-            logger.debug(f"收到Anthropic API响应: {len(str(response_data))}字符")
+            
+            try:
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    json=data,
+                    timeout=60
+                )
+                
+                # 处理HTTP错误
+                try:
+                    response.raise_for_status()
+                except requests.exceptions.HTTPError as http_err:
+                    if response.status_code == 401:
+                        logger.error(f"Anthropic API认证失败: {http_err}")
+                        return {
+                            "success": False,
+                            "error": "API认证失败，请检查API密钥",
+                            "raw_response": None,
+                            "result": None
+                        }
+                    elif response.status_code == 429:
+                        logger.error(f"Anthropic API请求超过限制: {http_err}")
+                        return {
+                            "success": False,
+                            "error": "API请求超过限制或速率限制",
+                            "raw_response": None,
+                            "result": None
+                        }
+                    else:
+                        logger.error(f"Anthropic API HTTP错误: {http_err}")
+                        return {
+                            "success": False,
+                            "error": f"API调用HTTP错误: {http_err}",
+                            "raw_response": None,
+                            "result": None
+                        }
+                
+                response_data = response.json()
+                logger.debug(f"收到Anthropic API响应: {len(str(response_data))}字符")
+            except requests.exceptions.ConnectionError as conn_err:
+                logger.error(f"与Anthropic API连接失败: {conn_err}")
+                return {
+                    "success": False,
+                    "error": f"API连接失败: {conn_err}",
+                    "raw_response": None,
+                    "result": None
+                }
+            except requests.exceptions.Timeout as timeout_err:
+                logger.error(f"Anthropic API请求超时: {timeout_err}")
+                return {
+                    "success": False,
+                    "error": "API请求超时",
+                    "raw_response": None,
+                    "result": None
+                }
+            except requests.exceptions.RequestException as req_err:
+                logger.error(f"Anthropic API请求异常: {req_err}")
+                return {
+                    "success": False,
+                    "error": f"API请求异常: {req_err}",
+                    "raw_response": None,
+                    "result": None
+                }
+            except json.JSONDecodeError as json_err:
+                logger.error(f"解析Anthropic API响应JSON失败: {json_err}")
+                return {
+                    "success": False,
+                    "error": "API返回了无效的JSON响应",
+                    "raw_response": None,
+                    "result": None
+                }
 
-            # 提取响应内容
-            raw_response = response_data["content"][0]["text"]
-            logger.debug(f"原始响应长度: {len(raw_response)}字符")
+            try:
+                # 提取响应内容
+                raw_response = response_data["content"][0]["text"]
+                logger.debug(f"原始响应长度: {len(raw_response)}字符")
+            except (KeyError, IndexError) as key_err:
+                logger.error(f"无法从Anthropic响应中提取内容: {key_err}, 响应: {response_data}")
+                return {
+                    "success": False,
+                    "error": f"无法从API响应中提取内容: {key_err}",
+                    "raw_response": str(response_data),
+                    "result": None
+                }
 
             # 解析响应提取评分
             logger.debug("开始解析响应提取评分...")
@@ -123,11 +195,11 @@ class AnthropicClient(LlmClient):
             }
 
         except Exception as e:
-            logger.error(f"API调用异常: {str(e)}")
+            logger.error(f"Anthropic API调用中未捕获的异常: {str(e)}")
             logger.debug(f"异常详情: {traceback.format_exc()}")
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"API调用未捕获异常: {str(e)}",
                 "raw_response": None,
                 "result": None
             }

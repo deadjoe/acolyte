@@ -17,11 +17,11 @@ LOG_LEVELS = {
 }
 
 # 默认日志级别
-DEFAULT_LOG_LEVEL = "info"
+DEFAULT_LOG_LEVEL = "warning"  # 设置为debug以捕获所有日志
 
 # 获取环境变量中指定的日志级别
 ENV_LOG_LEVEL = os.environ.get("ACOLYTE_LOG_LEVEL", DEFAULT_LOG_LEVEL).lower()
-LOG_LEVEL = LOG_LEVELS.get(ENV_LOG_LEVEL, logging.INFO)
+LOG_LEVEL = LOG_LEVELS.get(ENV_LOG_LEVEL, logging.DEBUG)  # 如果环境变量不匹配，默认为DEBUG
 
 # 是否输出到文件
 LOG_TO_FILE = os.environ.get("ACOLYTE_LOG_TO_FILE", "0") == "1"

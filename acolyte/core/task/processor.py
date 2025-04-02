@@ -40,73 +40,116 @@ class TaskProcessor:
         """
         logger.info(f"开始处理任务: ID={task_id}")
         start_time = time.time()
+        result = {"success": False, "error": "未知错误"}
         
-        # 获取任务
-        with db.session_scope() as session:
-            task = session.query(Task).filter_by(id=task_id).first()
-            if not task:
-                logger.error(f"任务不存在: ID={task_id}")
-                return {"success": False, "error": "任务不存在"}
-
-            logger.info(f"获取到任务信息: 处理模式={task.processing_mode.value}, 当前状态={task.status.value}")
-            
-            # 更新任务状态为处理中
-            task.status = TaskStatus.PROCESSING
-            session.commit()
-            logger.debug(f"已更新任务状态为处理中")
-
         try:
+            # 第一个会话：获取必要的任务信息并更新状态
+            processing_mode_enum = None
+            
+            try:
+                with db.session_scope() as session:
+                    # 1. 获取任务对象
+                    task = session.query(Task).filter_by(id=task_id).first()
+                    if not task:
+                        logger.error(f"任务不存在: ID={task_id}")
+                        return {"success": False, "error": "任务不存在"}
+                    
+                    # 2. 提取所有需要的数据到简单变量
+                    task_mode_value = None
+                    task_status_value = None
+                    
+                    if task.processing_mode:
+                        task_mode_value = task.processing_mode.value  # 字符串
+                    if task.status:
+                        task_status_value = task.status.value  # 字符串
+                        
+                    logger.info(f"获取到任务信息: 处理模式={task_mode_value}, 当前状态={task_status_value}")
+                    
+                    # 3. 更新任务状态为处理中
+                    task.status = TaskStatus.PROCESSING
+                    session.commit()
+                    logger.debug(f"已更新任务状态为处理中")
+                    
+                    # 4. 确定处理模式枚举
+                    if task_mode_value == ProcessingMode.SINGLE.value:
+                        processing_mode_enum = ProcessingMode.SINGLE
+                    elif task_mode_value == ProcessingMode.MULTIPLE.value:
+                        processing_mode_enum = ProcessingMode.MULTIPLE
+                    elif task_mode_value == ProcessingMode.MULTIPLE_WITH_REVIEW.value:
+                        processing_mode_enum = ProcessingMode.MULTIPLE_WITH_REVIEW
+                    else:
+                        raise ValueError(f"未知的处理模式值: {task_mode_value}")
+            except Exception as e:
+                logger.error(f"获取任务信息或更新状态时出错: {str(e)}")
+                logger.debug(f"异常详情: {traceback.format_exc()}")
+                return {"success": False, "error": f"获取任务信息时出错: {str(e)}"}
+                
             # 根据处理模式选择对应的处理方法
-            if task.processing_mode == ProcessingMode.SINGLE:
-                logger.info(f"使用单LLM处理模式")
+            if processing_mode_enum == ProcessingMode.SINGLE:
+                logger.info(f"执行单LLM处理模式")
                 result = await self._process_single_llm(task_id)
-            elif task.processing_mode == ProcessingMode.MULTIPLE:
-                logger.info(f"使用多LLM处理模式")
+            elif processing_mode_enum == ProcessingMode.MULTIPLE:
+                logger.info(f"执行多LLM处理模式")
                 result = await self._process_multiple_llm(task_id)
-            elif task.processing_mode == ProcessingMode.MULTIPLE_WITH_REVIEW:
-                logger.info(f"使用多LLM带评议处理模式")
+            elif processing_mode_enum == ProcessingMode.MULTIPLE_WITH_REVIEW:
+                logger.info(f"执行多LLM带评议处理模式")
                 result = await self._process_multiple_llm_with_review(task_id)
             else:
-                logger.error(f"未知的处理模式: {task.processing_mode.value}")
-                result = {"success": False, "error": "未知的处理模式"}
+                # 这种情况不应该出现，因为前面已经验证了处理模式
+                error_msg = "内部错误: 无效的处理模式枚举"
+                logger.error(error_msg)
+                try:
+                    with db.session_scope() as session:
+                        task = session.query(Task).filter_by(id=task_id).first()
+                        if task:
+                            task.status = TaskStatus.FAILED
+                            session.commit()
+                except Exception as e:
+                    logger.error(f"更新任务状态失败: {str(e)}")
+                return {"success": False, "error": error_msg}
 
-            # 记录处理结果
+            # 处理并记录结果
             if result["success"]:
                 logger.info(f"任务处理成功: {result.get('final_result_id', '无最终结果ID')}")
+                # 状态已在处理函数中更新为COMPLETED
             else:
                 logger.error(f"任务处理失败: {result.get('error', '未知错误')}")
+                # 更新任务状态为失败
+                try:
+                    with db.session_scope() as session:
+                        task = session.query(Task).filter_by(id=task_id).first()
+                        if task:
+                            task.status = TaskStatus.FAILED
+                            session.commit()
+                            logger.debug(f"已更新任务状态为失败")
+                except Exception as e:
+                    logger.error(f"更新任务失败状态时发生错误: {str(e)}")
 
-            # 更新任务状态
-            with db.session_scope() as session:
-                task = session.query(Task).filter_by(id=task_id).first()
-                if task:
-                    task.status = TaskStatus.COMPLETED if result["success"] else TaskStatus.FAILED
-                    logger.debug(f"已更新任务状态为: {task.status.value}")
-                    
-                    # 如果处理成功且有最终结果ID，更新任务的最终结果ID
-                    if result["success"] and "final_result_id" in result:
-                        task.final_result_id = result["final_result_id"]
-                        logger.debug(f"已更新任务最终结果ID: {result['final_result_id']}")
-
+            # 计算并记录处理时间
             elapsed_time = time.time() - start_time
             logger.info(f"任务处理完成: 耗时={elapsed_time:.2f}秒, 结果={'成功' if result['success'] else '失败'}")
             return result
 
         except Exception as e:
-            # 发生异常，更新任务状态为失败
+            # 发生异常，尝试更新任务状态为失败
             error_msg = str(e)
-            logger.error(f"任务处理异常: {error_msg}")
+            logger.error(f"任务处理过程中发生异常: {error_msg}")
             logger.debug(f"异常详情: {traceback.format_exc()}")
             
-            with db.session_scope() as session:
-                task = session.query(Task).filter_by(id=task_id).first()
-                if task:
-                    task.status = TaskStatus.FAILED
-                    logger.debug(f"已更新任务状态为失败")
+            try:
+                with db.session_scope() as session:
+                    task = session.query(Task).filter_by(id=task_id).first()
+                    if task:
+                        task.status = TaskStatus.FAILED
+                        session.commit()
+                        logger.debug(f"已更新任务状态为失败（异常处理）")
+            except Exception as session_ex:
+                # 如果会话操作也失败，单独记录错误
+                logger.error(f"更新任务状态时发生二次错误: {str(session_ex)}")
 
             elapsed_time = time.time() - start_time
             logger.info(f"任务处理终止: 耗时={elapsed_time:.2f}秒, 异常导致失败")
-            return {"success": False, "error": error_msg}
+            return {"success": False, "error": f"处理任务时出现异常: {error_msg}"}
 
     async def _process_single_llm(self, task_id: int) -> Dict:
         """使用单个LLM处理任务
@@ -119,49 +162,91 @@ class TaskProcessor:
         """
         logger.info(f"开始单LLM处理: 任务ID={task_id}")
         
-        # 获取任务信息
-        with db.session_scope() as session:
-            task = session.query(Task).filter_by(id=task_id).first()
-            if not task:
-                logger.error(f"任务不存在: ID={task_id}")
-                return {"success": False, "error": "任务不存在"}
-
-            logger.debug(f"任务内容长度: {len(task.content)} 字符")
+        try:
+            # Step 1: 获取任务内容、默认LLM和Prompt
+            task_content = None
+            llm_config = None
+            prompt_content = None
+            prompt_id = None
             
-            # 获取默认LLM
-            llm = session.query(LlmConfig).filter_by(is_default=True).first()
-            if not llm:
-                logger.error("未配置默认LLM")
-                return {"success": False, "error": "未配置默认LLM"}
+            # 在会话中获取必要数据
+            with db.session_scope() as session:
+                task = session.query(Task).filter_by(id=task_id).first()
+                if not task:
+                    logger.error(f"任务不存在: ID={task_id}")
+                    return {"success": False, "error": "任务不存在"}
+                
+                # 获取任务内容
+                task_content = task.content
+                if task.prompt_id:
+                    prompt_id = task.prompt_id
+                
+                logger.debug(f"任务内容长度: {len(task_content)} 字符")
+                
+                # 获取默认LLM
+                llm = session.query(LlmConfig).filter_by(is_default=True).first()
+                if not llm:
+                    logger.error("未配置默认LLM")
+                    return {"success": False, "error": "未配置默认LLM"}
+                
+                # 复制LLM配置，创建独立的字典对象
+                llm_config = {
+                    "id": llm.id,
+                    "name": llm.name,
+                    "api_key": llm.api_key,
+                    "base_url": llm.base_url,
+                    "model_name": llm.model_name,
+                    "provider": llm.provider,
+                    "is_default": llm.is_default,
+                    "role": llm.role.value if hasattr(llm.role, 'value') else llm.role
+                }
+                
+                logger.info(f"使用默认LLM: {llm_config['name']} (ID={llm_config['id']}, 模型={llm_config['model_name']})")
+                
+                # 获取Prompt
+                if prompt_id:
+                    prompt = session.query(Prompt).filter_by(id=prompt_id).first()
+                    if prompt:
+                        logger.info(f"使用指定的Prompt: ID={prompt.id}, 版本={prompt.version}")
+                        prompt_content = prompt.content
+                    else:
+                        logger.warning(f"未找到指定的Prompt (ID={prompt_id})")
             
-            logger.info(f"使用默认LLM: {llm.name} (ID={llm.id}, 模型={llm.model_name})")
-            
-            # 获取Prompt
-            prompt = None
-            if task.prompt_id:
-                prompt = session.query(Prompt).filter_by(id=task.prompt_id).first()
-                if prompt:
-                    logger.info(f"使用指定的Prompt: ID={prompt.id}, 版本={prompt.version}")
-                else:
-                    logger.warning(f"未找到指定的Prompt (ID={task.prompt_id})")
-            
-            if not prompt:
-                # 尝试获取最新的Prompt
-                logger.info(f"尝试获取适用于模型 {llm.model_name} 的最新Prompt")
-                prompt_obj = self.prompt_manager.get_latest_prompt(llm.model_name)
+            # 如果未找到Prompt，尝试获取最新的
+            if not prompt_content:
+                logger.info(f"尝试获取适用于模型 {llm_config['model_name']} 的最新Prompt")
+                prompt_obj = self.prompt_manager.get_latest_prompt(llm_config['model_name'])
                 if prompt_obj:
-                    prompt = prompt_obj
-                    logger.info(f"使用最新Prompt: ID={prompt.id}, 版本={prompt.version}")
+                    prompt_content = prompt_obj.content
+                    prompt_id = prompt_obj.id
+                    logger.info(f"使用最新Prompt: ID={prompt_id}")
                 else:
                     logger.error("未找到适用的Prompt模板")
                     return {"success": False, "error": "未找到适用的Prompt模板"}
             
-            logger.debug(f"Prompt内容长度: {len(prompt.content)} 字符")
-
-        # 处理内容
-        logger.info("创建LLM客户端并发送处理请求...")
-        client = get_client_for_llm(llm)
-        result = client.process_content(task.content, prompt.content)
+            logger.debug(f"Prompt内容长度: {len(prompt_content)} 字符")
+            
+            # Step 2: 创建LLM客户端并处理内容
+            logger.info("创建LLM客户端并发送处理请求...")
+            # 基于字典重建LLM配置对象
+            reconstructed_llm = LlmConfig(
+                id=llm_config["id"],
+                name=llm_config["name"],
+                api_key=llm_config["api_key"],
+                base_url=llm_config["base_url"],
+                model_name=llm_config["model_name"],
+                provider=llm_config["provider"],
+                is_default=llm_config["is_default"],
+                role=llm_config["role"]
+            )
+            
+            client = get_client_for_llm(reconstructed_llm)
+            result = client.process_content(task_content, prompt_content)
+            
+        except Exception as e:
+            logger.error(f"处理任务时发生异常: {str(e)}")
+            logger.debug(f"异常详情: {traceback.format_exc()}")
+            return {"success": False, "error": f"处理任务时发生异常: {str(e)}"}
 
         # 检查处理结果
         if result["success"]:
@@ -177,25 +262,55 @@ class TaskProcessor:
                       f"HI={hidden_intent_index}, CS={credibility_score}")
             
             # 保存结果
-            with db.session_scope() as session:
-                task_result = TaskResult(
-                    task_id=task_id,
-                    llm_id=llm.id,
-                    raw_response=result["raw_response"],
-                    processed_result=result.get("processed_result"),
-                    bias_index=bias_index,
-                    misleading_index=misleading_index,
-                    hidden_intent_index=hidden_intent_index,
-                    credibility_score=credibility_score,
-                    is_review_result=False
-                )
-                session.add(task_result)
-                session.flush()
-                result_id = task_result.id
-                result["final_result_id"] = result_id
-                logger.info(f"结果已保存: ID={result_id}")
+            try:
+                with db.session_scope() as session:
+                    task_result = TaskResult(
+                        task_id=task_id,
+                        llm_id=llm_config["id"],
+                        raw_response=result["raw_response"],
+                        processed_result=result.get("processed_result"),
+                        bias_index=bias_index,
+                        misleading_index=misleading_index,
+                        hidden_intent_index=hidden_intent_index,
+                        credibility_score=credibility_score,
+                        is_review_result=False
+                    )
+                    session.add(task_result)
+                    session.flush()
+                    result_id = task_result.id
+                    
+                    # 在同一会话中更新任务状态为已完成
+                    task = session.query(Task).filter_by(id=task_id).first()
+                    if task:
+                        task.status = TaskStatus.COMPLETED
+                        task.final_result_id = result_id
+                        logger.debug(f"已更新任务状态为已完成，最终结果ID: {result_id}")
+                    
+                    # 完成会话提交
+                    session.commit()
+                    
+                    # 将结果ID添加到返回值中
+                    result["final_result_id"] = result_id
+                    logger.info(f"结果已保存: ID={result_id}")
+            except Exception as e:
+                logger.error(f"保存结果时发生异常: {str(e)}")
+                logger.debug(f"异常详情: {traceback.format_exc()}")
+                return {"success": False, "error": f"保存结果时发生异常: {str(e)}"}
         else:
             logger.error(f"API调用失败: {result.get('error', '未知错误')}")
+            
+            # 将任务状态更新为失败
+            try:
+                with db.session_scope() as session:
+                    task = session.query(Task).filter_by(id=task_id).first()
+                    if task:
+                        task.status = TaskStatus.FAILED
+                        session.commit()
+                        logger.debug(f"已更新任务状态为失败")
+            except Exception as e:
+                logger.error(f"更新任务状态时发生异常: {str(e)}")
+                logger.debug(f"异常详情: {traceback.format_exc()}")
+                # 继续返回原始错误
 
         return result
 
@@ -530,6 +645,7 @@ class TaskProcessor:
         Returns:
             选择的结果ID，如果未能解析则返回None
         """
+        logger.debug(f"开始解析投票结果文本: {len(vote_text)} 字符")
         try:
             # 解析投票文本，查找"ID: X"模式
             import re
@@ -537,18 +653,29 @@ class TaskProcessor:
             match = id_pattern.search(vote_text)
             if match:
                 voted_id = int(match.group(1))
+                logger.debug(f"找到ID格式投票: {voted_id}")
                 # 验证ID是否在结果列表中
                 if any(result.id == voted_id for result in task_results):
+                    logger.info(f"投票结果解析成功: 投票ID={voted_id}")
                     return voted_id
+                else:
+                    logger.warning(f"投票ID {voted_id} 不在有效结果列表中")
             
             # 如果未找到ID格式，尝试查找"LLM X"格式
             llm_pattern = re.compile(r"LLM\s*(\d+)")
             match = llm_pattern.search(vote_text)
             if match:
                 llm_index = int(match.group(1)) - 1  # 减1因为索引从0开始
+                logger.debug(f"找到LLM索引格式投票: 索引={llm_index}")
                 if 0 <= llm_index < len(task_results):
-                    return task_results[llm_index].id
+                    voted_id = task_results[llm_index].id
+                    logger.info(f"投票结果解析成功: 索引={llm_index}, 投票ID={voted_id}")
+                    return voted_id
+                else:
+                    logger.warning(f"LLM索引 {llm_index} 超出范围 [0-{len(task_results)-1}]")
             
+            logger.warning(f"无法从投票文本中解析出有效的投票ID: {vote_text[:100]}...")
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"解析投票结果时发生异常: {str(e)}", exc_info=True)
             return None
