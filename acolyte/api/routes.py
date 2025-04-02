@@ -134,12 +134,17 @@ class PromptResponse(BaseModel):
 @router.post("/llms", response_model=LlmConfigResponse)
 async def create_llm(llm_config: LlmConfigCreate):
     """创建新的LLM配置"""
+    logger.info(f"API请求: 创建LLM配置, 名称={llm_config.name}, 模型={llm_config.model_name}")
+    
     llm_service = LlmService()
     result = await llm_service.add_llm(llm_config.dict())
     
     if not result.get("success", False):
-        raise HTTPException(status_code=500, detail=result.get("error", "创建LLM配置失败"))
+        error_message = result.get("error", "创建LLM配置失败")
+        logger.error(f"API错误: 创建LLM配置失败, {error_message}")
+        raise HTTPException(status_code=500, detail=error_message)
     
+    logger.info(f"API响应: LLM配置创建成功, ID={result.get('id')}, 名称={result.get('name')}")
     return result
 
 
@@ -149,6 +154,8 @@ async def get_llms(
     is_default: Optional[bool] = None
 ):
     """获取LLM配置列表"""
+    logger.info(f"API请求: 获取LLM配置列表, 角色={role}, 是否默认={is_default}")
+    
     llm_service = LlmService()
     result = await llm_service.get_llms(
         role=role.value if role else None,
@@ -156,55 +163,83 @@ async def get_llms(
     )
     
     if not result.get("success", False):
-        raise HTTPException(status_code=500, detail=result.get("error", "获取LLM配置列表失败"))
+        error_message = result.get("error", "获取LLM配置列表失败")
+        logger.error(f"API错误: 获取LLM配置列表失败, {error_message}")
+        raise HTTPException(status_code=500, detail=error_message)
     
-    return result.get("llms", [])
+    llms = result.get("llms", [])
+    logger.info(f"API响应: 成功获取LLM配置列表, 数量={len(llms)}")
+    return llms
 
 
 @router.get("/llms/{llm_id}", response_model=LlmConfigResponse)
 async def get_llm(llm_id: int):
     """获取特定LLM配置"""
+    logger.info(f"API请求: 获取LLM配置, ID={llm_id}")
+    
     llm_service = LlmService()
     result = await llm_service.get_llm(llm_id)
     
     if not result.get("success", False):
-        status_code = 404 if "不存在" in result.get("error", "") else 500
-        raise HTTPException(status_code=status_code, detail=result.get("error", "获取LLM配置失败"))
+        error_message = result.get("error", "获取LLM配置失败")
+        status_code = 404 if "不存在" in error_message else 500
+        logger.error(f"API错误: 获取LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        raise HTTPException(status_code=status_code, detail=error_message)
     
+    logger.info(f"API响应: 成功获取LLM配置, ID={result.get('id')}, 名称={result.get('name')}")
     return result
 
 
 @router.put("/llms/{llm_id}", response_model=LlmConfigResponse)
 async def update_llm(llm_id: int, llm_config: LlmConfigUpdate):
     """更新LLM配置"""
+    logger.info(f"API请求: 更新LLM配置, ID={llm_id}, 更新字段={list(llm_config.dict(exclude_unset=True).keys())}")
+    
     llm_service = LlmService()
     result = await llm_service.update_llm(llm_id, llm_config.dict(exclude_unset=True))
     
     if not result.get("success", False):
-        status_code = 404 if "不存在" in result.get("error", "") else 500
-        raise HTTPException(status_code=status_code, detail=result.get("error", "更新LLM配置失败"))
+        error_message = result.get("error", "更新LLM配置失败")
+        status_code = 404 if "不存在" in error_message else 500
+        logger.error(f"API错误: 更新LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        raise HTTPException(status_code=status_code, detail=error_message)
     
+    logger.info(f"API响应: LLM配置更新成功, ID={result.get('id')}, 名称={result.get('name')}")
     return result
 
 
 @router.delete("/llms/{llm_id}")
 async def delete_llm(llm_id: int):
     """删除LLM配置"""
+    logger.info(f"API请求: 删除LLM配置, ID={llm_id}")
+    
     llm_service = LlmService()
     result = await llm_service.delete_llm(llm_id)
     
     if not result.get("success", False):
-        status_code = 404 if "不存在" in result.get("error", "") else 500
-        raise HTTPException(status_code=status_code, detail=result.get("error", "删除LLM配置失败"))
+        error_message = result.get("error", "删除LLM配置失败")
+        status_code = 404 if "不存在" in error_message else 500
+        logger.error(f"API错误: 删除LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        raise HTTPException(status_code=status_code, detail=error_message)
     
+    logger.info(f"API响应: LLM配置删除成功, ID={llm_id}")
     return {"status": "success", "message": "LLM配置已删除"}
 
 
 @router.post("/llms/{llm_id}/test")
 async def test_llm_connection(llm_id: int):
     """测试LLM连接"""
+    logger.info(f"API请求: 测试LLM连接, ID={llm_id}")
+    
     llm_service = LlmService()
     result = await llm_service.test_connection(llm_id)
+    
+    success = result.get("success", False)
+    if success:
+        logger.info(f"API响应: LLM连接测试成功, ID={llm_id}, 状态={result.get('status')}")
+    else:
+        logger.error(f"API错误: LLM连接测试失败, ID={llm_id}, 消息={result.get('message')}")
+    
     return result
 
 
@@ -212,12 +247,17 @@ async def test_llm_connection(llm_id: int):
 @router.post("/tasks", response_model=TaskResponse)
 async def create_task(task_data: TaskCreate):
     """创建新任务"""
+    logger.info(f"API请求: 创建任务, 处理模式={task_data.processing_mode}, 内容长度={len(task_data.content)}字符")
+    
     task_service = TaskService()
     result = await task_service.create_task(task_data.dict())
     
     if not result.get("success", False):
-        raise HTTPException(status_code=500, detail=result.get("error", "创建任务失败"))
+        error_message = result.get("error", "创建任务失败")
+        logger.error(f"API错误: 创建任务失败, 错误={error_message}")
+        raise HTTPException(status_code=500, detail=error_message)
     
+    logger.info(f"API响应: 任务创建成功, ID={result.get('id')}, 状态={result.get('status')}")
     return result
 
 
