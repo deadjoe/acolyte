@@ -91,6 +91,33 @@ class ResponseParser:
                 logger.debug(f"备用格式3成功提取{key}: {scores[key]}")
                 continue
 
+            # 如果是综合可信度分数，先尝试匹配“最终CS”格式
+            if key == "credibility_score":
+                # 直接在文本中搜索“最终CS = ”模式
+                # 匹配格式：最终CS = 56.17
+                pattern = fr"最终\s*CS\s*=\s*(\d+(?:\.\d+)?)"
+                logger.debug(f"尝试匹配最终CS格式: {pattern}")
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    try:
+                        scores[key] = float(match.group(1))
+                        logger.debug(f"最终CS格式成功提取{key}: {scores[key]}")
+                        continue
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"解析最终CS格式的综合可信度失败: {str(e)}")
+
+                # 匹配格式：最终CS = 100 - 43.83 = 56.17
+                pattern = fr"最终\s*CS\s*=\s*\d+\s*-\s*\d+(?:\.\d+)?\s*=\s*(\d+(?:\.\d+)?)"
+                logger.debug(f"尝试匹配最终CS计算格式: {pattern}")
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    try:
+                        scores[key] = float(match.group(1))
+                        logger.debug(f"最终CS计算格式成功提取{key}: {scores[key]}")
+                        continue
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"解析最终CS计算格式的综合可信度失败: {str(e)}")
+
             # 备用格式4: 加权BI = 5.95
             pattern = fr"(?:{score_name})\s*=\s*(\d+(?:\.\d+)?)"
             logger.debug(f"尝试匹配备用格式4: {pattern}")
@@ -148,28 +175,7 @@ class ResponseParser:
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析计算表达式格式的综合可信度失败: {str(e)}")
 
-                # 直接在文本中搜索“最终CS = ”模式
-                # 匹配格式：最终CS = 56.17
-                pattern = fr"最终\s*CS\s*=\s*(\d+(?:\.\d+)?)"
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    try:
-                        scores[key] = float(match.group(1))
-                        logger.debug(f"最终CS格式成功提取{key}: {scores[key]}")
-                        continue
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"解析最终CS格式的综合可信度失败: {str(e)}")
-
-                # 匹配格式：最终CS = 100 - 43.83 = 56.17
-                pattern = fr"最终\s*CS\s*=\s*\d+\s*-\s*\d+(?:\.\d+)?\s*=\s*(\d+(?:\.\d+)?)"
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    try:
-                        scores[key] = float(match.group(1))
-                        logger.debug(f"最终CS计算格式成功提取{key}: {scores[key]}")
-                        continue
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"解析最终CS计算格式的综合可信度失败: {str(e)}")
+                # 注意：我们已经在前面处理了“最终CS”格式，这里不需要重复处理
 
         # 记录提取结果
         found = sum(1 for v in scores.values() if v is not None)
