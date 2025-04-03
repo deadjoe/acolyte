@@ -44,10 +44,10 @@ class ResponseParser:
         # 尝试使用多种正则表达式模式提取分数
         # 1. 标准格式: 偏见指数/Bias Index: 7.5
         for score_name, key in [
-            (r"偏见指数|Bias Index", "bias_index"),
-            (r"误导性指数|Misleading Index", "misleading_index"),
-            (r"隐藏意图指数|Hidden Intent Index", "hidden_intent_index"),
-            (r"可信度分数|Credibility Score", "credibility_score")
+            (r"偏见指数|Bias Index|BI", "bias_index"),
+            (r"误导性指数|Misleading Index|MI", "misleading_index"),
+            (r"隐藏意图指数|Hidden Intent Index|HI", "hidden_intent_index"),
+            (r"可信度分数|Credibility Score|CS", "credibility_score")
         ]:
             # 标准格式
             pattern = fr"(?:{score_name}):\s*(\d+(?:\.\d+)?)"
@@ -101,6 +101,7 @@ class ResponseParser:
                         logger.warning(f"解析计算表达式格式的综合可信度失败: {str(e)}")
 
                 # 直接在文本中搜索“最终CS = ”模式
+                # 匹配格式：最终CS = 56.17
                 pattern = fr"最终\s*CS\s*=\s*(\d+(?:\.\d+)?)"
                 match = re.search(pattern, text, re.IGNORECASE)
                 if match:
@@ -110,14 +111,39 @@ class ResponseParser:
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析最终CS格式的综合可信度失败: {str(e)}")
 
+                # 匹配格式：最终CS = 100 - 43.83 = 56.17
+                pattern = fr"最终\s*CS\s*=\s*\d+\s*-\s*\d+(?:\.\d+)?\s*=\s*(\d+(?:\.\d+)?)"
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    try:
+                        scores[key] = float(match.group(1))
+                        continue
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"解析最终CS计算格式的综合可信度失败: {str(e)}")
+
         # 记录提取结果
         found = sum(1 for v in scores.values() if v is not None)
         missing = [k for k, v in scores.items() if v is None]
+
+        # 记录当前提取到的评分
+        for key, value in scores.items():
+            if value is not None:
+                logger.debug(f"成功提取{key}: {value}")
 
         if found == 4:
             logger.info("成功提取所有评分")
         else:
             logger.warning(f"只提取了 {found}/4 个评分，缺少: {', '.join(missing)}")
+
+            # 记录文本中包含的关键词
+            keywords = ["偏见指数", "Bias Index", "BI",
+                       "误导性指数", "Misleading Index", "MI",
+                       "隐藏意图指数", "Hidden Intent Index", "HI",
+                       "可信度分数", "Credibility Score", "CS", "最终CS"]
+
+            for keyword in keywords:
+                if keyword in text:
+                    logger.debug(f"文本中包含关键词: {keyword}")
 
             # 尝试查找JSON结构
             if found < 4:
