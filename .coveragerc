@@ -1,0 +1,25 @@
+[run]
+source = acolyte
+omit =
+    */tests/*
+    */migrations/*
+    */venv/*
+    */env/*
+    */__pycache__/*
+    */.pytest_cache/*
+    */.coverage
+    */setup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError
+    def __str__
+
+[html]
+directory = coverage_html_report

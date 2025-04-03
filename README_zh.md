@@ -214,3 +214,25 @@ ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.cli.main analyze content.txt
 2. 导入LLM配置：`uv run -m acolyte.cli.main config import-config`
 3. 同步提示词：`uv run -m acolyte.cli.main config sync-prompts`
 4. 开始使用系统分析内容
+
+## 测试
+
+Acolyte包含全面的测试套件，以确保代码质量和功能正常：
+
+```bash
+# 安装测试依赖
+pip install pytest pytest-asyncio pytest-cov
+
+# 运行所有测试
+./run_tests.sh
+
+# 运行特定测试模块
+python -m pytest tests/unit/core/llm/test_response_parser.py
+python -m pytest tests/unit/core/db/test_models.py
+python -m pytest tests/unit/core/task/test_base_processor.py
+
+# 生成覆盖率报告
+python -m pytest tests/ --cov=acolyte --cov-report=term --cov-report=html
+```
+
+查看[tests/README.md](tests/README.md)获取有关测试框架和最佳实践的更多详细信息。

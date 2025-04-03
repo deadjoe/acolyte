@@ -127,7 +127,7 @@ ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.cli.main analyze content.txt
 
 ## Configuration
 
-The configuration file is located by default at `~/.config/acolyte/config.json`, and you can specify another location through the environment variable `ACOLYTE_CONFIG_PATH`. 
+The configuration file is located by default at `~/.config/acolyte/config.json`, and you can specify another location through the environment variable `ACOLYTE_CONFIG_PATH`.
 
 ### Configuration File Example
 
@@ -214,3 +214,25 @@ The project includes several useful utility scripts in the `tools/` directory:
 2. Import LLM configurations: `uv run -m acolyte.cli.main config import-config`
 3. Synchronize prompts: `uv run -m acolyte.cli.main config sync-prompts`
 4. Start analyzing content with the system
+
+## Testing
+
+Acolyte includes a comprehensive test suite to ensure code quality and functionality:
+
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio pytest-cov
+
+# Run all tests
+./run_tests.sh
+
+# Run specific test modules
+python -m pytest tests/unit/core/llm/test_response_parser.py
+python -m pytest tests/unit/core/db/test_models.py
+python -m pytest tests/unit/core/task/test_base_processor.py
+
+# Generate coverage report
+python -m pytest tests/ --cov=acolyte --cov-report=term --cov-report=html
+```
+
+See [tests/README.md](tests/README.md) for more details on the testing framework and best practices.
