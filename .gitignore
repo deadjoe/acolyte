@@ -55,4 +55,4 @@ yarn-error.log*
 # Testing
 .coverage
 htmlcov/
-.pytest_cache/
+.pytest_cache/acolyte_api.pid
