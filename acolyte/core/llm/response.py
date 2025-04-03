@@ -51,9 +51,9 @@ class ResponseParser:
         # 尝试使用多种正则表达式模式提取分数
         # 1. 标准格式: 偏见指数/Bias Index: 7.5
         for score_name, key in [
-            (r"偏见指数|Bias Index|BI", "bias_index"),
-            (r"误导性指数|Misleading Index|MI", "misleading_index"),
-            (r"隐藏意图指数|Hidden Intent Index|HI", "hidden_intent_index"),
+            (r"偏见指数|Bias Index|BI|加权BI", "bias_index"),
+            (r"误导性指数|Misleading Index|MI|加权MI", "misleading_index"),
+            (r"隐藏意图指数|Hidden Intent Index|HI|加权HI", "hidden_intent_index"),
             (r"可信度分数|Credibility Score|CS", "credibility_score")
         ]:
             # 标准格式: 偏见指数/Bias Index: 7.5
@@ -86,6 +86,14 @@ class ResponseParser:
             if match:
                 scores[key] = float(match.group(1))
                 logger.debug(f"备用格式3成功提取{key}: {scores[key]}")
+                continue
+
+            # 备用格式4: 加权BI = 5.95
+            pattern = fr"(?:{score_name})\s*=\s*(\d+(?:\.\d+)?)"
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                scores[key] = float(match.group(1))
+                logger.debug(f"备用格式4成功提取{key}: {scores[key]}")
                 continue
 
             # 处理特殊格式的综合可信度，如"100 - 53.5"
