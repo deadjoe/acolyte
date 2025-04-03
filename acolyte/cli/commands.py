@@ -2,16 +2,14 @@
 CLI命令定义
 """
 import asyncio
-import json
 import os
 import sys
-import traceback
-from typing import List, Optional
+import traceback  # 用于异常处理中的format_exc()
+from typing import List
 
 import click
 from click import Group
 import httpx
-import rich
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -44,6 +42,32 @@ class AcolyteClient:
         """关闭客户端连接"""
         logger.debug("关闭API客户端连接")
         await self.client.aclose()
+
+    async def check_connection(self):
+        """检查API服务连接状态
+
+        Returns:
+            (bool, str): 连接状态和错误信息（如果有）
+        """
+        logger.debug(f"检查API服务连接: {self.base_url}")
+        try:
+            # 尝试访问API健康检查端点
+            response = await self.client.get("/health")
+            response.raise_for_status()
+            logger.debug("API服务连接正常")
+            return True, None
+        except httpx.ConnectError as e:
+            logger.error(f"无法连接到API服务: {str(e)}")
+            return False, "无法连接到API服务，请确保服务已启动（运行 'uv run -m acolyte.main'）"
+        except httpx.ConnectTimeout as e:
+            logger.error(f"连接API服务超时: {str(e)}")
+            return False, "连接API服务超时，请检查服务是否响应正常"
+        except httpx.HTTPStatusError as e:
+            logger.error(f"API服务返回错误状态: {e.response.status_code}")
+            return False, f"API服务返回错误状态: {e.response.status_code}"
+        except Exception as e:
+            logger.error(f"检查API服务连接时发生未知错误: {str(e)}")
+            return False, f"检查API服务连接时发生错误: {str(e)}"
 
     async def analyze(self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None):
         """分析内容
@@ -288,7 +312,7 @@ class OrderedGroup(Group):
         # 定义命令的显示顺序
         self.command_order = []
 
-    def list_commands(self, ctx):
+    def list_commands(self, _):
         """返回排序后的命令列表"""
         # 获取所有已注册的命令
         commands = self.commands.keys()
@@ -297,7 +321,7 @@ class OrderedGroup(Group):
                      self.command_order.index(x) if x in self.command_order
                      else len(self.command_order))
 
-    def get_command(self, ctx, cmd_name):
+    def get_command(self, _, cmd_name):
         """获取命令"""
         return self.commands.get(cmd_name)
 
@@ -337,6 +361,14 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
         client = AcolyteClient()
         try:
+            # 首先检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print("[yellow]日志信息:[/] 查看 logs 目录中的日志文件获取更多信息")
+                return
             # 获取内容
             content = ""
             if file:
@@ -531,7 +563,6 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
         # 显示原始响应
         if result.get("raw_response"):
-            has_raw_response = True
             logger.debug("结果包含原始响应")
             console.print("\n[bold]详细分析:[/]")
             console.print(Markdown(result["raw_response"]))
@@ -812,6 +843,14 @@ def list_llms():
     async def _list_llms():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]获取LLM配置中...[/]"):
                 llms = await client.get_llms()
 
@@ -974,6 +1013,14 @@ def import_config(name):
     async def _import_config():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]导入配置中...[/]"):
                 result = await client.import_config(name)
 
@@ -1053,6 +1100,14 @@ def sync_prompts(prompt_dir):
     async def _sync_prompts():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 使用环境变量获取prompt_dir
             env_prompt_dir = os.environ.get("ACOLYTE_PROMPT_DIR")
 
