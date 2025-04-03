@@ -542,10 +542,20 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
     asyncio.run(_analyze())
 
 
-@cli.group()
+@cli.group(cls=OrderedGroup)
 def history():
     """历史任务记录管理"""
     pass
+
+# 在所有history命令定义完成后设置显示顺序
+# 这个函数将在模块定义结束时执行
+def _set_history_command_order():
+    history.command_order = [
+        'list',    # 列出历史任务
+        'show',    # 显示任务结果
+        'delete',  # 删除任务
+        'clear',   # 清空任务
+    ]
 
 
 @history.command()
@@ -685,13 +695,13 @@ def clear(status, force):
     asyncio.run(_clear())
 
 
-@cli.command()
+@history.command()
 @click.argument("task_id", type=int)
 @click.option("--raw/--no-raw", default=False, help="是否显示原始响应")
 def show(task_id, raw):
     """显示特定任务结果
 
-    例如: acolyte show 123 --raw
+    例如: acolyte history show 123 --raw
     """
     async def _show():
         client = AcolyteClient()
@@ -1189,6 +1199,9 @@ def delete_prompt(prompt_id, delete_file, force):
     # 运行异步函数
     asyncio.run(_delete_prompt())
 
+
+# 设置命令组的显示顺序
+_set_history_command_order()
 
 if __name__ == "__main__":
     cli()
