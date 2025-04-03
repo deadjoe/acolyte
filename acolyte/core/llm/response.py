@@ -94,10 +94,10 @@ class ResponseParser:
             # 如果是综合可信度分数，先尝试匹配“最终CS”格式
             if key == "credibility_score":
                 # 直接在文本中搜索“最终CS = ”模式
-                # 匹配格式：最终CS = 56.17
-                pattern = fr"最终\s*CS\s*=\s*(\d+(?:\.\d+)?)"
+                # 匹配格式：最终CS = 56.17 或 最终CS = 100 - 50.33 = 49.67
+                pattern = fr"最终\s*CS.*=\s*(\d+(?:\.\d+)?)\s*$"
                 logger.debug(f"尝试匹配最终CS格式: {pattern}")
-                match = re.search(pattern, text, re.IGNORECASE)
+                match = re.search(pattern, text, re.MULTILINE)
                 if match:
                     try:
                         scores[key] = float(match.group(1))
@@ -106,17 +106,7 @@ class ResponseParser:
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析最终CS格式的综合可信度失败: {str(e)}")
 
-                # 匹配格式：最终CS = 100 - 43.83 = 56.17
-                pattern = fr"最终\s*CS\s*=\s*\d+\s*-\s*\d+(?:\.\d+)?\s*=\s*(\d+(?:\.\d+)?)"
-                logger.debug(f"尝试匹配最终CS计算格式: {pattern}")
-                match = re.search(pattern, text, re.IGNORECASE)
-                if match:
-                    try:
-                        scores[key] = float(match.group(1))
-                        logger.debug(f"最终CS计算格式成功提取{key}: {scores[key]}")
-                        continue
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"解析最终CS计算格式的综合可信度失败: {str(e)}")
+                # 注意：我们已经使用了更通用的正则表达式来匹配“最终CS”格式，不需要再单独匹配计算格式
 
             # 备用格式4: 加权BI = 5.95
             pattern = fr"(?:{score_name})\s*=\s*(\d+(?:\.\d+)?)"
