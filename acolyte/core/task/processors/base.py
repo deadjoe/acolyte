@@ -114,18 +114,31 @@ class BaseTaskProcessor(ABC):
                 prompt = session.query(Prompt).filter_by(id=prompt_id).first()
                 if prompt:
                     logger.info(f"使用指定的提示词: ID={prompt.id}, 版本={prompt.version}")
-                    return extract_model_data(prompt, include_relationships=False)
+                    data = extract_model_data(prompt, include_relationships=False)
+                    # 确保包含content字段
+                    if prompt.content and not data.get('content'):
+                        data['content'] = prompt.content
+                        logger.debug(f"提示词内容长度: {len(prompt.content)} 字符")
+                    return data
                 else:
                     logger.warning(f"未找到指定的提示词: ID={prompt_id}")
             
             # 尝试获取适用于特定模型的提示词
             if model_name:
-                prompt_obj = self.prompt_manager.get_latest_prompt(model_name)
-                if prompt_obj:
-                    prompt = session.query(Prompt).filter_by(id=prompt_obj.id).first()
-                    if prompt:
-                        logger.info(f"使用适用于模型 {model_name} 的提示词: ID={prompt.id}, 版本={prompt.version}")
-                        return extract_model_data(prompt, include_relationships=False)
+                # 直接在当前会话中查询，避免使用prompt_manager
+                model_prompt = session.query(Prompt).filter(
+                    Prompt.model_target == model_name,
+                    Prompt.is_active == True
+                ).order_by(Prompt.version.desc()).first()
+                
+                if model_prompt:
+                    logger.info(f"使用适用于模型 {model_name} 的提示词: ID={model_prompt.id}, 版本={model_prompt.version}")
+                    data = extract_model_data(model_prompt, include_relationships=False)
+                    # 确保包含content字段
+                    if model_prompt.content and not data.get('content'):
+                        data['content'] = model_prompt.content
+                        logger.debug(f"提示词内容长度: {len(model_prompt.content)} 字符")
+                    return data
             
             # 获取最新的活跃提示词
             prompt = session.query(Prompt).filter(
@@ -134,7 +147,12 @@ class BaseTaskProcessor(ABC):
             
             if prompt:
                 logger.info(f"使用最新的活跃提示词: ID={prompt.id}, 版本={prompt.version}")
-                return extract_model_data(prompt, include_relationships=False)
+                data = extract_model_data(prompt, include_relationships=False)
+                # 确保包含content字段
+                if prompt.content and not data.get('content'):
+                    data['content'] = prompt.content
+                    logger.debug(f"提示词内容长度: {len(prompt.content)} 字符")
+                return data
             
             logger.warning("未找到任何活跃的提示词")
             
@@ -142,7 +160,12 @@ class BaseTaskProcessor(ABC):
             any_prompt = session.query(Prompt).order_by(Prompt.id.desc()).first()
             if any_prompt:
                 logger.info(f"使用第一个可用的提示词: ID={any_prompt.id}, 版本={any_prompt.version}")
-                return extract_model_data(any_prompt, include_relationships=False)
+                data = extract_model_data(any_prompt, include_relationships=False)
+                # 确保包含content字段
+                if any_prompt.content and not data.get('content'):
+                    data['content'] = any_prompt.content
+                    logger.debug(f"提示词内容长度: {len(any_prompt.content)} 字符")
+                return data
             
             logger.error("数据库中没有任何提示词")
             return None

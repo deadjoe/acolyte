@@ -8,7 +8,7 @@ import functools
 import inspect
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
+from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 from acolyte.utils.logging import get_logger
 
@@ -58,7 +58,7 @@ async def run_sync_in_async(func: Callable[..., T], *args: Any, **kwargs: Any) -
     )
 
 
-def to_async(func: Callable[..., T]) -> Callable[..., asyncio.coroutine]:
+def to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     """
     将同步函数转换为异步函数
     
@@ -78,7 +78,7 @@ def to_async(func: Callable[..., T]) -> Callable[..., asyncio.coroutine]:
 
 async def gather_with_concurrency(
     n: int,
-    *tasks: asyncio.coroutines,
+    *tasks: Awaitable[Any],
     return_exceptions: bool = False
 ) -> List[Any]:
     """
@@ -122,7 +122,7 @@ class AsyncTaskManager:
     def add_task(
         self,
         task_id: str,
-        coro: asyncio.coroutine,
+        coro: Awaitable[Any],
         callback: Optional[Callable[[str, Any], None]] = None
     ) -> None:
         """

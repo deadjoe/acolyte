@@ -132,12 +132,18 @@ class TaskService:
             
             # 如果指定了LLM，关联任务与LLM
             if llm_ids:
-                logger.debug(f"关联LLM: {llm_ids}")
-                llms = session.query(LlmConfig).filter(LlmConfig.id.in_(llm_ids)).all()
-                if len(llms) != len(llm_ids):
-                    logger.warning(f"请求的LLM数量 ({len(llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配")
-                new_task.llm_configs.extend(llms)
-                logger.debug(f"成功关联 {len(llms)} 个LLM")
+                # 去除重复的LLM ID
+                unique_llm_ids = list(set(llm_ids))
+                logger.debug(f"关联LLM(去重后): {unique_llm_ids}")
+                
+                llms = session.query(LlmConfig).filter(LlmConfig.id.in_(unique_llm_ids)).all()
+                if len(llms) != len(unique_llm_ids):
+                    logger.warning(f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配")
+                
+                # 使用列表推导式找出任务中不存在的LLM，避免重复添加
+                new_llms = [llm for llm in llms if llm not in new_task.llm_configs]
+                new_task.llm_configs.extend(new_llms)
+                logger.debug(f"成功关联 {len(new_llms)} 个LLM")
                 
             return task_id
         

@@ -45,6 +45,16 @@ class Database:
         Base.metadata.drop_all(self.engine)
         logger.debug("数据库表删除完成")
 
+    def get_session(self):
+        """获取一个新的会话
+
+        Returns:
+            新创建的数据库会话
+        """
+        session = self.Session()
+        logger.debug("创建新的数据库会话")
+        return session
+
     @contextmanager
     def session_scope(self):
         """提供事务范围的会话上下文管理器
@@ -55,8 +65,7 @@ class Database:
                 # 无需手动commit，退出上下文时自动提交
                 # 如有异常自动回滚
         """
-        session = self.Session()
-        logger.debug("创建新的数据库会话")
+        session = self.get_session()
         try:
             yield session
             session.commit()

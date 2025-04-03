@@ -170,7 +170,12 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
     Returns:
         包含对象数据的字典
     """
+    # 添加详细日志
+    model_type = type(model_obj).__name__ if model_obj else "None"
+    logger.debug(f"提取模型数据: 类型={model_type}, 包含关系={include_relationships}")
+    
     if model_obj is None:
+        logger.warning("无法提取空对象数据")
         return {}
         
     # 如果对象有to_dict方法，优先使用
@@ -181,14 +186,23 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
         
     # 手动提取属性
     result = {}
-    for key in model_obj.__dict__:
-        if not key.startswith('_'):
-            value = getattr(model_obj, key)
-            # 处理日期时间类型
-            if hasattr(value, 'isoformat'):
-                result[key] = value.isoformat()
-            else:
-                result[key] = value
+    try:
+        # 获取对象的字典副本，避免直接访问可能引发懒加载的属性
+        obj_dict = model_obj.__dict__.copy()
+        for key in obj_dict:
+            if not key.startswith('_'):
+                try:
+                    value = obj_dict[key]
+                    # 处理日期时间类型
+                    if hasattr(value, 'isoformat'):
+                        result[key] = value.isoformat()
+                    else:
+                        result[key] = value
+                except (AttributeError, KeyError) as e:
+                    logger.warning(f"提取属性 {key} 失败: {str(e)}")
+                    # 跳过此属性
+    except Exception as e:
+        logger.error(f"提取对象数据时出错: {str(e)}", exc_info=True)
                 
     # 处理关系属性
     if include_relationships:

@@ -34,7 +34,7 @@ class AnthropicClient(LlmClient):
             logger.warning("Anthropic API密钥格式可能不正确，应以'sk-'或'anthropic-'开头")
     
     @retry_on_error()
-    def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
+    async def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
         """
         处理内容
         
@@ -61,12 +61,12 @@ class AnthropicClient(LlmClient):
         # 检测API版本
         if "messages" in user_prompt.lower():
             # 使用Messages API
-            return self._process_with_messages_api(system_prompt, user_prompt)
+            return await self._process_with_messages_api(system_prompt, user_prompt)
         else:
             # 使用文本完成API
-            return self._process_with_completion_api(system_prompt, user_prompt)
+            return await self._process_with_completion_api(system_prompt, user_prompt)
     
-    def _process_with_messages_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_messages_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
         使用Messages API处理内容
         
@@ -99,7 +99,7 @@ class AnthropicClient(LlmClient):
         
         try:
             # 发送请求
-            response = self._make_request(
+            response = await self._make_request(
                 method="POST",
                 endpoint="/v1/messages",
                 headers=headers,
@@ -142,7 +142,7 @@ class AnthropicClient(LlmClient):
                 "error": f"Anthropic处理失败: {str(e)}"
             }
     
-    def _process_with_completion_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_completion_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
         使用Completion API处理内容
         
@@ -172,7 +172,7 @@ class AnthropicClient(LlmClient):
         
         try:
             # 发送请求
-            response = self._make_request(
+            response = await self._make_request(
                 method="POST",
                 endpoint="/v1/complete",
                 headers=headers,
@@ -211,7 +211,7 @@ class AnthropicClient(LlmClient):
                 "error": f"Anthropic处理失败: {str(e)}"
             }
     
-    def _test_connection(self) -> Dict[str, Union[bool, str]]:
+    async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
         测试连接
         
@@ -229,7 +229,7 @@ class AnthropicClient(LlmClient):
         
         try:
             # 获取模型列表是最轻量的请求
-            response = self._make_request(
+            response = await self._make_request(
                 method="GET",
                 endpoint="/v1/models",
                 headers=headers

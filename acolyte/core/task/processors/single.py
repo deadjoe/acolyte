@@ -101,7 +101,8 @@ class SingleLlmProcessor(BaseTaskProcessor):
                 
                 # 处理内容
                 logger.info(f"开始调用LLM API: 任务ID={task_id}, LLM={llm_data.get('name')}")
-                result = client.process_content(content=task_content, prompt=prompt_content)
+                # 使用await关键字，因为process_content是异步方法
+                result = await client.process_content(content=task_content, prompt=prompt_content)
                 logger.info(f"LLM API调用完成: 任务ID={task_id}, 成功={result.get('success', False)}")
                 
             except Exception as e:
