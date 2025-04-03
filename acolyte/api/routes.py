@@ -59,7 +59,7 @@ class LlmConfigResponse(BaseModel):
     is_default: bool
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TaskCreate(BaseModel):
@@ -79,7 +79,7 @@ class TaskResponse(BaseModel):
     updated_at: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TaskResultResponse(BaseModel):
@@ -94,7 +94,7 @@ class TaskResultResponse(BaseModel):
     raw_response: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PromptCreate(BaseModel):
@@ -127,7 +127,7 @@ class PromptResponse(BaseModel):
     updated_at: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # LLM配置路由
@@ -346,6 +346,59 @@ async def get_task_results(
     return result.get("results", [])
 
 
+# 配置路由
+@router.post("/config/import")
+async def import_config(name: Optional[str] = None):
+    """从配置文件导入LLM配置到数据库
+    
+    Args:
+        name: 可选，指定要导入的LLM名称
+    """
+    logger.info(f"API请求: 从配置文件导入LLM配置{' (' + name + ')' if name else ''}")
+    
+    try:
+        from acolyte.core.llm.config import import_llm_config_from_file
+        
+        imported_llms = import_llm_config_from_file(llm_name=name)
+        
+        if not imported_llms:
+            logger.warning(f"未找到可导入的LLM配置{' (' + name + ')' if name else ''}")
+            return {
+                "status": "success", 
+                "message": f"未找到可导入的LLM配置{' (' + name + ')' if name else ''}",
+                "llms": []
+            }
+            
+        logger.info(f"成功导入 {len(imported_llms)} 个LLM配置")
+        return {
+            "status": "success", 
+            "message": f"成功导入 {len(imported_llms)} 个LLM配置",
+            "llms": imported_llms
+        }
+    except Exception as e:
+        logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}")
+
+@router.post("/config/export")
+async def export_config():
+    """将数据库中的LLM配置导出到配置文件"""
+    logger.info("API请求: 导出LLM配置到配置文件")
+    
+    try:
+        from acolyte.core.llm.config import export_llm_config_to_file
+        
+        success = export_llm_config_to_file()
+        
+        if success:
+            logger.info("LLM配置导出成功")
+            return {"status": "success", "message": "LLM配置已成功导出到配置文件"}
+        else:
+            logger.error("LLM配置导出失败")
+            raise HTTPException(status_code=500, detail="LLM配置导出失败")
+    except Exception as e:
+        logger.error(f"导出LLM配置失败: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}")
+
 # 提示词路由
 @router.get("/prompts", response_model=List[PromptResponse])
 async def get_prompts(
@@ -426,15 +479,33 @@ async def delete_prompt(prompt_id: int, delete_file: bool = False):
     return {"status": "success", "message": f"提示词 {prompt_id} 已删除", "file_deleted": result.get("file_deleted", False)}
 
 
+class PromptSyncRequest(BaseModel):
+    prompt_dir: Optional[str] = None
+
 @router.post("/prompts/sync")
-async def sync_prompts():
-    """同步提示词文件到数据库"""
+async def sync_prompts(request_data: Optional[PromptSyncRequest] = None):
+    """同步提示词文件到数据库
+    
+    Args:
+        request_data: 可选的请求数据，可包含prompt_dir参数
+    """
+    logger.info("API请求: 同步提示词文件到数据库")
+    
+    # 提取prompt_dir参数（如果存在）
+    prompt_dir = None
+    if request_data:
+        prompt_dir = request_data.prompt_dir
+        if prompt_dir:
+            logger.info(f"使用指定的prompt_dir: {prompt_dir}")
+    
     prompt_service = PromptService()
-    result = await prompt_service.sync_prompts()
+    result = await prompt_service.sync_prompts(prompt_dir=prompt_dir)
     
     if not result.get("success", False):
+        logger.error(f"同步提示词失败: {result.get('error', '未知错误')}")
         raise HTTPException(status_code=500, detail=result.get("error", "同步提示词失败"))
     
+    logger.info(f"提示词同步成功: {result.get('count', 0)} 个提示词")
     return {
         "status": "success", 
         "message": result.get("message", "提示词同步成功"),

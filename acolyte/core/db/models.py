@@ -110,6 +110,7 @@ class Prompt(Base):
             "model_target": self.model_target,
             "description": self.description,
             "is_active": self.is_active,
+            "file_path": self.file_path,  # 总是包含文件路径
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

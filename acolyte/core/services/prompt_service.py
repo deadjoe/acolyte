@@ -81,7 +81,13 @@ class PromptService:
             prompt = session.query(Prompt).filter(Prompt.id == prompt_id).first()
             if not prompt:
                 return None
-            return extract_model_data(prompt)
+            
+            # 直接使用to_dict方法并传入include_content=True确保包含内容
+            if hasattr(prompt, 'to_dict') and callable(getattr(prompt, 'to_dict')):
+                return prompt.to_dict(include_content=True)
+            else:
+                # 回退到extract_model_data
+                return extract_model_data(prompt)
         
         try:
             prompt = await run_in_session(_get_prompt)
@@ -115,30 +121,48 @@ class PromptService:
             logger.error(f"获取最新提示词失败: {str(e)}", exc_info=True)
             return {"error": f"获取最新提示词失败: {str(e)}", "success": False}
     
-    async def sync_prompts(self) -> Dict:
+    async def sync_prompts(self, prompt_dir: Optional[str] = None) -> Dict:
         """
         同步提示词文件到数据库
         
+        Args:
+            prompt_dir: 可选的提示词目录路径，如果指定则使用该路径
+            
         Returns:
             同步结果
         """
-        logger.info("开始同步提示词文件到数据库")
+        logger.info(f"开始同步提示词文件到数据库{f', 使用目录: {prompt_dir}' if prompt_dir else ''}")
         
         try:
-            result = self.prompt_manager.sync_prompt_files_to_db()
-            if result:
-                # 查询同步后的提示词数量
-                async def _count_prompts(session: Session):
-                    return session.query(Prompt).count()
-                
-                count = await run_in_session(_count_prompts)
-                return {
-                    "message": f"提示词同步成功，当前共有 {count} 个提示词模板",
-                    "count": count,
-                    "success": True
-                }
-            else:
-                return {"error": "提示词同步失败", "success": False}
+            # 如果指定了prompt_dir，先更新PromptManager的prompt_dir属性
+            original_prompt_dir = None
+            if prompt_dir:
+                logger.debug(f"临时设置PromptManager的prompt_dir为: {prompt_dir}")
+                original_prompt_dir = self.prompt_manager.prompt_dir
+                self.prompt_manager.prompt_dir = prompt_dir
+            
+            try:
+                result = self.prompt_manager.sync_prompt_files_to_db()
+                if result:
+                    # 查询同步后的提示词数量
+                    async def _count_prompts(session: Session):
+                        return session.query(Prompt).count()
+                    
+                    count = await run_in_session(_count_prompts)
+                    logger.info(f"提示词同步成功，当前共有 {count} 个提示词模板")
+                    return {
+                        "message": f"提示词同步成功，当前共有 {count} 个提示词模板",
+                        "count": count,
+                        "success": True
+                    }
+                else:
+                    logger.error("提示词同步失败")
+                    return {"error": "提示词同步失败", "success": False}
+            finally:
+                # 恢复原始prompt_dir
+                if original_prompt_dir:
+                    logger.debug(f"恢复PromptManager的prompt_dir为: {original_prompt_dir}")
+                    self.prompt_manager.prompt_dir = original_prompt_dir
         except Exception as e:
             logger.error(f"同步提示词文件失败: {str(e)}", exc_info=True)
             return {"error": f"同步提示词文件失败: {str(e)}", "success": False}

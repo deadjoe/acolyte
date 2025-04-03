@@ -332,13 +332,18 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                     console.print("[bold red]错误:[/] 必须提供文件、文本或通过管道输入内容")
                     return
                     
-            if not content.strip():
+            if not content or not content.strip():
                 logger.error("内容为空")
                 console.print("[bold red]错误:[/] 内容不能为空")
                 return
 
             # 获取LLM ID列表
-            llm_ids = list(llm) if llm else []
+            llm_ids = []
+            if isinstance(llm, tuple):
+                for item in llm:
+                    llm_ids.append(item)
+            elif llm:  # 其他非空类型
+                llm_ids = [llm]
             if llm_config:
                 # 导入配置
                 logger.info(f"尝试从配置文件导入LLM: {llm_config}")
@@ -1046,13 +1051,19 @@ def show_prompt(prompt_id):
                 console.print("\n[bold]Prompt内容:[/]")
                 console.print(Markdown(prompt["content"]))
             else:
-                # 如果返回的prompt对象中没有content，单独获取content
-                with console.status(f"[bold green]获取Prompt内容...[/]"):
-                    response = await client.client.get(f"/prompts/{prompt_id}/content")
-                    response.raise_for_status()
-                    content_data = response.json()
-                    console.print("\n[bold]Prompt内容:[/]")
-                    console.print(Markdown(content_data["content"]))
+                # 如果没有内容，尝试读取文件
+                file_path = prompt.get("file_path")
+                if file_path and os.path.exists(file_path):
+                    with console.status(f"[bold green]从文件读取Prompt内容: {file_path}[/]"):
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            console.print("\n[bold]Prompt内容 (从文件读取):[/]")
+                            console.print(Markdown(content))
+                        except Exception as e:
+                            console.print(f"[bold red]读取提示词文件失败:[/] {str(e)}")
+                else:
+                    console.print("[bold yellow]提示词内容不可用[/]")
                 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -1064,6 +1075,72 @@ def show_prompt(prompt_id):
             
     # 运行异步函数
     asyncio.run(_show_prompt())
+
+
+@config.command()
+@click.argument("prompt_id", type=int)
+@click.option("--delete-file", "-f", is_flag=True, help="同时删除提示词文件")
+@click.option("--force", is_flag=True, help="跳过确认直接删除")
+def delete_prompt(prompt_id, delete_file, force):
+    """删除特定提示词
+    
+    例如: acolyte config delete-prompt 1 --delete-file
+    """
+    async def _delete_prompt():
+        client = AcolyteClient()
+        try:
+            # 先获取提示词信息以显示
+            try:
+                with console.status(f"[bold green]获取提示词 {prompt_id}信息...[/]"):
+                    prompt = await client.get_prompt(prompt_id)
+                    
+                # 显示提示词信息
+                panel_content = (
+                    f"ID: {prompt['id']}\n"
+                    f"版本: {prompt['version']}\n"
+                    f"目标模型: {prompt['model_target'] or '通用'}\n"
+                    f"状态: {'激活' if prompt['is_active'] else '禁用'}"
+                )
+                
+                if 'file_path' in prompt and prompt['file_path']:
+                    panel_content += f"\n文件路径: {prompt['file_path']}"
+                
+                console.print(Panel(
+                    panel_content,
+                    title="将删除以下提示词"
+                ))
+                
+                # 确认删除
+                if not force and not click.confirm("确认删除?", default=False):
+                    console.print("[bold yellow]已取消删除[/]")
+                    return
+                
+                # 执行删除
+                with console.status(f"[bold green]删除提示词 {prompt_id}...[/]"):
+                    # 直接调用API删除提示词
+                    params = {"delete_file": delete_file}
+                    response = await client.client.delete(f"/prompts/{prompt_id}", params=params)
+                    response.raise_for_status()
+                    result = response.json()
+                
+                console.print(f"[bold green]{result['message']}[/]")
+                
+                # 如果同时删除了文件，显示文件删除状态
+                if delete_file:
+                    file_status = "已删除" if result.get("file_deleted", False) else "未删除"
+                    console.print(f"[bold]提示词文件: {file_status}[/]")
+                    
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    console.print(f"[bold red]错误:[/] ID为{prompt_id}的提示词不存在")
+                else:
+                    console.print(f"[bold red]错误:[/] {str(e)}")
+                    
+        finally:
+            await client.close()
+            
+    # 运行异步函数
+    asyncio.run(_delete_prompt())
 
 
 if __name__ == "__main__":
