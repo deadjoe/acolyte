@@ -69,6 +69,30 @@ class AcolyteClient:
             logger.error(f"检查API服务连接时发生未知错误: {str(e)}")
             return False, f"检查API服务连接时发生错误: {str(e)}"
 
+    async def get_system_info(self):
+        """获取系统信息
+
+        Returns:
+            系统信息字典
+        """
+        logger.debug("获取系统信息")
+        try:
+            response = await self.client.get("/system/info")
+            response.raise_for_status()
+            result = response.json()
+            logger.debug(f"成功获取系统信息: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"获取系统信息失败: {str(e)}")
+            # 返回基本信息
+            return {
+                "version": "unknown",
+                "database_status": "unknown",
+                "task_count": "unknown",
+                "llm_count": "unknown",
+                "prompt_count": "unknown"
+            }
+
     async def analyze(self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None):
         """分析内容
 
@@ -335,8 +359,57 @@ def cli():
         'analyze',  # 分析命令
         'config',   # 配置管理
         'history',  # 历史记录
+        'status',   # 状态检查
     ]
     pass
+
+
+@cli.command()
+def status():
+    """检查API服务状态
+
+    检查API服务是否正常运行，并显示系统信息。
+    """
+    async def _check_status():
+        client = AcolyteClient()
+        try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+
+            if connection_ok:
+                console.print("[bold green]状态:[/] API服务运行正常")
+                console.print(f"[bold cyan]API地址:[/] {client.base_url}")
+
+                # 获取系统信息
+                try:
+                    with console.status("[bold green]获取系统信息...[/]"):
+                        system_info = await client.get_system_info()
+
+                    # 显示系统信息
+                    console.print("\n[bold]系统信息:[/]")
+                    table = Table()
+                    table.add_column("项目", style="cyan")
+                    table.add_column("值", style="green")
+
+                    table.add_row("版本", system_info.get("version", "unknown"))
+                    table.add_row("数据库状态", system_info.get("database_status", "unknown"))
+                    table.add_row("任务数量", str(system_info.get("task_count", "unknown")))
+                    table.add_row("LLM数量", str(system_info.get("llm_count", "unknown")))
+                    table.add_row("Prompt数量", str(system_info.get("prompt_count", "unknown")))
+
+                    console.print(table)
+                except Exception as e:
+                    logger.warning(f"获取系统信息失败: {str(e)}")
+                    console.print("[yellow]警告:[/] 无法获取系统详细信息")
+            else:
+                console.print(f"[bold red]状态:[/] API服务不可用")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+        finally:
+            await client.close()
+
+    # 运行异步函数
+    asyncio.run(_check_status())
 
 
 @cli.command()
