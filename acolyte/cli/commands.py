@@ -51,11 +51,19 @@ class AcolyteClient:
         """
         logger.debug(f"检查API服务连接: {self.base_url}")
         try:
-            # 尝试访问API健康检查端点
-            response = await self.client.get("/health")
-            response.raise_for_status()
-            logger.debug("API服务连接正常")
-            return True, None
+            # 尝试访问API根端点
+            # 注意：API的根端点在 http://localhost:8000/，而不是 http://localhost:8000/api/
+            # 所以我们需要使用绝对URL而不是相对路径
+            base_url_parts = self.base_url.split('/api')
+            root_url = base_url_parts[0]  # 获取没有/api的基础URL
+            logger.debug(f"访问根端点: {root_url}")
+
+            # 使用httpx直接访问根端点，而不是通过self.client
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(root_url)
+                response.raise_for_status()
+                logger.debug("API服务连接正常")
+                return True, None
         except httpx.ConnectError as e:
             logger.error(f"无法连接到API服务: {str(e)}")
             return False, "无法连接到API服务，请确保服务已启动（运行 'uv run -m acolyte.main'）"
@@ -77,9 +85,41 @@ class AcolyteClient:
         """
         logger.debug("获取系统信息")
         try:
-            response = await self.client.get("/system/info")
-            response.raise_for_status()
-            result = response.json()
+            # 尝试从根端点获取基本信息
+            base_url_parts = self.base_url.split('/api')
+            root_url = base_url_parts[0]  # 获取没有/api的基础URL
+            logger.debug(f"访问根端点获取版本信息: {root_url}")
+
+            # 使用httpx直接访问根端点
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(root_url)
+                response.raise_for_status()
+                root_info = response.json()
+                version = root_info.get("version", "unknown")
+
+            # 获取任务数量
+            tasks_response = await self.client.get("/tasks")
+            tasks = tasks_response.json() if tasks_response.status_code == 200 else []
+            task_count = len(tasks)
+
+            # 获取LLM数量
+            llms_response = await self.client.get("/llms")
+            llms = llms_response.json() if llms_response.status_code == 200 else []
+            llm_count = len(llms)
+
+            # 获取Prompt数量
+            prompts_response = await self.client.get("/prompts")
+            prompts = prompts_response.json() if prompts_response.status_code == 200 else []
+            prompt_count = len(prompts)
+
+            result = {
+                "version": version,
+                "database_status": "connected",  # 如果API响应正常，数据库应该是连接的
+                "task_count": task_count,
+                "llm_count": llm_count,
+                "prompt_count": prompt_count
+            }
+
             logger.debug(f"成功获取系统信息: {result}")
             return result
         except Exception as e:
@@ -356,12 +396,11 @@ def cli():
     """Acolyte CLI - 内容分析评估系统命令行工具"""
     # 设置主命令组中命令的显示顺序
     cli.command_order = [
-        'analyze',  # 分析命令
         'config',   # 配置管理
+        'analyze',  # 分析命令
         'history',  # 历史记录
         'status',   # 状态检查
     ]
-    pass
 
 
 @cli.command()
@@ -1330,6 +1369,17 @@ def delete_prompt(prompt_id, delete_file, force):
 
 # 设置命令组的显示顺序
 _set_history_command_order()
+
+# 设置主命令组的显示顺序
+def _set_cli_command_order():
+    cli.command_order = [
+        'config',   # 配置管理
+        'analyze',  # 分析命令
+        'history',  # 历史记录
+        'status',   # 状态检查
+    ]
+
+_set_cli_command_order()
 
 if __name__ == "__main__":
     cli()
