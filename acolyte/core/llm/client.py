@@ -87,9 +87,9 @@ class AnthropicClient(LlmClient):
                 url = f"{self.base_url}/{endpoint}"
             else:
                 url = f"{self.base_url}/v1/{endpoint}"
-            
+
             logger.info(f"发送请求到Anthropic API: {url}")
-            
+
             try:
                 response = requests.post(
                     url,
@@ -97,7 +97,7 @@ class AnthropicClient(LlmClient):
                     json=data,
                     timeout=60
                 )
-                
+
                 # 处理HTTP错误
                 try:
                     response.raise_for_status()
@@ -126,7 +126,7 @@ class AnthropicClient(LlmClient):
                             "raw_response": None,
                             "result": None
                         }
-                
+
                 response_data = response.json()
                 logger.debug(f"收到Anthropic API响应: {len(str(response_data))}字符")
             except requests.exceptions.ConnectionError as conn_err:
@@ -214,11 +214,16 @@ class AnthropicClient(LlmClient):
             解析后的结果字典，包含评分和分析
         """
         logger.debug("开始解析响应文本...")
+
+        # 使用ResponseParser提取评分
+        from acolyte.core.llm.response import ResponseParser
+        scores = ResponseParser.extract_scores(response)
+
         result = {
-            "bias_index": None,
-            "misleading_index": None,
-            "hidden_intent_index": None,
-            "credibility_score": None,
+            "bias_index": scores.get("bias_index"),
+            "misleading_index": scores.get("misleading_index"),
+            "hidden_intent_index": scores.get("hidden_intent_index"),
+            "credibility_score": scores.get("credibility_score"),
             "analysis": {
                 "background": None,
                 "bias_findings": [],
@@ -245,7 +250,7 @@ class AnthropicClient(LlmClient):
 
             # 提取量化评分部分
             if "偏见指数 (BI):" in response or "偏见指数 (BI)" in response:
-                bi_match = next((line for line in response.split("\n") 
+                bi_match = next((line for line in response.split("\n")
                                 if "偏见指数" in line and "=" in line), None)
                 if bi_match:
                     logger.debug(f"找到偏见指数行: {bi_match}")
@@ -256,7 +261,7 @@ class AnthropicClient(LlmClient):
                         logger.warning(f"解析偏见指数失败: {str(e)}, 行: {bi_match}")
 
             if "误导性指数 (MI):" in response or "误导性指数 (MI)" in response:
-                mi_match = next((line for line in response.split("\n") 
+                mi_match = next((line for line in response.split("\n")
                                 if "误导性指数" in line and "=" in line), None)
                 if mi_match:
                     logger.debug(f"找到误导性指数行: {mi_match}")
@@ -267,7 +272,7 @@ class AnthropicClient(LlmClient):
                         logger.warning(f"解析误导性指数失败: {str(e)}, 行: {mi_match}")
 
             if "隐藏意图指数 (HI):" in response or "隐藏意图指数 (HI)" in response:
-                hi_match = next((line for line in response.split("\n") 
+                hi_match = next((line for line in response.split("\n")
                                 if "隐藏意图指数" in line and "=" in line), None)
                 if hi_match:
                     logger.debug(f"找到隐藏意图指数行: {hi_match}")
@@ -277,16 +282,7 @@ class AnthropicClient(LlmClient):
                     except (ValueError, IndexError) as e:
                         logger.warning(f"解析隐藏意图指数失败: {str(e)}, 行: {hi_match}")
 
-            if "综合可信度 (CS):" in response or "综合可信度分数 (CS)" in response:
-                cs_match = next((line for line in response.split("\n") 
-                                if "综合可信度" in line and "=" in line), None)
-                if cs_match:
-                    logger.debug(f"找到综合可信度行: {cs_match}")
-                    try:
-                        result["credibility_score"] = float(cs_match.split("=")[1].strip())
-                        logger.debug(f"提取的综合可信度: {result['credibility_score']}")
-                    except (ValueError, IndexError) as e:
-                        logger.warning(f"解析综合可信度失败: {str(e)}, 行: {cs_match}")
+            # 使用ResponseParser已经提取了综合可信度，这里不需要再次提取
 
             # 提取分析前背景
             logger.debug("开始提取分析前背景...")
@@ -314,7 +310,7 @@ class AnthropicClient(LlmClient):
                 if misleading_start != -1:
                     bias_text = response[bias_start:misleading_start].strip()
                     # 提取列表项
-                    bias_items = [line.strip() for line in bias_text.split("\n") 
+                    bias_items = [line.strip() for line in bias_text.split("\n")
                                 if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["bias_findings"] = bias_items
                     logger.debug(f"提取到偏见发现项: {len(bias_items)}项")
@@ -332,7 +328,7 @@ class AnthropicClient(LlmClient):
                 if hidden_intent_start != -1:
                     misleading_text = response[misleading_start:hidden_intent_start].strip()
                     # 提取列表项
-                    misleading_items = [line.strip() for line in misleading_text.split("\n") 
+                    misleading_items = [line.strip() for line in misleading_text.split("\n")
                                     if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["misleading_findings"] = misleading_items
                     logger.debug(f"提取到误导性内容发现项: {len(misleading_items)}项")
@@ -350,7 +346,7 @@ class AnthropicClient(LlmClient):
                 if overall_start != -1:
                     hidden_intent_text = response[hidden_intent_start:overall_start].strip()
                     # 提取列表项
-                    hidden_intent_items = [line.strip() for line in hidden_intent_text.split("\n") 
+                    hidden_intent_items = [line.strip() for line in hidden_intent_text.split("\n")
                                         if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["hidden_intent_findings"] = hidden_intent_items
                     logger.debug(f"提取到隐藏意图发现项: {len(hidden_intent_items)}项")
@@ -381,7 +377,7 @@ class AnthropicClient(LlmClient):
             if "可信度分类:" in response:
                 logger.debug("响应中包含可信度分类标记")
                 try:
-                    class_match = next((line for line in response.split("\n") 
+                    class_match = next((line for line in response.split("\n")
                                       if "可信度分类:" in line), None)
                     if class_match:
                         result["analysis"]["credibility_classification"] = class_match.split(":")[1].strip()
@@ -400,7 +396,7 @@ class AnthropicClient(LlmClient):
                 logger.debug(f"找到分析局限部分开始位置: {limitations_start}")
                 limitations_text = response[limitations_start:].strip()
                 # 提取列表项
-                limitations_items = [line.strip() for line in limitations_text.split("\n") 
+                limitations_items = [line.strip() for line in limitations_text.split("\n")
                                    if line.strip().startswith("-") or line.strip().startswith("*")]
                 result["analysis"]["limitations"] = limitations_items
                 logger.debug(f"提取到分析局限项: {len(limitations_items)}项")
@@ -411,7 +407,7 @@ class AnthropicClient(LlmClient):
             if result["bias_index"] is None or result["misleading_index"] is None or \
                result["hidden_intent_index"] is None or result["credibility_score"] is None:
                 logger.info("使用备用方法尝试提取评分...")
-                
+
                 # 查找加权评分和最终分数部分
                 for line in response.split("\n"):
                     line = line.strip()
@@ -423,7 +419,7 @@ class AnthropicClient(LlmClient):
                             logger.info(f"备用方法提取偏见指数: {value}")
                         except Exception as e:
                             logger.warning(f"备用提取偏见指数失败: {str(e)}")
-                            
+
                     if any(k in line.lower() for k in ["misleading_index", "误导性指数", "加权mi"]) and "=" in line and result["misleading_index"] is None:
                         try:
                             value = float(line.split("=")[1].strip())
@@ -431,7 +427,7 @@ class AnthropicClient(LlmClient):
                             logger.info(f"备用方法提取误导性指数: {value}")
                         except Exception as e:
                             logger.warning(f"备用提取误导性指数失败: {str(e)}")
-                            
+
                     if any(k in line.lower() for k in ["hidden_intent_index", "隐藏意图指数", "加权hi"]) and "=" in line and result["hidden_intent_index"] is None:
                         try:
                             value = float(line.split("=")[1].strip())
@@ -439,14 +435,8 @@ class AnthropicClient(LlmClient):
                             logger.info(f"备用方法提取隐藏意图指数: {value}")
                         except Exception as e:
                             logger.warning(f"备用提取隐藏意图指数失败: {str(e)}")
-                            
-                    if any(k in line.lower() for k in ["credibility_score", "综合可信度", "最终cs"]) and "=" in line and result["credibility_score"] is None:
-                        try:
-                            value = float(line.split("=")[1].strip())
-                            result["credibility_score"] = value
-                            logger.info(f"备用方法提取综合可信度: {value}")
-                        except Exception as e:
-                            logger.warning(f"备用提取综合可信度失败: {str(e)}")
+
+                    # 使用ResponseParser已经提取了综合可信度，这里不需要再次提取
 
         except Exception as e:
             # 如果解析失败，添加错误信息但返回原始响应
@@ -461,7 +451,7 @@ class AnthropicClient(LlmClient):
         logger.info(f"  误导性指数: {result['misleading_index']}")
         logger.info(f"  隐藏意图指数: {result['hidden_intent_index']}")
         logger.info(f"  综合可信度: {result['credibility_score']}")
-        
+
         return result
 
 
@@ -505,7 +495,7 @@ class OpenAIClient(LlmClient):
                 url = f"{self.base_url}/{endpoint}"
             else:
                 url = f"{self.base_url}/v1/{endpoint}"
-                
+
             response = requests.post(
                 url,
                 headers=headers,
@@ -565,25 +555,25 @@ class OpenAIClient(LlmClient):
         try:
             # 提取量化评分部分
             if "偏见指数 (BI):" in response or "偏见指数 (BI)" in response:
-                bi_match = next((line for line in response.split("\n") 
+                bi_match = next((line for line in response.split("\n")
                                 if "偏见指数" in line and "=" in line), None)
                 if bi_match:
                     result["bias_index"] = float(bi_match.split("=")[1].strip())
 
             if "误导性指数 (MI):" in response or "误导性指数 (MI)" in response:
-                mi_match = next((line for line in response.split("\n") 
+                mi_match = next((line for line in response.split("\n")
                                 if "误导性指数" in line and "=" in line), None)
                 if mi_match:
                     result["misleading_index"] = float(mi_match.split("=")[1].strip())
 
             if "隐藏意图指数 (HI):" in response or "隐藏意图指数 (HI)" in response:
-                hi_match = next((line for line in response.split("\n") 
+                hi_match = next((line for line in response.split("\n")
                                 if "隐藏意图指数" in line and "=" in line), None)
                 if hi_match:
                     result["hidden_intent_index"] = float(hi_match.split("=")[1].strip())
 
             if "综合可信度 (CS):" in response or "综合可信度分数 (CS)" in response:
-                cs_match = next((line for line in response.split("\n") 
+                cs_match = next((line for line in response.split("\n")
                                 if "综合可信度" in line and "=" in line), None)
                 if cs_match:
                     result["credibility_score"] = float(cs_match.split("=")[1].strip())
@@ -701,25 +691,25 @@ class GeminiClient(LlmClient):
         try:
             # 提取量化评分部分
             if "偏见指数 (BI):" in response or "偏见指数 (BI)" in response:
-                bi_match = next((line for line in response.split("\n") 
+                bi_match = next((line for line in response.split("\n")
                                 if "偏见指数" in line and "=" in line), None)
                 if bi_match:
                     result["bias_index"] = float(bi_match.split("=")[1].strip())
 
             if "误导性指数 (MI):" in response or "误导性指数 (MI)" in response:
-                mi_match = next((line for line in response.split("\n") 
+                mi_match = next((line for line in response.split("\n")
                                 if "误导性指数" in line and "=" in line), None)
                 if mi_match:
                     result["misleading_index"] = float(mi_match.split("=")[1].strip())
 
             if "隐藏意图指数 (HI):" in response or "隐藏意图指数 (HI)" in response:
-                hi_match = next((line for line in response.split("\n") 
+                hi_match = next((line for line in response.split("\n")
                                 if "隐藏意图指数" in line and "=" in line), None)
                 if hi_match:
                     result["hidden_intent_index"] = float(hi_match.split("=")[1].strip())
 
             if "综合可信度 (CS):" in response or "综合可信度分数 (CS)" in response:
-                cs_match = next((line for line in response.split("\n") 
+                cs_match = next((line for line in response.split("\n")
                                 if "综合可信度" in line and "=" in line), None)
                 if cs_match:
                     result["credibility_score"] = float(cs_match.split("=")[1].strip())
@@ -741,7 +731,7 @@ class GeminiClient(LlmClient):
                 if misleading_start != -1:
                     bias_text = response[bias_start:misleading_start].strip()
                     # 提取列表项
-                    bias_items = [line.strip() for line in bias_text.split("\n") 
+                    bias_items = [line.strip() for line in bias_text.split("\n")
                                 if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["bias_findings"] = bias_items
 
@@ -752,7 +742,7 @@ class GeminiClient(LlmClient):
                 if hidden_intent_start != -1:
                     misleading_text = response[misleading_start:hidden_intent_start].strip()
                     # 提取列表项
-                    misleading_items = [line.strip() for line in misleading_text.split("\n") 
+                    misleading_items = [line.strip() for line in misleading_text.split("\n")
                                      if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["misleading_findings"] = misleading_items
 
@@ -763,7 +753,7 @@ class GeminiClient(LlmClient):
                 if overall_start != -1:
                     hidden_intent_text = response[hidden_intent_start:overall_start].strip()
                     # 提取列表项
-                    hidden_intent_items = [line.strip() for line in hidden_intent_text.split("\n") 
+                    hidden_intent_items = [line.strip() for line in hidden_intent_text.split("\n")
                                         if line.strip().startswith("-") or line.strip().startswith("*")]
                     result["analysis"]["hidden_intent_findings"] = hidden_intent_items
 
@@ -779,7 +769,7 @@ class GeminiClient(LlmClient):
 
             # 提取可信度分类
             if "可信度分类:" in response:
-                class_match = next((line for line in response.split("\n") 
+                class_match = next((line for line in response.split("\n")
                                   if "可信度分类:" in line), None)
                 if class_match:
                     result["analysis"]["credibility_classification"] = class_match.split(":")[1].strip()
@@ -789,7 +779,7 @@ class GeminiClient(LlmClient):
             if limitations_start != -1:
                 limitations_text = response[limitations_start:].strip()
                 # 提取列表项
-                limitations_items = [line.strip() for line in limitations_text.split("\n") 
+                limitations_items = [line.strip() for line in limitations_text.split("\n")
                                    if line.strip().startswith("-") or line.strip().startswith("*")]
                 result["analysis"]["limitations"] = limitations_items
 
@@ -811,11 +801,11 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
     """
     from acolyte.core.llm.providers.deepseek import DeepSeekClient
     from acolyte.core.llm.providers.ollama import OllamaClient
-    
+
     # 获取日志记录器
     logger = get_logger(__name__)
     logger.debug(f"为LLM创建客户端: 名称={llm_config.name}, URL={llm_config.base_url}, 模型={llm_config.model_name}")
-    
+
     # 根据base_url或其他参数判断LLM类型
     base_url = llm_config.base_url.lower() if llm_config.base_url else ""
     if "anthropic" in base_url:
