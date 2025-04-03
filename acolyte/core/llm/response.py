@@ -32,6 +32,7 @@ class ResponseParser:
             包含评分的字典
         """
         logger.debug(f"开始从文本中提取评分, 文本长度: {len(text)}字符")
+        logger.debug(f"提取评分策略: 使用多种模式匹配尝试提取偏见指数、误导性指数、隐藏意图指数和综合可信度分数")
 
         # 初始化结果字典
         scores = {
@@ -49,11 +50,12 @@ class ResponseParser:
             (r"隐藏意图指数|Hidden Intent Index|HI", "hidden_intent_index"),
             (r"可信度分数|Credibility Score|CS", "credibility_score")
         ]:
-            # 标准格式
+            # 标准格式: 偏见指数/Bias Index: 7.5
             pattern = fr"(?:{score_name}):\s*(\d+(?:\.\d+)?)"
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 scores[key] = float(match.group(1))
+                logger.debug(f"标准格式成功提取{key}: {scores[key]}")
                 continue
 
             # 备用格式1: 偏见指数/Bias Index - 7.5
@@ -61,6 +63,7 @@ class ResponseParser:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 scores[key] = float(match.group(1))
+                logger.debug(f"备用格式1成功提取{key}: {scores[key]}")
                 continue
 
             # 备用格式2: 偏见指数/Bias Index: 7.5/10
@@ -68,6 +71,7 @@ class ResponseParser:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 scores[key] = float(match.group(1))
+                logger.debug(f"备用格式2成功提取{key}: {scores[key]}")
                 continue
 
             # 备用格式3: 偏见指数/Bias Index（7.5/10）
@@ -75,6 +79,7 @@ class ResponseParser:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 scores[key] = float(match.group(1))
+                logger.debug(f"备用格式3成功提取{key}: {scores[key]}")
                 continue
 
             # 处理特殊格式的综合可信度，如"100 - 53.5"
@@ -85,7 +90,9 @@ class ResponseParser:
                 if match:
                     try:
                         # 计算100减去匹配的值
-                        scores[key] = 100 - float(match.group(1))
+                        value = float(match.group(1))
+                        scores[key] = 100 - value
+                        logger.debug(f"特殊格式'100 - X'成功提取{key}: 100 - {value} = {scores[key]}")
                         continue
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析特殊格式的综合可信度失败: {str(e)}")
@@ -96,6 +103,7 @@ class ResponseParser:
                 if match:
                     try:
                         scores[key] = float(match.group(1))
+                        logger.debug(f"计算表达式格式成功提取{key}: {scores[key]}")
                         continue
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析计算表达式格式的综合可信度失败: {str(e)}")
@@ -107,6 +115,7 @@ class ResponseParser:
                 if match:
                     try:
                         scores[key] = float(match.group(1))
+                        logger.debug(f"最终CS格式成功提取{key}: {scores[key]}")
                         continue
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析最终CS格式的综合可信度失败: {str(e)}")
@@ -117,6 +126,7 @@ class ResponseParser:
                 if match:
                     try:
                         scores[key] = float(match.group(1))
+                        logger.debug(f"最终CS计算格式成功提取{key}: {scores[key]}")
                         continue
                     except (ValueError, TypeError) as e:
                         logger.warning(f"解析最终CS计算格式的综合可信度失败: {str(e)}")

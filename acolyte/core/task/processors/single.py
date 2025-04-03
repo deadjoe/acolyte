@@ -4,7 +4,7 @@
 处理使用单个LLM的任务。
 """
 import time
-from typing import Dict, Optional
+from typing import Dict
 
 from acolyte.core.db.models import TaskStatus
 from acolyte.core.llm.client import get_client_for_llm
@@ -80,7 +80,7 @@ class SingleLlmProcessor(BaseTaskProcessor):
 
             try:
                 # 重建LLM配置对象
-                from acolyte.core.db.models import LlmConfig, LlmRole
+                from acolyte.core.db.models import LlmConfig
                 reconstructed_llm = LlmConfig(
                     id=llm_data.get("id"),
                     name=llm_data.get("name"),
@@ -124,9 +124,12 @@ class SingleLlmProcessor(BaseTaskProcessor):
 
             # 保存结果
             # 在单LLM处理模式下，将结果设置为最终结果
+            logger.info(f"开始保存处理结果: 任务ID={task_id}, LLM ID={llm_id}, 设置为最终结果=True")
             result_id = await self._save_result(task_id, llm_id, result, is_review_result=True)
             if not result_id:
+                logger.error(f"保存处理结果失败: 任务ID={task_id}")
                 return await self._handle_error(task_id, "保存处理结果失败")
+            logger.info(f"处理结果保存成功: 任务ID={task_id}, 结果ID={result_id}")
 
             # 更新任务状态为已完成
             await self._update_task_status(task_id, TaskStatus.COMPLETED)

@@ -4,7 +4,7 @@ LLM客户端实现
 import json
 import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import requests
 
@@ -214,10 +214,12 @@ class AnthropicClient(LlmClient):
             解析后的结果字典，包含评分和分析
         """
         logger.debug("开始解析响应文本...")
+        logger.debug(f"解析策略: 首先使用ResponseParser提取评分，然后提取结构化内容")
 
         # 使用ResponseParser提取评分
         from acolyte.core.llm.response import ResponseParser
         scores = ResponseParser.extract_scores(response)
+        logger.debug(f"评分提取结果: BI={scores.get('bias_index')}, MI={scores.get('misleading_index')}, HI={scores.get('hidden_intent_index')}, CS={scores.get('credibility_score')}")
 
         result = {
             "bias_index": scores.get("bias_index"),
@@ -404,9 +406,18 @@ class AnthropicClient(LlmClient):
                 logger.warning("未找到分析局限与不确定性部分")
 
             # 尝试提取更通用的格式
-            if result["bias_index"] is None or result["misleading_index"] is None or \
-               result["hidden_intent_index"] is None or result["credibility_score"] is None:
-                logger.info("使用备用方法尝试提取评分...")
+            missing_scores = []
+            if result["bias_index"] is None:
+                missing_scores.append("bias_index")
+            if result["misleading_index"] is None:
+                missing_scores.append("misleading_index")
+            if result["hidden_intent_index"] is None:
+                missing_scores.append("hidden_intent_index")
+            if result["credibility_score"] is None:
+                missing_scores.append("credibility_score")
+
+            if missing_scores:
+                logger.info(f"使用备用方法尝试提取缺失的评分: {', '.join(missing_scores)}")
 
                 # 查找加权评分和最终分数部分
                 for line in response.split("\n"):
