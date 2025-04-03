@@ -48,12 +48,15 @@ class ResponseParser:
             "credibility_score": None
         }
 
+        # 打印响应文本的前200个字符，用于调试
+        logger.debug(f"响应文本前200字符: {text[:200]}")
+
         # 尝试使用多种正则表达式模式提取分数
         # 1. 标准格式: 偏见指数/Bias Index: 7.5
         for score_name, key in [
-            (r"偏见指数|Bias Index|BI|加权BI", "bias_index"),
-            (r"误导性指数|Misleading Index|MI|加权MI", "misleading_index"),
-            (r"隐藏意图指数|Hidden Intent Index|HI|加权HI", "hidden_intent_index"),
+            (r"偏见指数|Bias Index|BI|加权BI|加权 BI", "bias_index"),
+            (r"误导性指数|Misleading Index|MI|加权MI|加权 MI", "misleading_index"),
+            (r"隐藏意图指数|Hidden Intent Index|HI|加权HI|加权 HI", "hidden_intent_index"),
             (r"可信度分数|Credibility Score|CS", "credibility_score")
         ]:
             # 标准格式: 偏见指数/Bias Index: 7.5
@@ -90,11 +93,34 @@ class ResponseParser:
 
             # 备用格式4: 加权BI = 5.95
             pattern = fr"(?:{score_name})\s*=\s*(\d+(?:\.\d+)?)"
+            logger.debug(f"尝试匹配备用格式4: {pattern}")
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 scores[key] = float(match.group(1))
                 logger.debug(f"备用格式4成功提取{key}: {scores[key]}")
                 continue
+            else:
+                # 尝试在文本中查找关键词
+                if re.search(fr"(?:{score_name})", text, re.IGNORECASE):
+                    logger.debug(f"在文本中找到关键词 '{score_name}'，但无法匹配完整模式")
+
+                    # 尝试更宽松的模式
+                    pattern = fr"(?:{score_name}).*?=\s*(\d+(?:\.\d+)?)"
+                    logger.debug(f"尝试匹配宽松模式: {pattern}")
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    if match:
+                        scores[key] = float(match.group(1))
+                        logger.debug(f"宽松模式成功提取{key}: {scores[key]}")
+                        continue
+
+                    # 尝试更宽松的模式2，匹配“• 加权BI = 4.95”格式
+                    pattern = fr"[\u2022\*\-]\s*(?:{score_name})\s*=\s*(\d+(?:\.\d+)?)"
+                    logger.debug(f"尝试匹配宽松模式2: {pattern}")
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    if match:
+                        scores[key] = float(match.group(1))
+                        logger.debug(f"宽松模式2成功提取{key}: {scores[key]}")
+                        continue
 
             # 处理特殊格式的综合可信度，如"100 - 53.5"
             if key == "credibility_score":
