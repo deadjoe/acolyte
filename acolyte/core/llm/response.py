@@ -5,7 +5,7 @@ LLM响应处理
 """
 import json
 import re
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from acolyte.utils.logging import get_logger
 
@@ -18,6 +18,12 @@ class ResponseParser:
     响应解析器
 
     提供解析LLM响应的方法，支持多种格式和解析策略。
+    负责从文本中提取评分和结构化内容，使用多种策略确保提取的可靠性。
+
+    主要功能：
+    1. 提取评分（偏见指数、误导性指数、隐藏意图指数、综合可信度）
+    2. 提取结构化内容（背景、发现、评估等）
+    3. 提供多种提取策略，适应不同的响应格式
     """
 
     @staticmethod
@@ -166,6 +172,267 @@ class ResponseParser:
                             scores[key] = json_scores[key]
 
         return scores
+
+    @staticmethod
+    def parse_response(text: str) -> Dict[str, Any]:
+        """
+        解析LLM响应，提取评分和结构化内容
+
+        这是一个综合方法，它使用extract_scores和其他辅助方法来提取所有需要的信息。
+
+        Args:
+            text: 响应文本
+
+        Returns:
+            包含评分和结构化内容的字典
+        """
+        logger.debug(f"开始解析LLM响应, 文本长度: {len(text)}字符")
+        logger.debug(f"解析策略: 首先提取评分，然后提取结构化内容")
+
+        # 提取评分
+        scores = ResponseParser.extract_scores(text)
+
+        # 初始化结果字典
+        result = {
+            "bias_index": scores.get("bias_index"),
+            "misleading_index": scores.get("misleading_index"),
+            "hidden_intent_index": scores.get("hidden_intent_index"),
+            "credibility_score": scores.get("credibility_score"),
+            "analysis": {
+                "background": None,
+                "bias_findings": [],
+                "misleading_findings": [],
+                "hidden_intent_findings": [],
+                "overall_assessment": None,
+                "credibility_classification": None,
+                "limitations": []
+            }
+        }
+
+        # 提取分析前背景部分
+        background = ResponseParser._extract_section(text,
+            ["分析前背景", "背景总结", "Background"],
+            ["偏见检测", "误导性内容", "隐藏意图"])
+        if background:
+            result["analysis"]["background"] = background.strip()
+            logger.debug(f"成功提取分析前背景部分, 长度: {len(background)}字符")
+        else:
+            logger.warning("未找到分析前背景部分")
+
+        # 提取偏见检测发现部分
+        bias_findings = ResponseParser._extract_findings(text,
+            ["偏见检测发现", "Bias Findings"],
+            ["误导性内容检测", "隐藏意图检测"])
+        if bias_findings:
+            result["analysis"]["bias_findings"] = bias_findings
+            logger.debug(f"成功提取偏见检测发现, 数量: {len(bias_findings)}项")
+        else:
+            logger.warning("未找到偏见检测发现部分")
+
+        # 提取误导性内容检测部分
+        misleading_findings = ResponseParser._extract_findings(text,
+            ["误导性内容检测", "Misleading Content"],
+            ["隐藏意图检测", "整体评估"])
+        if misleading_findings:
+            result["analysis"]["misleading_findings"] = misleading_findings
+            logger.debug(f"成功提取误导性内容检测, 数量: {len(misleading_findings)}项")
+        else:
+            logger.warning("未找到误导性内容检测部分")
+
+        # 提取隐藏意图检测部分
+        hidden_intent_findings = ResponseParser._extract_findings(text,
+            ["隐藏意图检测", "Hidden Intent"],
+            ["整体评估", "量化评分"])
+        if hidden_intent_findings:
+            result["analysis"]["hidden_intent_findings"] = hidden_intent_findings
+            logger.debug(f"成功提取隐藏意图检测, 数量: {len(hidden_intent_findings)}项")
+        else:
+            logger.warning("未找到隐藏意图检测部分")
+
+        # 提取整体评估部分
+        overall_assessment = ResponseParser._extract_section(text,
+            ["整体评估", "Overall Assessment"],
+            ["量化评分", "可信度分类", "分析局限"])
+        if overall_assessment:
+            result["analysis"]["overall_assessment"] = overall_assessment.strip()
+            logger.debug(f"成功提取整体评估部分, 长度: {len(overall_assessment)}字符")
+        else:
+            logger.warning("未找到整体评估部分")
+
+        # 提取可信度分类
+        credibility_classification = ResponseParser._extract_credibility_classification(text)
+        if credibility_classification:
+            result["analysis"]["credibility_classification"] = credibility_classification
+            logger.debug(f"成功提取可信度分类: {credibility_classification}")
+        else:
+            logger.warning("未找到可信度分类标记")
+
+        # 提取分析局限与不确定性部分
+        limitations = ResponseParser._extract_limitations(text)
+        if limitations:
+            result["analysis"]["limitations"] = limitations
+            logger.debug(f"成功提取分析局限项, 数量: {len(limitations)}项")
+        else:
+            logger.warning("未找到分析局限与不确定性部分")
+
+        return result
+
+    @staticmethod
+    def _extract_section(text: str, section_markers: List[str], end_markers: List[str]) -> Optional[str]:
+        """
+        从文本中提取特定章节
+
+        Args:
+            text: 响应文本
+            section_markers: 章节开始标记列表
+            end_markers: 章节结束标记列表
+
+        Returns:
+            提取到的章节内容，如果未找到则返回None
+        """
+        # 将文本按行分割
+        lines = text.split('\n')
+
+        # 初始化变量
+        section_start = -1
+        section_end = len(lines)
+        section_content = None
+
+        # 查找章节开始
+        for i, line in enumerate(lines):
+            for marker in section_markers:
+                if marker in line:
+                    section_start = i + 1  # 从下一行开始
+                    break
+            if section_start > -1:
+                break
+
+        # 如果找到了章节开始，查找章节结束
+        if section_start > -1:
+            for i in range(section_start, len(lines)):
+                for marker in end_markers:
+                    if marker in lines[i]:
+                        section_end = i
+                        break
+                if section_end < len(lines):
+                    break
+
+            # 提取章节内容
+            section_content = '\n'.join(lines[section_start:section_end])
+
+        return section_content
+
+    @staticmethod
+    def _extract_findings(text: str, section_markers: List[str], end_markers: List[str]) -> List[Dict[str, str]]:
+        """
+        从文本中提取发现项
+
+        Args:
+            text: 响应文本
+            section_markers: 章节开始标记列表
+            end_markers: 章节结束标记列表
+
+        Returns:
+            发现项列表，每个发现项是一个字典，包含标题和描述
+        """
+        # 提取章节内容
+        section_content = ResponseParser._extract_section(text, section_markers, end_markers)
+        if not section_content:
+            return []
+
+        # 尝试提取发现项
+        findings = []
+
+        # 尝试使用标题和描述格式提取
+        pattern = r"\s*([^\n]+)\s*\n\s*(.+?)(?=\n\s*\n|$)"
+        matches = re.findall(pattern, section_content, re.DOTALL)
+
+        if matches:
+            for title, description in matches:
+                findings.append({
+                    "title": title.strip(),
+                    "description": description.strip()
+                })
+        else:
+            # 如果没有找到标准格式，尝试按段落分割
+            paragraphs = re.split(r"\n\s*\n", section_content)
+            for paragraph in paragraphs:
+                if paragraph.strip():
+                    findings.append({
+                        "title": "",
+                        "description": paragraph.strip()
+                    })
+
+        return findings
+
+    @staticmethod
+    def _extract_credibility_classification(text: str) -> Optional[str]:
+        """
+        从文本中提取可信度分类
+
+        Args:
+            text: 响应文本
+
+        Returns:
+            可信度分类，如果未找到则返回None
+        """
+        # 尝试匹配可信度分类
+        patterns = [
+            r"可信度分类\s*[:\uff1a]\s*([^\n]+)",
+            r"可信度分类[^\n]*?([\u4e00-\u9fa5]+\u53ef信度)",
+            r"Credibility Classification\s*[:\uff1a]\s*([^\n]+)"
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                return match.group(1).strip()
+
+        return None
+
+    @staticmethod
+    def _extract_limitations(text: str) -> List[str]:
+        """
+        从文本中提取分析局限项
+
+        Args:
+            text: 响应文本
+
+        Returns:
+            分析局限项列表
+        """
+        # 提取分析局限与不确定性部分
+        section_content = ResponseParser._extract_section(text,
+            ["分析局限", "不确定性", "Limitations"],
+            [])
+        if not section_content:
+            return []
+
+        # 尝试提取列表项
+        limitations = []
+
+        # 尝试匹配列表项
+        patterns = [
+            r"[\u3010\u3011\[\]\u3008\u3009\u300a\u300b\u300c\u300d\u300e\u300f\u3010\u3011\u3014\u3015\u3016\u3017\u3018\u3019\u301a\u301b\u301c\u301d\u301e\u301f\u3008\u3009]([^\n]+)[\u3010\u3011\[\]\u3008\u3009\u300a\u300b\u300c\u300d\u300e\u300f\u3010\u3011\u3014\u3015\u3016\u3017\u3018\u3019\u301a\u301b\u301c\u301d\u301e\u301f\u3008\u3009]",
+            r"[\u2022\u2023\u25e6\u2043\u2219\u2981\u2b25\u2b26\u2b27\u2b28\u2b29]\s*([^\n]+)",
+            r"[\-\*\+]\s+([^\n]+)"
+        ]
+
+        for pattern in patterns:
+            matches = re.findall(pattern, section_content)
+            if matches:
+                for match in matches:
+                    limitations.append(match.strip())
+                break
+
+        # 如果没有找到列表项，尝试按段落分割
+        if not limitations:
+            paragraphs = re.split(r"\n\s*\n", section_content)
+            for paragraph in paragraphs:
+                if paragraph.strip():
+                    limitations.append(paragraph.strip())
+
+        return limitations
 
     @staticmethod
     def _extract_json_scores(text: str) -> Optional[Dict[str, float]]:
