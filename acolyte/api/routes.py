@@ -243,6 +243,24 @@ async def test_llm_connection(llm_id: int):
     return result
 
 
+@router.post("/llms/{llm_id}/set-default")
+async def set_default_llm(llm_id: int):
+    """设置指定LLM为默认"""
+    logger.info(f"API请求: 设置LLM为默认, ID={llm_id}")
+
+    llm_service = LlmService()
+    result = await llm_service.set_default_llm(llm_id)
+
+    if not result.get("success", False):
+        error_message = result.get("error", "设置默认LLM失败")
+        status_code = 404 if "不存在" in error_message else 500
+        logger.error(f"API错误: 设置默认LLM失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        raise HTTPException(status_code=status_code, detail=error_message)
+
+    logger.info(f"API响应: 成功设置默认LLM, ID={llm_id}, 名称={result.get('name')}")
+    return result
+
+
 # 任务路由
 @router.post("/tasks", response_model=TaskResponse)
 async def create_task(task_data: TaskCreate):

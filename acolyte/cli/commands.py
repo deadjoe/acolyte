@@ -279,6 +279,19 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
+    async def set_default_llm(self, llm_id: int):
+        """设置默认LLM
+
+        Args:
+            llm_id: LLM ID
+
+        Returns:
+            设置结果
+        """
+        response = await self.client.post(f"/llms/{llm_id}/set-default")
+        response.raise_for_status()
+        return response.json()
+
     async def sync_prompts(self, prompt_dir=None):
         """同步Prompt
 
@@ -934,6 +947,7 @@ def config():
         # LLM相关命令
         'list-llms',
         'add-llm',
+        'set-default',
         'delete-llm',
 
         # Prompt相关命令
@@ -990,6 +1004,41 @@ def list_llms():
 
     # 运行异步函数
     asyncio.run(_list_llms())
+
+
+@config.command()
+@click.argument("llm_id", type=int)
+def set_default(llm_id):
+    """设置指定ID的LLM为默认
+
+    例如: acolyte config set-default 1
+    """
+    async def _set_default():
+        client = AcolyteClient()
+        try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保API服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
+            with console.status(f"[bold green]设置LLM {llm_id}为默认...[/]"):
+                result = await client.set_default_llm(llm_id)
+
+            console.print(f"[bold green]成功设置LLM为默认[/] - ID: {result['id']}, 名称: {result['name']}")
+
+        except httpx.HTTPStatusError as e:
+            error_message = e.response.json().get("detail", str(e))
+            console.print(f"[bold red]错误:[/] {error_message}")
+        except Exception as e:
+            console.print(f"[bold red]错误:[/] {str(e)}")
+        finally:
+            await client.close()
+
+    # 运行异步函数
+    asyncio.run(_set_default())
 
 
 @config.command()

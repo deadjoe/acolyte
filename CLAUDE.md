@@ -111,19 +111,19 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   # 同步上下文管理器
   with SessionManager.session_scope() as session:
       # 在会话内操作...
-      
+
   # 异步上下文管理器
   async with SessionManager.async_session_scope() as session:
       # 在异步会话内操作...
-      
+
   # 辅助函数
   data = SessionManager.extract_model_data(db_object)  # 从ORM对象提取纯数据
-  
+
   # 会话装饰器
   @SessionManager.with_session
   def function_with_session(session, arg1, arg2):
       # 自动获取会话参数
-      
+
   # 异步会话装饰器
   @SessionManager.async_with_session
   async def async_function_with_session(session, arg1, arg2):
@@ -156,7 +156,7 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   ```python
   # 获取客户端
   client = HttpClientManager.get_client('anthropic')
-  
+
   # 发送请求（带自动重试）
   response = await fetch(
       url='https://api.example.com/v1/chat',
@@ -287,7 +287,7 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
 
 - **配置管理**
   - JSON配置文件支持（标准化格式）
-  - 配置导入导出功能 
+  - 配置导入导出功能
   - 配置格式转换工具
   - 环境变量支持
 
@@ -362,7 +362,14 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 专用处理器类型
   - 更好的错误处理
 
-### 10. 最近进展 [2025-04-04]
+### 10. 最近进展 [2025-04-05]
+- **添加设置默认LLM功能**
+  - 添加设置默认LLM的API端点 `/llms/{llm_id}/set-default`
+  - 在LlmService中添加`set_default_llm`方法
+  - 在AcolyteClient中添加`set_default_llm`方法
+  - 在CLI命令中添加`config set-default`命令
+  - 更新README文档，添加新命令的使用说明
+  - 完善默认LLM管理机制，支持通过CLI动态设置
 - **改进LLM响应解析系统**
   - 重构ResponseParser类，实现更可靠的评分提取
   - 添加多种提取策略，提高提取成功率

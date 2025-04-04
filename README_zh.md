@@ -109,6 +109,9 @@ uv run -m acolyte.cli.main config import-config --name "Claude-3"
 # 列出LLM配置
 uv run -m acolyte.cli.main config list-llms
 
+# 设置默认LLM
+uv run -m acolyte.cli.main config set-default 1
+
 # 列出提示词配置
 uv run -m acolyte.cli.main config list-prompts
 
