@@ -176,7 +176,7 @@ class AnthropicClient(LlmClient):
                 }
 
             # 解析响应提取评分
-            logger.debug("开始解析响应提取评分...")
+            logger.info("开始解析响应提取评分...")
             result = self._parse_response(raw_response)
             logger.info(f"评分解析结果: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, "
                       f"HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
@@ -213,8 +213,8 @@ class AnthropicClient(LlmClient):
         Returns:
             解析后的结果字典，包含评分和分析
         """
-        logger.debug("开始解析响应文本...")
-        logger.debug(f"解析策略: 使用ResponseParser.parse_response方法解析响应")
+        logger.info("开始解析响应文本...")
+        logger.info(f"解析策略: 使用ResponseParser.parse_response方法解析响应")
 
         try:
             # 使用ResponseParser解析响应
@@ -222,7 +222,7 @@ class AnthropicClient(LlmClient):
             result = ResponseParser.parse_response(response)
 
             # 记录解析结果
-            logger.debug(f"评分解析结果: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
+            logger.info(f"评分解析结果: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
 
             # 记录响应中是否包含关键标记
             has_bi_marker = "偏见指数 (BI)" in response
@@ -347,60 +347,55 @@ class OpenAIClient(LlmClient):
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """解析响应提取评分和分析结果
-
-        与AnthropicClient._parse_response相同的实现
         """
-        # 复用Claude的解析逻辑，因为prompt模板格式相同
-        result = {
-            "bias_index": None,
-            "misleading_index": None,
-            "hidden_intent_index": None,
-            "credibility_score": None,
-            "analysis": {
-                "background": None,
-                "bias_findings": [],
-                "misleading_findings": [],
-                "hidden_intent_findings": [],
-                "overall_assessment": None,
-                "credibility_classification": None,
-                "limitations": []
-            }
-        }
+        logger.info("开始解析OpenAI响应...")
 
         try:
-            # 提取量化评分部分
-            if "偏见指数 (BI):" in response or "偏见指数 (BI)" in response:
-                bi_match = next((line for line in response.split("\n")
-                                if "偏见指数" in line and "=" in line), None)
-                if bi_match:
-                    result["bias_index"] = float(bi_match.split("=")[1].strip())
+            # 使用ResponseParser解析响应
+            from acolyte.core.llm.response import ResponseParser
+            parsed_result = ResponseParser.parse_openai_response(response)
 
-            if "误导性指数 (MI):" in response or "误导性指数 (MI)" in response:
-                mi_match = next((line for line in response.split("\n")
-                                if "误导性指数" in line and "=" in line), None)
-                if mi_match:
-                    result["misleading_index"] = float(mi_match.split("=")[1].strip())
+            # 提取评分数据
+            result = {
+                "bias_index": parsed_result.get("bias_index"),
+                "misleading_index": parsed_result.get("misleading_index"),
+                "hidden_intent_index": parsed_result.get("hidden_intent_index"),
+                "credibility_score": parsed_result.get("credibility_score"),
+                "analysis": {
+                    "background": None,
+                    "bias_findings": [],
+                    "misleading_findings": [],
+                    "hidden_intent_findings": [],
+                    "overall_assessment": None,
+                    "credibility_classification": None,
+                    "limitations": []
+                }
+            }
 
-            if "隐藏意图指数 (HI):" in response or "隐藏意图指数 (HI)" in response:
-                hi_match = next((line for line in response.split("\n")
-                                if "隐藏意图指数" in line and "=" in line), None)
-                if hi_match:
-                    result["hidden_intent_index"] = float(hi_match.split("=")[1].strip())
+            # 记录评分数据
+            logger.info(f"提取到的评分数据: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
 
-            if "综合可信度 (CS):" in response or "综合可信度分数 (CS)" in response:
-                cs_match = next((line for line in response.split("\n")
-                                if "综合可信度" in line and "=" in line), None)
-                if cs_match:
-                    result["credibility_score"] = float(cs_match.split("=")[1].strip())
-
-            # 提取其他分析部分（与Claude相同）
-            # ...分析部分代码与AnthropicClient相同，此处省略...
+            return result
 
         except Exception as e:
-            # 如果解析失败，添加错误信息但返回原始响应
-            result["parse_error"] = str(e)
+            logger.error(f"解析OpenAI响应时出错: {str(e)}", exc_info=True)
 
-        return result
+            # 返回空结果
+            return {
+                "bias_index": None,
+                "misleading_index": None,
+                "hidden_intent_index": None,
+                "credibility_score": None,
+                "analysis": {
+                    "background": None,
+                    "bias_findings": [],
+                    "misleading_findings": [],
+                    "hidden_intent_findings": [],
+                    "overall_assessment": None,
+                    "credibility_classification": None,
+                    "limitations": []
+                }
+            }
 
 
 class GeminiClient(LlmClient):
