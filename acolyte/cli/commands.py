@@ -751,9 +751,37 @@ def list(status, limit):
             table.add_column("状态", style="yellow")
             table.add_column("创建时间", style="bright_blue")
 
-            for task in tasks:
+            # 按ID从小到大排序
+            sorted_tasks = sorted(tasks, key=lambda x: x["id"])
+
+            for task in sorted_tasks:
                 # 检查created_at字段是否存在
                 created_at = task.get("created_at", "未知")
+
+                # 格式化时间为友好的24小时制格式
+                if created_at != "未知":
+                    try:
+                        # 解析ISO格式的时间字符串
+                        from datetime import datetime
+                        import time
+                        from datetime import timezone, timedelta
+
+                        # 解析UTC时间
+                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+
+                        # 获取本地时区
+                        local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
+                        local_tz = timezone(timedelta(hours=local_tz_offset))
+
+                        # 将UTC时间转换为本地时间
+                        local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
+
+                        # 格式化为友好的24小时制格式
+                        created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                        logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
+                    except Exception as e:
+                        logger.warning(f"时间格式化失败: {e}")
 
                 table.add_row(
                     str(task["id"]),
