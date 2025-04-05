@@ -725,6 +725,14 @@ def list(status, limit):
     async def _list():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 构建API请求参数
             params = {"limit": limit}
             if status:
@@ -773,6 +781,14 @@ def delete(task_id):
     async def _delete():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取任务信息
             try:
                 with console.status(f"[bold green]获取任务 {task_id} 信息...[/]"):
@@ -823,6 +839,14 @@ def clear(status, force):
     async def _clear():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 提示确认
             if status:
                 message = f"将清空所有[bold]{status}[/]状态的任务"
@@ -862,6 +886,14 @@ def show(task_id, raw):
     async def _show():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 获取任务信息
             with console.status("[bold green]获取任务信息中...[/]"):
                 task = await client.get_task(task_id)
