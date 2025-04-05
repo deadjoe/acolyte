@@ -162,7 +162,7 @@ class OpenAIClient(LlmClient):
                 "error": f"OpenAI处理失败: {str(e)}"
             }
 
-    def _test_connection(self) -> Dict[str, Union[bool, str]]:
+    async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
         测试连接
 
@@ -185,7 +185,7 @@ class OpenAIClient(LlmClient):
 
         try:
             # 获取模型列表是最轻量的请求
-            response = self._make_request(
+            response = await self._make_request(
                 method="GET",
                 endpoint=endpoint,
                 headers=headers
