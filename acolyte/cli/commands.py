@@ -1083,6 +1083,14 @@ def delete_llm(llm_id):
     async def _delete_llm():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取LLM信息以显示
             try:
                 with console.status(f"[bold green]获取LLM {llm_id}信息...[/]"):
@@ -1147,6 +1155,14 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
     async def _add_llm():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]添加LLM配置中...[/]"):
                 llm = await client.create_llm(
                     name=name,
@@ -1186,6 +1202,14 @@ def export_config():
     async def _export_config():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]导出配置中...[/]"):
                 result = await client.export_config()
             console.print(f"[bold green]{result['message']}[/]")
@@ -1256,6 +1280,14 @@ def list_prompts():
     async def _list_prompts():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]获取Prompt配置中...[/]"):
                 prompts = await client.get_prompts()
 
@@ -1330,6 +1362,14 @@ def show_prompt(prompt_id):
     async def _show_prompt():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 获取Prompt内容
             with console.status(f"[bold green]获取Prompt {prompt_id}内容...[/]"):
                 prompt = await client.get_prompt(prompt_id)
@@ -1394,6 +1434,14 @@ def delete_prompt(prompt_id, delete_file, force):
     async def _delete_prompt():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取提示词信息以显示
             try:
                 with console.status(f"[bold green]获取提示词 {prompt_id}信息...[/]"):
