@@ -37,7 +37,7 @@ class OpenAIClient(LlmClient):
             logger.warning("Azure OpenAI API密钥格式可能不正确")
 
     @retry_on_error()
-    def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
+    async def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
         """
         处理内容
 
@@ -61,9 +61,9 @@ class OpenAIClient(LlmClient):
         system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
         user_prompt = self._prepare_prompt(content, prompt)
 
-        return self._process_with_chat_api(system_prompt, user_prompt)
+        return await self._process_with_chat_api(system_prompt, user_prompt)
 
-    def _process_with_chat_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_chat_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
         使用Chat API处理内容
 
@@ -105,7 +105,7 @@ class OpenAIClient(LlmClient):
 
         try:
             # 发送请求
-            response = self._make_request(
+            response = await self._make_request(
                 method="POST",
                 endpoint=endpoint,
                 headers=headers,
