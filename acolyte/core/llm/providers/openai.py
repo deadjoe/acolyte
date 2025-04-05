@@ -137,22 +137,16 @@ class OpenAIClient(LlmClient):
             # 解析响应
             parsed_result = ResponseParser.parse_openai_response(response_text)
 
-            # 提取评分数据
-            result = {
-                "bias_index": parsed_result.get("bias_index"),
-                "misleading_index": parsed_result.get("misleading_index"),
-                "hidden_intent_index": parsed_result.get("hidden_intent_index"),
-                "credibility_score": parsed_result.get("credibility_score")
-            }
+            # 确保即使解析失败也能返回有效的结果
+            if parsed_result is None:
+                parsed_result = {}
 
-            # 记录评分数据
-            logger.info(f"提取到的评分数据: BI={result.get('bias_index')}, MI={result.get('misleading_index')}, HI={result.get('hidden_intent_index')}, CS={result.get('credibility_score')}")
-
+            # 将解析结果直接作为result返回，而不是嵌套在result字段中
             return {
                 "success": True,
                 "raw_response": response_text,
-                "processed_result": parsed_result.get("processed_result", {}),
-                "result": result
+                "processed_result": {},
+                "result": parsed_result
             }
 
         except Exception as e:
