@@ -98,6 +98,8 @@ class SingleLlmProcessor(BaseTaskProcessor):
 
                 # 获取客户端
                 client = get_client_for_llm(reconstructed_llm)
+                # 记录客户端类型
+                logger.info(f"客户端类型: {type(client).__name__}, 模块: {type(client).__module__}")
 
                 # 处理内容
                 logger.info(f"开始调用LLM API: 任务ID={task_id}, LLM={llm_data.get('name')}")

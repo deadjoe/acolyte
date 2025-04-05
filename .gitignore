@@ -56,3 +56,5 @@ yarn-error.log*
 .coverage
 htmlcov/
 .pytest_cache/acolyte_api.pid
+
+*.pid

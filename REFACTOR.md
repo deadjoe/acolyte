@@ -176,6 +176,13 @@ acolyte/
 - Enhanced CLI interface with better command organization
 - Added `status` command to check API service status
 - Implemented user-friendly error handling in CLI
+  - Added API connection checks to all CLI commands
+  - Provided clear error messages with actionable suggestions
+  - Ensured consistent error handling across all commands
+- Improved CLI history display
+  - Changed sorting order to ascending by ID (oldest first)
+  - Converted UTC timestamps to local timezone with 24-hour format
+  - Added detailed time conversion logging for debugging
 - Updated documentation to reflect architectural changes
 
 ## Implementation Highlights
@@ -193,20 +200,29 @@ acolyte/
 
 ### LLM Response Parsing
 - Implemented sophisticated response parsing with multiple extraction strategies
-- Added support for various LLM output formats
+- Added support for various LLM output formats including JSON structures
 - Fixed credibility score extraction issues
 - Enhanced error handling for malformed responses
+- Resolved circular reference bug in OpenAI response parsing
+- Improved JSON extraction with support for nested objects and arrays
+- Added support for mixed Chinese/English field names in JSON responses
+- Implemented fallback regex patterns for non-JSON formatted responses
 
 ### CLI Enhancements
 - Improved command organization with OrderedGroup
 - Added status command for API service monitoring
 - Implemented user-friendly error messages
 - Enhanced connection handling between CLI and API
+- Added API connection checks to all CLI commands
+- Improved history list display with better sorting and time formatting
+- Converted UTC timestamps to local timezone with 24-hour format
 
 ### Documentation Updates
 - Updated DESIGN.md with detailed LLM response parsing architecture
 - Maintained CLAUDE.md with current development progress
 - Enhanced inline documentation throughout the codebase
+- Added detailed descriptions of JSON parsing strategies
+- Updated test infrastructure documentation
 
 ## Success Criteria Achievement
 

@@ -111,19 +111,19 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   # 同步上下文管理器
   with SessionManager.session_scope() as session:
       # 在会话内操作...
-      
+
   # 异步上下文管理器
   async with SessionManager.async_session_scope() as session:
       # 在异步会话内操作...
-      
+
   # 辅助函数
   data = SessionManager.extract_model_data(db_object)  # 从ORM对象提取纯数据
-  
+
   # 会话装饰器
   @SessionManager.with_session
   def function_with_session(session, arg1, arg2):
       # 自动获取会话参数
-      
+
   # 异步会话装饰器
   @SessionManager.async_with_session
   async def async_function_with_session(session, arg1, arg2):
@@ -156,7 +156,7 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   ```python
   # 获取客户端
   client = HttpClientManager.get_client('anthropic')
-  
+
   # 发送请求（带自动重试）
   response = await fetch(
       url='https://api.example.com/v1/chat',
@@ -287,7 +287,7 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
 
 - **配置管理**
   - JSON配置文件支持（标准化格式）
-  - 配置导入导出功能 
+  - 配置导入导出功能
   - 配置格式转换工具
   - 环境变量支持
 
@@ -362,7 +362,14 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 专用处理器类型
   - 更好的错误处理
 
-### 10. 最近进展 [2025-04-04]
+### 10. 最近进展 [2025-04-05]
+- **添加设置默认LLM功能**
+  - 添加设置默认LLM的API端点 `/llms/{llm_id}/set-default`
+  - 在LlmService中添加`set_default_llm`方法
+  - 在AcolyteClient中添加`set_default_llm`方法
+  - 在CLI命令中添加`config set-default`命令
+  - 更新README文档，添加新命令的使用说明
+  - 完善默认LLM管理机制，支持通过CLI动态设置
 - **改进LLM响应解析系统**
   - 重构ResponseParser类，实现更可靠的评分提取
   - 添加多种提取策略，提高提取成功率
@@ -388,3 +395,58 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 统一日志格式和内容
   - 改进异常处理
   - 优化代码结构，遵循单一职责原则
+
+### 11. 最新进展 [2025-04-05]
+- **重构LLM响应解析系统**
+  - 完全重构ResponseParser类，解决循环依赖问题
+  - 创建通用的基础解析方法`parse_base_response`，所有特定LLM解析方法都调用此方法
+  - 改进JSON解析逻辑，支持不同格式的JSON结构
+  - 添加更详细的日志记录，便于追踪解析过程
+  - 增强错误处理，提供更好的诊断信息
+  - 优化代码结构，提高可维护性和可扩展性
+
+- **修复JSON解析问题**
+  - 修复OpenAIClient中的解析问题，确保正确调用ResponseParser
+  - 解决嵌套JSON结构的提取问题，支持多种JSON格式
+  - 添加更健壮的JSON验证和错误处理
+  - 优化JSON字段映射，支持中英文字段名
+  - 确保所有LLM（Claude、GPT-4o等）生成的JSON格式都能被正确解析
+
+- **改进LLM客户端架构**
+  - 修复OpenAIClient._parse_response方法，使其正确调用ResponseParser
+  - 统一不同LLM客户端的响应解析逻辑
+  - 添加更详细的日志记录，便于诊断问题
+  - 优化错误处理，提供更好的错误信息
+
+- **增强系统稳定性**
+  - 添加更多的异常处理和错误恢复机制
+  - 改进日志记录，提供更详细的诊断信息
+  - 优化代码结构，减少重复代码
+  - 确保系统在各种情况下都能正常工作
+
+### 12. 最新进展 [2025-04-06]
+- **优化CLI工具用户体验**
+  - 为所有CLI命令添加API服务连接检查
+  - 实现友好的错误信息显示，提供明确的操作建议
+  - 改进`history list`命令的显示格式：
+    - 按ID从小到大排序（最旧的在前），便于按时间顺序查看历史
+    - 将UTC时间戳转换为本地时区的24小时制格式
+    - 添加详细的时间转换日志，便于调试
+  - 确保所有命令在API服务未启动时提供一致的错误提示
+
+- **改进提示词系统**
+  - 添加新的JSON格式提示词模板（v4版本）
+  - 优化提示词中的量化评分部分，使用结构化JSON输出
+  - 确保新提示词与所有支持的LLM兼容
+  - 改进提示词目录配置，确保正确加载提示词文件
+
+- **测试基础设施升级**
+  - 更新测试脚本，使用uv替代传统的python命令
+  - 改进pytest配置，添加asyncio相关设置
+  - 更新单元测试，适应重构后的ResponseParser类
+  - 确保所有测试在重构后仍然通过
+
+- **配置管理优化**
+  - 移除AppConfig中的prompt_dir字段，由PromptManager专门管理
+  - 改进配置导入导出功能，确保不包含不必要的字段
+  - 优化配置文件格式，提高可读性和可维护性

@@ -279,6 +279,19 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
+    async def set_default_llm(self, llm_id: int):
+        """设置默认LLM
+
+        Args:
+            llm_id: LLM ID
+
+        Returns:
+            设置结果
+        """
+        response = await self.client.post(f"/llms/{llm_id}/set-default")
+        response.raise_for_status()
+        return response.json()
+
     async def sync_prompts(self, prompt_dir=None):
         """同步Prompt
 
@@ -712,6 +725,14 @@ def list(status, limit):
     async def _list():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 构建API请求参数
             params = {"limit": limit}
             if status:
@@ -730,9 +751,37 @@ def list(status, limit):
             table.add_column("状态", style="yellow")
             table.add_column("创建时间", style="bright_blue")
 
-            for task in tasks:
+            # 按ID从小到大排序
+            sorted_tasks = sorted(tasks, key=lambda x: x["id"])
+
+            for task in sorted_tasks:
                 # 检查created_at字段是否存在
                 created_at = task.get("created_at", "未知")
+
+                # 格式化时间为友好的24小时制格式
+                if created_at != "未知":
+                    try:
+                        # 解析ISO格式的时间字符串
+                        from datetime import datetime
+                        import time
+                        from datetime import timezone, timedelta
+
+                        # 解析UTC时间
+                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+
+                        # 获取本地时区
+                        local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
+                        local_tz = timezone(timedelta(hours=local_tz_offset))
+
+                        # 将UTC时间转换为本地时间
+                        local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
+
+                        # 格式化为友好的24小时制格式
+                        created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                        logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
+                    except Exception as e:
+                        logger.warning(f"时间格式化失败: {e}")
 
                 table.add_row(
                     str(task["id"]),
@@ -760,6 +809,14 @@ def delete(task_id):
     async def _delete():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取任务信息
             try:
                 with console.status(f"[bold green]获取任务 {task_id} 信息...[/]"):
@@ -810,6 +867,14 @@ def clear(status, force):
     async def _clear():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 提示确认
             if status:
                 message = f"将清空所有[bold]{status}[/]状态的任务"
@@ -849,6 +914,14 @@ def show(task_id, raw):
     async def _show():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 获取任务信息
             with console.status("[bold green]获取任务信息中...[/]"):
                 task = await client.get_task(task_id)
@@ -934,6 +1007,7 @@ def config():
         # LLM相关命令
         'list-llms',
         'add-llm',
+        'set-default',
         'delete-llm',
 
         # Prompt相关命令
@@ -994,6 +1068,41 @@ def list_llms():
 
 @config.command()
 @click.argument("llm_id", type=int)
+def set_default(llm_id):
+    """设置指定ID的LLM为默认
+
+    例如: acolyte config set-default 1
+    """
+    async def _set_default():
+        client = AcolyteClient()
+        try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保API服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
+            with console.status(f"[bold green]设置LLM {llm_id}为默认...[/]"):
+                result = await client.set_default_llm(llm_id)
+
+            console.print(f"[bold green]成功设置LLM为默认[/] - ID: {result['id']}, 名称: {result['name']}")
+
+        except httpx.HTTPStatusError as e:
+            error_message = e.response.json().get("detail", str(e))
+            console.print(f"[bold red]错误:[/] {error_message}")
+        except Exception as e:
+            console.print(f"[bold red]错误:[/] {str(e)}")
+        finally:
+            await client.close()
+
+    # 运行异步函数
+    asyncio.run(_set_default())
+
+
+@config.command()
+@click.argument("llm_id", type=int)
 def delete_llm(llm_id):
     """删除指定ID的LLM配置
 
@@ -1002,6 +1111,14 @@ def delete_llm(llm_id):
     async def _delete_llm():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取LLM信息以显示
             try:
                 with console.status(f"[bold green]获取LLM {llm_id}信息...[/]"):
@@ -1066,6 +1183,14 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
     async def _add_llm():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]添加LLM配置中...[/]"):
                 llm = await client.create_llm(
                     name=name,
@@ -1105,6 +1230,14 @@ def export_config():
     async def _export_config():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]导出配置中...[/]"):
                 result = await client.export_config()
             console.print(f"[bold green]{result['message']}[/]")
@@ -1175,6 +1308,14 @@ def list_prompts():
     async def _list_prompts():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             with console.status("[bold green]获取Prompt配置中...[/]"):
                 prompts = await client.get_prompts()
 
@@ -1249,6 +1390,14 @@ def show_prompt(prompt_id):
     async def _show_prompt():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 获取Prompt内容
             with console.status(f"[bold green]获取Prompt {prompt_id}内容...[/]"):
                 prompt = await client.get_prompt(prompt_id)
@@ -1313,6 +1462,14 @@ def delete_prompt(prompt_id, delete_file, force):
     async def _delete_prompt():
         client = AcolyteClient()
         try:
+            # 检查API服务连接
+            connection_ok, error_message = await client.check_connection()
+            if not connection_ok:
+                logger.error(f"API服务连接失败: {error_message}")
+                console.print(f"[bold red]错误:[/] {error_message}")
+                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                return
+
             # 先获取提示词信息以显示
             try:
                 with console.status(f"[bold green]获取提示词 {prompt_id}信息...[/]"):
