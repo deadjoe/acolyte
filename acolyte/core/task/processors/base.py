@@ -3,6 +3,7 @@
 
 定义任务处理器的基础类和共享功能。
 """
+import json
 import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -322,6 +323,8 @@ class BaseTaskProcessor(ABC):
             结果ID，保存失败则返回None
         """
         async def _save_result_to_db(session: Session):
+            import json  # 在函数内部导入json模块
+
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -352,11 +355,16 @@ class BaseTaskProcessor(ABC):
                 logger.warning(f"结果中缺失部分评分: 任务ID={task_id}, 缺失: {', '.join(missing_scores)}")
 
             # 创建结果记录
+            # 将字典转换为JSON字符串
+            processed_result = result.get("processed_result", "")
+            if isinstance(processed_result, dict):
+                processed_result = json.dumps(processed_result)
+
             task_result = TaskResult(
                 task_id=task_id,
                 llm_id=llm_id,
                 raw_response=result.get("raw_response", ""),
-                processed_result=result.get("processed_result", ""),
+                processed_result=processed_result,
                 bias_index=bias_index,
                 misleading_index=misleading_index,
                 hidden_intent_index=hidden_intent_index,
