@@ -24,7 +24,7 @@ class PromptManager:
             prompt_dir: prompt模板目录路径，默认为项目根目录下的prompt目录
         """
         logger.info("初始化Prompt管理器")
-        
+
         # 如果传入了prompt_dir，直接使用
         if prompt_dir:
             logger.info(f"使用传入的prompt目录: {prompt_dir}")
@@ -36,38 +36,40 @@ class PromptManager:
             if env_prompt_dir:
                 logger.info(f"从环境变量获取prompt目录: {env_prompt_dir}")
                 prompt_dir = env_prompt_dir
-            else:
-                # 检查配置文件
-                try:
-                    from acolyte.config.settings import config
-                    if config.prompt_dir:
-                        logger.info(f"从配置文件获取prompt目录: {config.prompt_dir}")
-                        prompt_dir = config.prompt_dir
-                    else:
-                        logger.debug("配置文件中未设置prompt_dir")
-                except Exception as e:
-                    logger.warning(f"尝试从配置文件加载prompt_dir时出错: {str(e)}")
-            
-            # 如果仍然没有找到prompt_dir，尝试自动查找
+            # 如果没有从环境变量中找到prompt_dir，尝试自动查找
             if not prompt_dir:
                 logger.debug("尝试自动查找prompt目录")
                 # 获取当前文件所在目录
                 current_dir = Path(__file__).resolve().parent
                 logger.debug(f"当前目录: {current_dir}")
-                
+
                 # 向上查找，回到上层直到找到项目根目录
-                root_dir = current_dir
-                
-                # 向上一级一级查找直到找到包含prompt目录的目录
-                while root_dir != root_dir.parent:
-                    # 如果当前目录包含prompt目录，就停止查找
-                    if (root_dir.parent / "prompt").exists():
-                        root_dir = root_dir.parent
+                # 从父目录开始查找，避免将当前目录误认为prompt目录
+                root_dir = current_dir.parent
+                logger.debug(f"开始从父目录查找: {root_dir}")
+
+                # 向上一级一级查找直到找到项目根目录
+                # 首先查找项目根目录（包含.git目录或pyproject.toml文件）
+                project_root = None
+                search_dir = root_dir
+                while search_dir != search_dir.parent:
+                    # 检查是否是项目根目录
+                    if (search_dir / ".git").exists() or (search_dir / "pyproject.toml").exists():
+                        project_root = search_dir
+                        logger.debug(f"找到项目根目录: {project_root}")
                         break
                     # 否则继续向上查找
-                    root_dir = root_dir.parent
-                    logger.debug(f"向上查找: {root_dir}")
-                
+                    search_dir = search_dir.parent
+                    logger.debug(f"向上查找项目根目录: {search_dir}")
+
+                # 如果找到项目根目录，则在项目根目录下查找prompt目录
+                if project_root:
+                    root_dir = project_root
+                    logger.debug(f"在项目根目录{root_dir}下查找prompt目录")
+                else:
+                    # 如果没有找到项目根目录，则使用当前目录的父目录
+                    logger.warning("未找到项目根目录，将使用当前目录的父目录")
+
                 # 检查项目根目录下是否存在prompt目录
                 if (root_dir / "prompt").exists():
                     logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
@@ -75,7 +77,7 @@ class PromptManager:
                 else:
                     logger.warning(f"未找到prompt目录，将使用默认目录并尝试创建")
                     prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
-        
+
         logger.info(f"最终选择的prompt目录: {prompt_dir}")
 
         self.prompt_dir = prompt_dir
@@ -140,7 +142,7 @@ class PromptManager:
             with db.session_scope() as session:
                 for prompt_info in prompt_files:
                     logger.info(f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}")
-                    
+
                     try:
                         # 检查是否已存在
                         existing_prompt = session.query(Prompt).filter_by(
@@ -176,7 +178,7 @@ class PromptManager:
                             session.add(new_prompt)
                     except Exception as e:
                         logger.error(f"处理prompt {prompt_info['filename']} 时发生错误: {str(e)}", exc_info=True)
-            
+
             logger.info("Prompt同步完成")
             return True
         except Exception as e:
@@ -197,7 +199,7 @@ class PromptManager:
                 # 获取所有活跃的prompts
                 logger.info(f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}")
                 query = session.query(Prompt).filter(Prompt.is_active == True)
-                
+
                 # 如果指定了模型目标，优先获取针对该模型的prompt
                 if model_target:
                     model_specific_prompt = query.filter(Prompt.model_target == model_target).first()
@@ -205,7 +207,7 @@ class PromptManager:
                         logger.info(f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}")
                         return model_specific_prompt
                     logger.info(f"未找到针对模型 {model_target} 的特定prompt，寻找通用prompt")
-                
+
                 # 检查数据库中的prompts
                 all_prompts = query.all()
                 if all_prompts:

@@ -65,14 +65,14 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         # 记录请求信息
         logger.debug(f"收到请求: {request.method} {request.url.path}")
-        
+
         # 记录请求头和查询参数
         logger.debug(f"请求头: {dict(request.headers)}")
         logger.debug(f"查询参数: {dict(request.query_params)}")
-        
+
         # 克隆请求体而不消耗它
         body = await request.body()
-        
+
         # 如果有请求体，记录内容
         if body:
             try:
@@ -86,13 +86,13 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
                     logger.debug(f"请求体(原始): {body}")
                 else:
                     logger.debug(f"请求体(原始): 内容太长，长度为 {len(body)} 字节")
-                    
+
         # 创建具有相同主体的新请求
         from starlette.requests import Request
         async def receive():
             return {"type": "http.request", "body": body}
         request._receive = receive
-        
+
         try:
             # 处理请求
             response = await call_next(request)
@@ -113,19 +113,22 @@ app.include_router(router, prefix="/api")
 async def startup_event():
     """应用启动时执行的操作"""
     logger.info("API服务正在启动...")
-    
+
     try:
         # 创建数据库表
         logger.info("正在初始化数据库表...")
         db.create_tables()
         logger.info("数据库表初始化完成")
-        
-        # 同步Prompt文件到数据库
-        logger.info("正在同步Prompt文件到数据库...")
+
+        # 初始化Prompt管理器并同步Prompt文件到数据库
+        logger.info("正在初始化Prompt管理器...")
         prompt_manager = PromptManager()
+        logger.info("Prompt管理器初始化完成")
+
+        logger.info("正在同步Prompt文件到数据库...")
         prompt_manager.sync_prompt_files_to_db()
         logger.info("Prompt文件同步完成")
-        
+
         # 记录PID文件用于服务管理
         pid = os.getpid()
         with open("acolyte_api.pid", "w") as f:
