@@ -331,11 +331,27 @@ class BaseTaskProcessor(ABC):
                 logger.warning(f"保存结果失败: 任务不存在, ID={task_id}")
                 return None
 
-            # 提取分析结果
-            bias_index = result.get("result", {}).get("bias_index")
-            misleading_index = result.get("result", {}).get("misleading_index")
-            hidden_intent_index = result.get("result", {}).get("hidden_intent_index")
-            credibility_score = result.get("result", {}).get("credibility_score")
+            # 提取分析结果 - 兼容两种结构
+            # 1. 直接从result中提取（适用于Gemini）
+            # 2. 从result.get("result", {})中提取（适用于旧版本的Claude和OpenAI）
+            result_data = result.get("result", {})
+
+            # 首先尝试从result_data中提取
+            bias_index = result_data.get("bias_index")
+            misleading_index = result_data.get("misleading_index")
+            hidden_intent_index = result_data.get("hidden_intent_index")
+            credibility_score = result_data.get("credibility_score")
+
+            # 如果从result_data中提取失败，尝试直接从result中提取
+            if bias_index is None and misleading_index is None and hidden_intent_index is None and credibility_score is None:
+                bias_index = result.get("bias_index")
+                misleading_index = result.get("misleading_index")
+                hidden_intent_index = result.get("hidden_intent_index")
+                credibility_score = result.get("credibility_score")
+
+                # 如果直接从result中提取成功，记录日志
+                if any([bias_index, misleading_index, hidden_intent_index, credibility_score]):
+                    logger.debug(f"从result顶层提取评分成功: 任务ID={task_id}")
 
             # 记录提取到的评分
             logger.debug(f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}")
