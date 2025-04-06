@@ -118,7 +118,7 @@ class GeminiClient(LlmClient):
                     "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
                     "threshold": "BLOCK_NONE"
                 }
-            }
+            ]
         }
 
         logger.debug(f"Gemini API请求数据: {json.dumps(data, ensure_ascii=False)[:500]}...")
