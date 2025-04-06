@@ -23,43 +23,58 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
     from acolyte.core.llm.providers.gemini import GeminiClient
     from acolyte.core.llm.providers.deepseek import DeepSeekClient
     from acolyte.core.llm.providers.ollama import OllamaClient
+    from acolyte.core.llm.constants import (MODEL_NAME_PATTERNS,
+                                           PROVIDER_ANTHROPIC,
+                                           PROVIDER_GEMINI, PROVIDER_OLLAMA,
+                                           PROVIDER_OPENAI, PROVIDER_DEEPSEEK,
+                                           PROVIDER_URL_PATTERNS)
 
     # 使用模块级别的日志记录器
     logger.debug(f"为LLM创建客户端: 名称={llm_config.name}, URL={llm_config.base_url}, 模型={llm_config.model_name}")
 
-    # 根据base_url或其他参数判断LLM类型
-    base_url = llm_config.base_url.lower() if llm_config.base_url else ""
-
-    # 检查LLM名称是否包含"deepseek"（不区分大小写）
+    # 基于LLM名称检测提供商
     llm_name = llm_config.name.lower() if llm_config.name else ""
     if "deepseek" in llm_name:
         return DeepSeekClient(llm_config)
-
-    # 根据base_url判断
-    if "anthropic" in base_url:
+    elif "claude" in llm_name or "anthropic" in llm_name:
         return AnthropicClient(llm_config)
-    elif "openai" in base_url or "azure" in base_url:
+    elif "gpt" in llm_name or "openai" in llm_name:
         return OpenAIClient(llm_config)
-    elif "googleapis" in base_url or "google" in base_url:
+    elif "gemini" in llm_name or "google" in llm_name:
         return GeminiClient(llm_config)
-    elif "deepseek" in base_url:
-        return DeepSeekClient(llm_config)
-    elif "ollama" in base_url or "localhost:11434" in base_url:
+    elif any(name in llm_name for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi", "ollama"]):
         return OllamaClient(llm_config)
-    else:
-        # 尝试基于模型名称进行判断
-        model_name = llm_config.model_name.lower() if llm_config.model_name else ""
-        if any(name in model_name for name in ["claude", "anthropic"]):
-            return AnthropicClient(llm_config)
-        elif any(name in model_name for name in ["gpt", "davinci", "openai"]):
-            return OpenAIClient(llm_config)
-        elif any(name in model_name for name in ["gemini", "google"]):
-            return GeminiClient(llm_config)
-        elif any(name in model_name for name in ["deepseek"]):
-            return DeepSeekClient(llm_config)
-        elif any(name in model_name for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi"]):
-            return OllamaClient(llm_config)
-        else:
-            # 如果无法确定，记录警告并默认使用OpenAI客户端
-            logger.warning(f"无法确定LLM类型: {llm_config.name}, 使用默认的OpenAI客户端")
-            return OpenAIClient(llm_config)
+
+    # 基于URL检测提供商
+    base_url = llm_config.base_url.lower() if llm_config.base_url else ""
+    for provider, patterns in PROVIDER_URL_PATTERNS.items():
+        if any(pattern in base_url for pattern in patterns):
+            if provider == PROVIDER_ANTHROPIC:
+                return AnthropicClient(llm_config)
+            elif provider == PROVIDER_OPENAI:
+                return OpenAIClient(llm_config)
+            elif provider == PROVIDER_GEMINI:
+                return GeminiClient(llm_config)
+            elif provider == PROVIDER_DEEPSEEK:
+                return DeepSeekClient(llm_config)
+            elif provider == PROVIDER_OLLAMA:
+                return OllamaClient(llm_config)
+
+    # 基于模型名称检测提供商
+    model_name = llm_config.model_name.lower() if llm_config.model_name else ""
+    for provider, patterns in MODEL_NAME_PATTERNS.items():
+        if any(pattern in model_name for pattern in patterns):
+            if provider == PROVIDER_ANTHROPIC:
+                return AnthropicClient(llm_config)
+            elif provider == PROVIDER_OPENAI:
+                return OpenAIClient(llm_config)
+            elif provider == PROVIDER_GEMINI:
+                return GeminiClient(llm_config)
+            elif provider == PROVIDER_DEEPSEEK:
+                return DeepSeekClient(llm_config)
+            elif provider == PROVIDER_OLLAMA:
+                return OllamaClient(llm_config)
+
+    # 如果无法确定，记录警告并默认使用OpenAI客户端
+    logger.warning(f"无法确定LLM类型: {llm_config.name}, 使用默认的OpenAI客户端")
+    return OpenAIClient(llm_config)
