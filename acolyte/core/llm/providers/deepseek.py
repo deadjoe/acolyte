@@ -33,7 +33,7 @@ class DeepSeekClient(LlmClient):
         super().__init__(llm_config)
         self.provider = PROVIDER_DEEPSEEK
         # 设置API基础URL，DeepSeek可能使用不同的基础URL
-        self.api_base_url = self.api_base_url or "https://api.deepseek.com/v1"
+        self.base_url = self.base_url or "https://api.deepseek.com/v1"
 
     @retry_on_error()
     async def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
@@ -65,14 +65,14 @@ class DeepSeekClient(LlmClient):
 
         # 处理内容
         result = await self._process_with_chat_api(system_prompt, user_prompt)
-        
+
         # 记录处理时间
         elapsed_time = time.time() - start_time
         if result.get("success", False):
             logger.info(f"DeepSeek处理成功: 耗时={elapsed_time:.2f}秒")
         else:
             logger.error(f"DeepSeek处理失败: 耗时={elapsed_time:.2f}秒, 错误={result.get('error', '未知错误')}")
-        
+
         return result
 
     async def _process_with_chat_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
@@ -111,13 +111,13 @@ class DeepSeekClient(LlmClient):
 
         # 设置API端点
         endpoint = "/chat/completions"
-        full_url = f"{self.api_base_url}{endpoint}"
+        full_url = f"{self.base_url}{endpoint}"
         logger.debug(f"DeepSeek API请求URL: {full_url}")
 
         try:
             # 记录请求开始时间
             request_start_time = time.time()
-            
+
             # 发送请求
             response = await self._make_request(
                 method="POST",
@@ -126,7 +126,7 @@ class DeepSeekClient(LlmClient):
                 json_data=data,
                 timeout=120.0  # 较长的超时时间
             )
-            
+
             # 记录请求耗时
             request_time = time.time() - request_start_time
             logger.debug(f"DeepSeek API请求耗时: {request_time:.2f}秒")
@@ -134,7 +134,7 @@ class DeepSeekClient(LlmClient):
             # 解析响应
             result = response.json()
             logger.debug(f"DeepSeek API响应状态码: {response.status_code}")
-            
+
             # 记录响应头（可能包含速率限制信息）
             rate_limit_headers = {k: v for k, v in response.headers.items() if 'rate' in k.lower() or 'limit' in k.lower()}
             if rate_limit_headers:
@@ -164,7 +164,7 @@ class DeepSeekClient(LlmClient):
 
             # 记录响应长度
             logger.debug(f"DeepSeek响应长度: {len(response_text)} 字符")
-            
+
             # 记录使用的tokens
             if "usage" in result:
                 usage = result["usage"]
@@ -174,10 +174,10 @@ class DeepSeekClient(LlmClient):
 
             # 解析响应开始时间
             parse_start_time = time.time()
-            
+
             # 解析响应
             parsed_result = ResponseParser.parse_deepseek_response(response_text)
-            
+
             # 记录解析耗时
             parse_time = time.time() - parse_start_time
             logger.debug(f"DeepSeek响应解析耗时: {parse_time:.2f}秒")
@@ -199,7 +199,7 @@ class DeepSeekClient(LlmClient):
             # 处理HTTP状态错误
             error_info = ErrorHandler.handle_http_error(e, self.provider)
             logger.error(f"DeepSeek API HTTP错误: {error_info.message}", exc_info=True)
-            
+
             return {
                 "success": False,
                 "error": error_info.message,
@@ -207,35 +207,35 @@ class DeepSeekClient(LlmClient):
                 "status_code": error_info.status_code,
                 "should_retry": error_info.should_retry
             }
-            
+
         except httpx.RequestError as e:
             # 处理请求错误（网络问题等）
             error_info = ErrorHandler.handle_request_error(e, self.provider)
             logger.error(f"DeepSeek API请求错误: {error_info.message}", exc_info=True)
-            
+
             return {
                 "success": False,
                 "error": error_info.message,
                 "error_type": error_info.error_type,
                 "should_retry": error_info.should_retry
             }
-            
+
         except json.JSONDecodeError as e:
             # 处理JSON解析错误
             error_msg = f"DeepSeek响应JSON解析失败: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            
+
             return {
                 "success": False,
                 "error": error_msg,
                 "error_type": "JSON解析错误"
             }
-            
+
         except Exception as e:
             # 处理其他所有异常
             error_msg = f"DeepSeek处理失败: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            
+
             return {
                 "success": False,
                 "error": error_msg,
@@ -252,7 +252,7 @@ class DeepSeekClient(LlmClient):
             测试结果字典
         """
         logger.info(f"开始测试DeepSeek连接: 模型={self.model_name}")
-        
+
         # 检查API密钥
         if not self._check_api_key():
             logger.error("DeepSeek API密钥未设置")
@@ -261,7 +261,7 @@ class DeepSeekClient(LlmClient):
                 "status": "error",
                 "message": "API密钥未设置"
             }
-            
+
         # 准备请求头
         headers = {
             "Content-Type": "application/json",
@@ -280,13 +280,13 @@ class DeepSeekClient(LlmClient):
         }
 
         endpoint = "/chat/completions"
-        full_url = f"{self.api_base_url}{endpoint}"
+        full_url = f"{self.base_url}{endpoint}"
         logger.debug(f"DeepSeek连接测试URL: {full_url}")
 
         try:
             # 记录请求开始时间
             test_start_time = time.time()
-            
+
             # 发送请求
             response = await self._make_request(
                 method="POST",
@@ -295,7 +295,7 @@ class DeepSeekClient(LlmClient):
                 json_data=data,
                 timeout=30.0  # 较短的超时时间，因为只是测试连接
             )
-            
+
             # 记录请求耗时
             test_time = time.time() - test_start_time
             logger.debug(f"DeepSeek连接测试耗时: {test_time:.2f}秒")
@@ -309,7 +309,7 @@ class DeepSeekClient(LlmClient):
                 model_info = ""
                 if "model" in result:
                     model_info = f", 模型={result['model']}"
-                
+
                 # 记录使用的tokens
                 usage_info = ""
                 if "usage" in result:
@@ -317,7 +317,7 @@ class DeepSeekClient(LlmClient):
                     usage_info = f", Tokens: 提示={usage.get('prompt_tokens', 0)}, " \
                                f"完成={usage.get('completion_tokens', 0)}, " \
                                f"总计={usage.get('total_tokens', 0)}"
-                
+
                 logger.info(f"DeepSeek连接测试成功{model_info}{usage_info}")
                 return {
                     "success": True,
@@ -339,7 +339,7 @@ class DeepSeekClient(LlmClient):
             # 处理HTTP状态错误
             error_info = ErrorHandler.handle_http_error(e, self.provider)
             logger.error(f"DeepSeek连接测试失败 - HTTP错误: {error_info.message}", exc_info=True)
-            
+
             return {
                 "success": False,
                 "status": "error",
@@ -347,24 +347,24 @@ class DeepSeekClient(LlmClient):
                 "error_type": error_info.error_type,
                 "status_code": error_info.status_code
             }
-            
+
         except httpx.RequestError as e:
             # 处理请求错误（网络问题等）
             error_info = ErrorHandler.handle_request_error(e, self.provider)
             logger.error(f"DeepSeek连接测试失败 - 请求错误: {error_info.message}", exc_info=True)
-            
+
             return {
                 "success": False,
                 "status": "error",
                 "message": f"连接测试失败: {error_info.message}",
                 "error_type": error_info.error_type
             }
-            
+
         except Exception as e:
             # 处理其他所有异常
             error_msg = f"DeepSeek连接测试失败: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            
+
             return {
                 "success": False,
                 "status": "error",
