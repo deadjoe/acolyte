@@ -212,8 +212,8 @@ class AnthropicClient(LlmClient):
             return {
                 "success": True,
                 "raw_response": response_text,
-                "processed_result": parsed_result.get("processed_result", {}),
-                "result": parsed_result.get("result", {})
+                "processed_result": {},
+                "result": parsed_result
             }
 
         except Exception as e:
