@@ -83,23 +83,45 @@ class GeminiClient(LlmClient):
         """
         logger.debug("使用Google Gemini API")
 
-        # 准备请求参数
+        # 准备请求参数 - 使用最新的Gemini API格式
+        # 根据Gemini官方REST示例更新请求格式
         data = {
-            "system_instruction": {
-                "parts": [{"text": system_prompt}]
-            },
             "contents": [
                 {
-                    "parts": [{"text": user_prompt}]
+                    "role": "user",
+                    "parts": [
+                        {"text": f"{system_prompt}\n\n{user_prompt}"}
+                    ]
                 }
             ],
             "generationConfig": {
                 "temperature": 0.3,
                 "maxOutputTokens": 4000,
                 "topP": 0.95,
-                "topK": 40
+                "topK": 40,
+                "responseMimeType": "text/plain"
+            },
+            "safetySettings": [
+                {
+                    "category": "HARM_CATEGORY_HARASSMENT",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_NONE"
+                }
             }
         }
+
+        logger.debug(f"Gemini API请求数据: {json.dumps(data, ensure_ascii=False)[:500]}...")
 
         logger.debug(f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, user_prompt长度={len(user_prompt)}字符")
 
@@ -108,7 +130,8 @@ class GeminiClient(LlmClient):
             "Content-Type": "application/json"
         }
 
-        # Gemini使用URL参数传递API密钥
+        # 根据Gemini官方REST示例更新API端点格式
+        # 使用v1beta路径和generateContent操作
         endpoint = f"{self.full_model_name}:generateContent?key={self.api_key}"
 
         try:
@@ -182,15 +205,27 @@ class GeminiClient(LlmClient):
                     }
 
             # 检查响应中是否有内容
+            # 记录完整的响应以便调试
+            logger.debug(f"Gemini完整响应: {json.dumps(result, ensure_ascii=False)[:1000]}...")
+
+            # 检查响应中是否有candidates字段
             if "candidates" not in result:
                 logger.error(f"Gemini响应中没有candidates字段, 响应键: {list(result.keys())}")
-                return {
-                    "success": False,
-                    "error": "Gemini响应中没有candidates字段",
-                    "raw_response": json.dumps(result)
-                }
 
-            if not result["candidates"]:
+                # 如果有text字段，直接使用
+                if "text" in result:
+                    logger.info("Gemini响应中有text字段，直接使用")
+                    response_text = result["text"]
+                    # 跳过后面的响应提取逻辑
+                else:
+                    return {
+                        "success": False,
+                        "error": "Gemini响应中没有candidates字段",
+                        "raw_response": json.dumps(result)
+                    }
+
+            # 如果有candidates字段，检查是否为空
+            elif not result["candidates"]:
                 logger.error("Gemini响应中candidates列表为空")
                 return {
                     "success": False,
@@ -198,39 +233,72 @@ class GeminiClient(LlmClient):
                     "raw_response": json.dumps(result)
                 }
 
-            # 提取响应文本
-            candidate = result["candidates"][0]
-            logger.debug(f"Gemini候选项键: {list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}")
-
-            if "content" not in candidate:
-                logger.error(f"Gemini响应中没有content字段, 候选项键: {list(candidate.keys())}")
-                return {
-                    "success": False,
-                    "error": "Gemini响应中没有content字段",
-                    "raw_response": json.dumps(result)
-                }
-
-            content = candidate["content"]
-            logger.debug(f"Gemini内容键: {list(content.keys()) if isinstance(content, dict) else '非字典'}")
-
-            if "parts" not in content:
-                logger.error(f"Gemini响应中没有parts字段, 内容键: {list(content.keys())}")
-                return {
-                    "success": False,
-                    "error": "Gemini响应中没有parts字段",
-                    "raw_response": json.dumps(result)
-                }
-
-            # 合并所有文本部分
-            parts = content["parts"]
-            logger.debug(f"Gemini parts数量: {len(parts)}")
-
+            # 初始化变量
             response_text = ""
-            for i, part in enumerate(parts):
-                if "text" in part:
-                    response_text += part["text"]
-                else:
-                    logger.warning(f"Gemini响应中第{i+1}个part没有text字段, 键: {list(part.keys())}")
+
+            # 检查响应中是否有text字段，如果有则直接使用
+            if "text" in result:
+                logger.info("Gemini响应中有text字段，直接使用")
+                response_text = result["text"]
+            else:
+                # 尝试使用candidates格式提取文本
+                try:
+                    if "candidates" not in result:
+                        logger.error(f"Gemini响应中没有candidates字段, 响应键: {list(result.keys())}")
+                        return {
+                            "success": False,
+                            "error": "Gemini响应中没有candidates字段",
+                            "raw_response": json.dumps(result)
+                        }
+
+                    candidates = result["candidates"]
+                    if not candidates:
+                        logger.error("Gemini响应中candidates列表为空")
+                        return {
+                            "success": False,
+                            "error": "Gemini响应中candidates列表为空",
+                            "raw_response": json.dumps(result)
+                        }
+
+                    candidate = candidates[0]
+                    logger.debug(f"Gemini候选项键: {list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}")
+
+                    if "content" not in candidate:
+                        logger.error(f"Gemini响应中没有content字段, 候选项键: {list(candidate.keys())}")
+                        return {
+                            "success": False,
+                            "error": "Gemini响应中没有content字段",
+                            "raw_response": json.dumps(result)
+                        }
+
+                    content = candidate["content"]
+                    logger.debug(f"Gemini内容键: {list(content.keys()) if isinstance(content, dict) else '非字典'}")
+
+                    if "parts" not in content:
+                        logger.error(f"Gemini响应中没有parts字段, 内容键: {list(content.keys())}")
+                        return {
+                            "success": False,
+                            "error": "Gemini响应中没有parts字段",
+                            "raw_response": json.dumps(result)
+                        }
+
+                    # 合并所有文本部分
+                    parts = content["parts"]
+                    logger.debug(f"Gemini parts数量: {len(parts)}")
+
+                    for i, part in enumerate(parts):
+                        if "text" in part:
+                            response_text += part["text"]
+                        else:
+                            logger.warning(f"Gemini响应中第{i+1}个part没有text字段, 键: {list(part.keys())}")
+                except Exception as e:
+                    logger.error(f"Gemini响应解析异常: {str(e)}")
+                    logger.debug(f"Gemini响应内容: {json.dumps(result, ensure_ascii=False)[:500]}...")
+                    return {
+                        "success": False,
+                        "error": f"Gemini响应解析异常: {str(e)}",
+                        "raw_response": json.dumps(result)
+                    }
 
             response_text = response_text.strip()
 
@@ -248,11 +316,16 @@ class GeminiClient(LlmClient):
             # 解析响应
             parsed_result = ResponseParser.parse_gemini_response(response_text)
 
+            # 确保即使解析失败也能返回有效的结果
+            if parsed_result is None:
+                parsed_result = {}
+
+            # 将解析结果直接作为result返回，而不是嵌套在result字段中
             return {
                 "success": True,
                 "raw_response": response_text,
-                "processed_result": parsed_result.get("processed_result", {}),
-                "result": parsed_result.get("result", {})
+                "processed_result": {},
+                "result": parsed_result
             }
 
         except httpx.RequestError as e:
