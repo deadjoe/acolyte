@@ -96,7 +96,7 @@ class GeminiClient(LlmClient):
             ],
             "generationConfig": {
                 "temperature": 0.3,
-                "maxOutputTokens": 4000,
+                "maxOutputTokens": 8000,
                 "topP": 0.95,
                 "topK": 40,
                 "responseMimeType": "text/plain"
