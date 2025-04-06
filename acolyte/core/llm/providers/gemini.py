@@ -218,11 +218,20 @@ class GeminiClient(LlmClient):
                     response_text = result["text"]
                     # 跳过后面的响应提取逻辑
                 else:
-                    return {
-                        "success": False,
-                        "error": "Gemini响应中没有candidates字段",
-                        "raw_response": json.dumps(result)
-                    }
+                    # 检查是否有配额限制或其他隐含错误
+                    if "usageMetadata" in result and "modelVersion" in result and len(result.keys()) == 2:
+                        logger.error("Gemini API可能遇到了配额限制或内容过滤: 响应中只有usageMetadata和modelVersion")
+                        return {
+                            "success": False,
+                            "error": "Gemini API可能遇到了配额限制或内容过滤",
+                            "raw_response": json.dumps(result)
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": "Gemini响应中没有candidates字段",
+                            "raw_response": json.dumps(result)
+                        }
 
             # 如果有candidates字段，检查是否为空
             elif not result["candidates"]:
