@@ -472,3 +472,22 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 对所有三种LLM（Gemini、Claude和OpenAI）进行了全面测试，确保它们都能正确提取评分
   - 编写了详细的SingleLLM.md文档，分析了从选择Gemini LLM为默认LLM，然后执行analyze指令后的完整代码流转过程
   - 详细记录了问题定位和解决过程，为日后维护提供参考
+
+### 14. 最新进展 [2025-04-08]
+- **优化DeepSeek LLM支持**
+  - 完全重建DeepSeek客户端实现，确保与其他LLM客户端保持一致
+  - 修复DeepSeek客户端中的属性错误，将`api_base_url`改为`base_url`
+  - 添加详细的日志记录和错误处理，便于调试和问题排查
+  - 统一DeepSeek客户端的返回结构，确保评分数据能够被正确提取
+
+- **改进LLM类型检测机制**
+  - 修改`base.py`中的`_detect_provider`方法，添加对LLM名称的检查
+  - 重构`client.py`中的`get_client_for_llm`函数，使用常量进行判断
+  - 确保LLM类型检测的一致性，解决第三方托管LLM识别问题
+  - 添加更详细的日志记录，便于追踪LLM类型检测过程
+
+- **增强测试覆盖范围**
+  - 创建新的测试文本`tests/texts/test_new_software.txt`，用于测试长文本处理能力
+  - 对所有四种LLM（Claude、OpenAI、Gemini和DeepSeek）进行全面测试
+  - 验证所有LLM都能正确处理内容并提取评分数据
+  - 测试不同长度和内容类型的文本，确保系统稳定性

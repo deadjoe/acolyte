@@ -170,6 +170,9 @@ acolyte/
 - Fixed issues with existing LLM integrations
 - Improved LLM configuration handling and management
 - Enhanced response parsing for different LLM output formats
+- Completely rebuilt DeepSeek client implementation for better consistency
+- Improved LLM type detection mechanism for third-party hosted LLMs
+- Unified response structure across all LLM clients
 
 ### Phase 4: Quality Assurance and CLI Improvements (Completed)
 - Improved logging system with standardized formats and appropriate levels
@@ -207,6 +210,8 @@ acolyte/
 - Improved JSON extraction with support for nested objects and arrays
 - Added support for mixed Chinese/English field names in JSON responses
 - Implemented fallback regex patterns for non-JSON formatted responses
+- Unified response structure across all LLM clients for consistent data extraction
+- Optimized response parsing for DeepSeek LLM with improved error handling
 
 ### CLI Enhancements
 - Improved command organization with OrderedGroup
