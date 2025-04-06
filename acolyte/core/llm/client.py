@@ -29,6 +29,13 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
 
     # 根据base_url或其他参数判断LLM类型
     base_url = llm_config.base_url.lower() if llm_config.base_url else ""
+
+    # 检查LLM名称是否包含"deepseek"（不区分大小写）
+    llm_name = llm_config.name.lower() if llm_config.name else ""
+    if "deepseek" in llm_name:
+        return DeepSeekClient(llm_config)
+
+    # 根据base_url判断
     if "anthropic" in base_url:
         return AnthropicClient(llm_config)
     elif "openai" in base_url or "azure" in base_url:
