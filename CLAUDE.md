@@ -450,3 +450,25 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 移除AppConfig中的prompt_dir字段，由PromptManager专门管理
   - 改进配置导入导出功能，确保不包含不必要的字段
   - 优化配置文件格式，提高可读性和可维护性
+
+### 13. 最新进展 [2025-04-07]
+- **优化Gemini LLM支持**
+  - 增加Gemini API的maxOutputTokens参数从4000到8000，解决响应被截断的问题
+  - 改进Gemini API请求格式，使其与最新的官方文档一致
+    - 移除不再支持的`system_instruction`字段
+    - 将系统提示词和用户提示词合并为一个文本，作为用户角色的消息
+    - 添加`role`字段和正确的`parts`结构
+    - 添加`responseMimeType`和`safetySettings`配置
+  - 改进Gemini API错误处理，增强对配额限制和内容过滤的检测
+
+- **修复LLM结果提取问题**
+  - 解决了一个关键问题：不同的LLM客户端返回结构不一致
+  - 统一了所有LLM客户端的返回结构，确保评分数据能够被正确提取
+  - 修改Claude客户端的返回结构，使其与Gemini和OpenAI一致
+  - 改进`_save_result_to_db`方法，增强对不同结构的兼容性
+
+- **全面测试与文档化**
+  - 创建了新的测试数据文件`tests/texts/test_news_article.txt`，用于测试LLM功能
+  - 对所有三种LLM（Gemini、Claude和OpenAI）进行了全面测试，确保它们都能正确提取评分
+  - 编写了详细的SingleLLM.md文档，分析了从选择Gemini LLM为默认LLM，然后执行analyze指令后的完整代码流转过程
+  - 详细记录了问题定位和解决过程，为日后维护提供参考
