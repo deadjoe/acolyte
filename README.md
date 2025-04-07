@@ -91,7 +91,13 @@ uv run -m acolyte.cli.main analyze content.txt --mode=multiple_with_review --llm
 uv run -m acolyte.cli.main history list --limit=5
 
 # Show specific task results
-uv run -m acolyte.cli.main show 123 --raw
+uv run -m acolyte.cli.main history show 123 --raw
+
+# Show results from a specific LLM in multiple mode
+uv run -m acolyte.cli.main history show 123 --llm 2
+
+# Show all results in multiple mode with different format
+uv run -m acolyte.cli.main history show 123 --all --format summary
 ```
 
 ### Configuration Management

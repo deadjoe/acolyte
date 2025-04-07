@@ -903,100 +903,11 @@ def clear(status, force):
     asyncio.run(_clear())
 
 
-@history.command()
-@click.argument("task_id", type=int)
-@click.option("--raw/--no-raw", default=False, help="是否显示原始响应")
-def show(task_id, raw):
-    """显示特定任务结果
+# 导入并使用history_show模块中的函数
+from acolyte.cli.history_show import register_command as register_show_command
 
-    例如: acolyte history show 123 --raw
-    """
-    async def _show():
-        client = AcolyteClient()
-        try:
-            # 检查API服务连接
-            connection_ok, error_message = await client.check_connection()
-            if not connection_ok:
-                logger.error(f"API服务连接失败: {error_message}")
-                console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
-                return
-
-            # 获取任务信息
-            with console.status("[bold green]获取任务信息中...[/]"):
-                task = await client.get_task(task_id)
-                console.print(Panel(f"任务ID: {task['id']}\n"
-                                  f"处理模式: {task['processing_mode']}\n"
-                                  f"状态: {task['status']}\n"
-                                  f"创建时间: {task['created_at']}",
-                                  title="任务信息"))
-
-            # 获取最终结果
-            try:
-                final_result = await client.get_task_final_result(task_id, include_raw_response=raw)
-
-                # 显示评分
-                table = Table(title="分析评分")
-                table.add_column("指标", style="cyan")
-                table.add_column("分数", style="green")
-
-                if final_result.get("bias_index") is not None:
-                    table.add_row("偏见指数 (BI)", f"{final_result['bias_index']:.2f}")
-                if final_result.get("misleading_index") is not None:
-                    table.add_row("误导性指数 (MI)", f"{final_result['misleading_index']:.2f}")
-                if final_result.get("hidden_intent_index") is not None:
-                    table.add_row("隐藏意图指数 (HI)", f"{final_result['hidden_intent_index']:.2f}")
-                if final_result.get("credibility_score") is not None:
-                    table.add_row("综合可信度 (CS)", f"{final_result['credibility_score']:.2f}")
-
-                console.print(table)
-
-                # 显示原始响应
-                if raw and final_result.get("raw_response"):
-                    console.print("\n[bold]详细分析:[/]")
-                    console.print(Markdown(final_result["raw_response"]))
-
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 404:
-                    console.print("[bold yellow]任务无最终结果[/]")
-
-                    # 如果是multiple模式，显示所有结果
-                    if task["processing_mode"] in ["multiple", "multiple_with_review"]:
-                        results = await client.get_task_results(task_id, include_raw_response=raw)
-                        if results:
-                            console.print("[bold]所有结果:[/]")
-                            for i, result in enumerate(results, 1):
-                                console.print(f"\n[bold cyan]结果 {i}:[/]")
-                                # 显示评分
-                                table = Table()
-                                table.add_column("指标", style="cyan")
-                                table.add_column("分数", style="green")
-
-                                if result.get("bias_index") is not None:
-                                    table.add_row("偏见指数 (BI)", f"{result['bias_index']:.2f}")
-                                if result.get("misleading_index") is not None:
-                                    table.add_row("误导性指数 (MI)", f"{result['misleading_index']:.2f}")
-                                if result.get("hidden_intent_index") is not None:
-                                    table.add_row("隐藏意图指数 (HI)", f"{result['hidden_intent_index']:.2f}")
-                                if result.get("credibility_score") is not None:
-                                    table.add_row("综合可信度 (CS)", f"{result['credibility_score']:.2f}")
-
-                                console.print(table)
-
-                                # 显示原始响应
-                                if raw and result.get("raw_response"):
-                                    console.print("\n[bold]详细分析:[/]")
-                                    console.print(Markdown(result["raw_response"]))
-                        else:
-                            console.print("[bold yellow]无任何结果[/]")
-                else:
-                    raise e
-
-        finally:
-            await client.close()
-
-    # 运行异步函数
-    asyncio.run(_show())
+# 注册命令
+register_show_command(history)
 
 
 @cli.group(cls=OrderedGroup)

@@ -186,6 +186,16 @@ acolyte/
   - Changed sorting order to ascending by ID (oldest first)
   - Converted UTC timestamps to local timezone with 24-hour format
   - Added detailed time conversion logging for debugging
+- Enhanced `history show` command for multiple mode
+  - Added `--all/--single` option to control result display
+  - Added `--llm` option to view specific LLM results
+  - Added `--format` option with table, summary, and JSON formats
+  - Implemented comparison table for multiple LLM results
+  - Ensured consistent time formatting across all displays
+- Fixed multiple mode async processing
+  - Refactored `MultipleLlmProcessor` to use coroutines instead of tasks
+  - Improved parallel processing with proper async/await patterns
+  - Enhanced error handling in multiple LLM processing
 - Updated documentation to reflect architectural changes
 
 ## Implementation Highlights
@@ -221,6 +231,16 @@ acolyte/
 - Added API connection checks to all CLI commands
 - Improved history list display with better sorting and time formatting
 - Converted UTC timestamps to local timezone with 24-hour format
+- Enhanced `history show` command for multiple mode
+  - Added `--all/--single` option to control result display
+  - Added `--llm` option to view specific LLM results
+  - Added `--format` option with table, summary, and JSON formats
+  - Implemented comparison table for multiple LLM results
+  - Ensured consistent time formatting across all displays
+- Fixed multiple mode async processing
+  - Refactored `MultipleLlmProcessor` to use coroutines instead of tasks
+  - Improved parallel processing with proper async/await patterns
+  - Enhanced error handling in multiple LLM processing
 
 ### Documentation Updates
 - Updated DESIGN.md with detailed LLM response parsing architecture

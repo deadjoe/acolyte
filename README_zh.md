@@ -91,7 +91,13 @@ uv run -m acolyte.cli.main analyze content.txt --mode=multiple_with_review --llm
 uv run -m acolyte.cli.main history list --limit=5
 
 # 显示特定任务的结果
-uv run -m acolyte.cli.main show 123 --raw
+uv run -m acolyte.cli.main history show 123 --raw
+
+# 显示multiple模式下特定LLM的结果
+uv run -m acolyte.cli.main history show 123 --llm 2
+
+# 以不同格式显示multiple模式下的所有结果
+uv run -m acolyte.cli.main history show 123 --all --format summary
 ```
 
 ### 配置管理
