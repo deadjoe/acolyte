@@ -12,28 +12,58 @@ logger = get_logger("acolyte.core.llm.manager")
 
 
 class LlmManager:
-    """LLM管理器，负责LLM配置的CRUD操作"""
+    """
+    LLM管理器
 
-    def add_llm(self, name: str, api_key: str, base_url: str, model_name: str, 
-                description: str = None, role: LlmRole = LlmRole.NORMAL, 
+    该类负责LLM配置的增删改查（CRUD）操作，包括添加、更新、删除和查询LLM配置。
+    它还提供了设置默认LLM、更改LLM角色和测试LLM连接等功能。
+
+    主要功能：
+    - LLM配置管理：添加、更新、删除和查询LLM配置
+    - 默认LLM管理：获取和设置默认LLM
+    - LLM角色管理：更改LLM角色（普通评估者或评议者）
+    - LLM连接测试：测试LLM配置的连通性
+
+    与其他组件的关系：
+    - 使用数据库会话进行数据存取
+    - 使用LlmClient进行连接测试
+    """
+
+    def add_llm(self, name: str, api_key: str, base_url: str, model_name: str,
+                description: str = None, role: LlmRole = LlmRole.NORMAL,
                 is_default: bool = False) -> LlmConfig:
-        """添加新的LLM配置
+        """
+        添加新的LLM配置
+
+        该方法创建一个新的LLM配置并将其保存到数据库中。
+        如果指定了is_default=True，则会将该LLM设置为默认LLM，
+        并将其他所有LLM的默认状态设置为False。
+
+        创建流程：
+        1. 检查是否已存在同名的LLM配置
+        2. 创建LlmConfig对象并设置属性
+        3. 如果指定了is_default=True，则清除其他LLM的默认状态
+        4. 将新配置保存到数据库
+        5. 返回新创建的LlmConfig对象
 
         Args:
-            name: LLM名称
-            api_key: API密钥
-            base_url: 基础URL
-            model_name: 模型名称
-            description: 描述
-            role: LLM角色
-            is_default: 是否为默认LLM
+            name: LLM名称，必须唯一
+            api_key: API密钥，用于认证
+            base_url: 基础URL，如"https://api.anthropic.com"
+            model_name: 模型名称，如"claude-3-opus-20240229"
+            description: 描述信息，可选
+            role: LLM角色，默认为普通评估者（NORMAL）
+            is_default: 是否设置为默认LLM，默认为False
 
         Returns:
-            新创建的LLM配置对象
+            LlmConfig: 新创建的LLM配置对象
+
+        Raises:
+            ValueError: 当已存在同名的LLM配置时抛出
         """
         logger.info(f"添加新的LLM配置: {name}, 模型: {model_name}")
         logger.debug(f"LLM角色: {role}, 是否默认: {is_default}")
-        
+
         try:
             with db.session_scope() as session:
                 # 如果设置为默认，先取消其他默认设置
@@ -60,18 +90,37 @@ class LlmManager:
             raise
 
     def update_llm(self, llm_id: int, **kwargs) -> Optional[LlmConfig]:
-        """更新LLM配置
+        """
+        更新LLM配置
+
+        该方法更新指定ID的LLM配置。可以更新一个或多个字段，
+        包括名称、API密钥、基础URL、模型名称、描述、角色和默认状态等。
+        如果更新了默认状态为True，则会将其他所有LLM的默认状态设置为False。
+
+        更新流程：
+        1. 查询指定ID的LLM配置
+        2. 如果未找到，返回None
+        3. 如果更新了默认状态为True，则清除其他LLM的默认状态
+        4. 更新LLM配置的属性
+        5. 返回更新后的LLM配置对象
 
         Args:
             llm_id: LLM配置ID
-            **kwargs: 要更新的字段
+            **kwargs: 要更新的字段，可以包含以下字段：
+                - name: LLM名称
+                - api_key: API密钥
+                - base_url: 基础URL
+                - model_name: 模型名称
+                - description: 描述
+                - role: LLM角色
+                - is_default: 是否为默认LLM
 
         Returns:
-            更新后的LLM配置对象，如果未找到则返回None
+            Optional[LlmConfig]: 更新后的LLM配置对象，如果未找到则返回None
         """
         logger.info(f"更新LLM配置: ID={llm_id}")
         logger.debug(f"更新字段: {kwargs}")
-        
+
         try:
             with db.session_scope() as session:
                 llm = session.query(LlmConfig).filter_by(id=llm_id).first()
@@ -80,7 +129,7 @@ class LlmManager:
                     return None
 
                 logger.debug(f"原始配置: 名称={llm.name}, 模型={llm.model_name}")
-                
+
                 # 如果要设置为默认，先取消其他默认设置
                 if kwargs.get('is_default', False):
                     logger.debug("清除其他LLM的默认状态")
@@ -107,7 +156,7 @@ class LlmManager:
             删除是否成功
         """
         logger.info(f"删除LLM配置: ID={llm_id}")
-        
+
         try:
             with db.session_scope() as session:
                 llm = session.query(LlmConfig).filter_by(id=llm_id).first()
@@ -116,13 +165,13 @@ class LlmManager:
                     return False
 
                 logger.debug(f"删除的LLM配置: 名称={llm.name}, 是否默认={llm.is_default}")
-                
+
                 # 检查是否为默认LLM
                 if llm.is_default:
                     # 如果是唯一的LLM，允许删除
                     count = session.query(LlmConfig).count()
                     logger.debug(f"当前数据库中有 {count} 个LLM配置")
-                    
+
                     if count > 1:
                         # 如果删除的是默认LLM，需要设置新的默认LLM
                         logger.info("删除的是默认LLM，需要设置新的默认LLM")
@@ -132,13 +181,13 @@ class LlmManager:
                         if new_default:
                             new_default.is_default = True
                             logger.info(f"新的默认LLM: ID={new_default.id}, 名称={new_default.name}")
-                
+
                 # 处理与此LLM关联的任务结果
                 from acolyte.core.db.models import TaskResult
                 task_results = session.query(TaskResult).filter_by(llm_id=llm_id).count()
                 logger.info(f"删除 {task_results} 个关联的任务结果")
                 session.query(TaskResult).filter_by(llm_id=llm_id).delete()
-                
+
                 # 删除LLM配置
                 session.delete(llm)
                 logger.info(f"LLM配置删除成功: ID={llm_id}")
@@ -158,7 +207,7 @@ class LlmManager:
         """
         with db.session_scope() as session:
             return session.query(LlmConfig).filter_by(id=llm_id).first()
-            
+
     def get_llm_by_name(self, name: str) -> Optional[LlmConfig]:
         """根据名称获取LLM配置
 
@@ -234,18 +283,36 @@ class LlmManager:
             llm.role = role
             return True
 
-    async def test_connection(self, llm_id: int = None, api_key: str = None, 
+    async def test_connection(self, llm_id: int = None, api_key: str = None,
                         base_url: str = None, model_name: str = None) -> Dict:
-        """测试LLM连接
+        """
+        测试LLM连接
+
+        该方法测试与LLM API的连接是否正常。它可以使用已保存的LLM配置（通过llm_id指定），
+        或者使用临时提供的配置参数（api_key、base_url、model_name）。
+        它会创建一个适合的LLM客户端，并调用其_test_connection方法测试连接。
+
+        测试流程：
+        1. 如果提供了llm_id，则从数据库中获取对应的LLM配置
+        2. 如果提供了临时参数，则使用这些参数创建LlmConfig对象
+        3. 根据LlmConfig对象创建LLM客户端
+        4. 调用客户端的_test_connection方法测试连接
+        5. 记录测试时间和结果
+        6. 返回测试结果字典
 
         Args:
             llm_id: LLM配置ID，如果提供则使用已保存的配置
-            api_key: API密钥
-            base_url: 基础URL
-            model_name: 模型名称
+            api_key: API密钥，如果llm_id为None则必须提供
+            base_url: 基础URL，如果llm_id为None则必须提供
+            model_name: 模型名称，如果llm_id为None则必须提供
 
         Returns:
-            测试结果字典，包含是否成功、响应时间等信息
+            Dict: 测试结果字典，包含以下字段：
+                - success (bool): 测试是否成功
+                - message (str): 成功或失败的消息
+                - response_time (float, 可选): 成功时包含响应时间（毫秒）
+                - error (str, 可选): 失败时包含错误信息
+                - llm_type (str, 可选): 成功时包含LLM类型（如"anthropic"、"openai"等）
         """
         import asyncio
         import time
@@ -255,7 +322,7 @@ class LlmManager:
         from acolyte.core.llm.providers.gemini import GeminiClient
         from acolyte.core.llm.providers.ollama import OllamaClient
         from acolyte.core.llm.providers.openai import OpenAIClient
-        
+
         try:
             # 记录测试类型
             if llm_id is not None:
@@ -263,7 +330,7 @@ class LlmManager:
             else:
                 logger.info("测试新的LLM连接参数")
                 logger.debug(f"base_url: {base_url}, model_name: {model_name}")
-                
+
             # 获取连接参数
             if llm_id is not None:
                 llm_config = self.get_llm(llm_id)
@@ -289,21 +356,21 @@ class LlmManager:
                     base_url=base_url,
                     model_name=model_name
                 )
-            
+
             # 创建对应的客户端
             logger.debug("获取适合的LLM客户端")
             client = get_client_for_llm(llm_config)
-            
+
             # 开始测试连接
             logger.info(f"测试连接: {client.__class__.__name__}")
             start_time = time.time()
-            
+
             # 执行实际的连接测试
             test_result = await client._test_connection()
-            
+
             # 计算响应时间
             response_time = time.time() - start_time
-            
+
             # 处理测试结果
             if test_result.get('success', False):
                 logger.info(f"LLM连接测试成功: 耗时={response_time:.2f}秒")
@@ -319,7 +386,7 @@ class LlmManager:
                     'response_time': response_time,
                     'message': test_result.get('message', '连接测试失败')
                 }
-                
+
         except Exception as e:
             logger.error(f"测试LLM连接失败: {str(e)}", exc_info=True)
             return {

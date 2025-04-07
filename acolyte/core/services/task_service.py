@@ -29,11 +29,28 @@ class TaskService:
     """
     任务服务类
 
-    提供任务相关的业务逻辑实现，包括任务创建、处理和查询。
+    该服务类提供任务相关的业务逻辑实现，包括任务的创建、处理、查询和管理等功能。
+    它作为API路由和任务处理器之间的中间层，封装了数据库操作和任务处理的复杂性。
+
+    主要功能：
+    - 任务创建：创建新的分析任务，可指定处理模式、LLM和提示词
+    - 任务处理：异步处理任务，支持单个LLM、多个LLM和评议模式
+    - 任务查询：获取任务列表、任务详情和处理结果
+    - 任务管理：取消任务、删除任务等
+
+    与其他组件的关系：
+    - 使用TaskProcessor进行任务处理
+    - 使用PromptManager管理提示词模板
+    - 使用数据库会话进行数据存取
     """
 
     def __init__(self):
-        """初始化任务服务"""
+        """
+        初始化任务服务
+
+        初始化TaskService实例，创建TaskProcessor实例用于处理任务，
+        创建PromptManager实例用于管理提示词模板。
+        """
         self.processor = TaskProcessor()
         self.prompt_manager = PromptManager()
 
@@ -41,11 +58,36 @@ class TaskService:
         """
         创建任务
 
+        该方法创建一个新的分析任务并将其保存到数据库中。它验证输入数据，
+        创建Task对象，并可选地将任务与指定的LLM关联。
+
+        创建流程：
+        1. 验证输入数据（内容、处理模式等必要字段）
+        2. 调用_create_task_in_db方法在数据库中创建Task对象
+        3. 如果指定了wait=True，立即开始处理任务
+        4. 返回创建的任务信息
+
+        支持的处理模式：
+        - single: 使用单个LLM处理任务
+        - multiple: 使用多个LLM并行处理任务
+        - review: 使用多个LLM处理任务，然后进行评议
+
         Args:
-            task_data: 任务数据字典，包含内容、处理模式等
+            task_data: 任务数据字典，包含以下字段：
+                - content: 要分析的文本内容
+                - processing_mode: 处理模式（single、multiple或review）
+                - prompt_id: 提示词模板ID（可选）
+                - llm_ids: 要使用的LLM ID列表（可选）
+                - wait: 是否等待任务处理完成（可选，默认为False）
 
         Returns:
-            创建的任务信息
+            Dict: 创建的任务信息字典，包含以下字段：
+                - success (bool): 创建是否成功
+                - task_id (int): 任务ID
+                - processing_mode (str): 处理模式
+                - status (str): 任务状态
+                - result (Dict, 可选): 如果wait=True且处理成功，包含处理结果
+                - error (str, 可选): 如果创建或处理失败，包含错误信息
         """
         logger.info(f"创建新任务，处理模式: {task_data.get('processing_mode')}")
 

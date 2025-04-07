@@ -15,10 +15,37 @@ logger = get_logger(__name__)
 
 
 class PromptManager:
-    """Prompt模板管理器"""
+    """
+    Prompt模板管理器
+
+    该类负责管理提示词模板，包括扫描文件、同步到数据库、获取模板等功能。
+    它支持从文件系统加载提示词模板，并将其同步到数据库中便于管理和使用。
+
+    主要功能：
+    - 扫描提示词模板文件，自动提取版本、目标模型等信息
+    - 将提示词模板同步到数据库，便于管理和查询
+    - 获取最新版本或指定版本的提示词模板
+    - 支持按目标模型筛选提示词模板
+
+    提示词模板命名规范：
+    - 格式：`prompt_v{version}[_{model_target}].txt`
+    - 示例：`prompt_v1.0.txt`、`prompt_v2.1_claude.txt`
+    """
 
     def __init__(self, prompt_dir: str = None):
-        """初始化Prompt管理器
+        """
+        初始化Prompt管理器
+
+        该方法初始化PromptManager实例，设置提示词模板目录路径。
+        如果未指定目录路径，它会尝试自动查找项目根目录下的prompt目录。
+        如果找不到，则创建一个新的prompt目录。
+
+        查找流程：
+        1. 如果指定了prompt_dir，直接使用
+        2. 否则，尝试查找项目根目录（包含.git目录或pyproject.toml文件）
+        3. 如果找到项目根目录，则在其下查找prompt目录
+        4. 如果找不到项目根目录，则使用当前目录的父目录
+        5. 如果找不到prompt目录，则创建一个新的prompt目录
 
         Args:
             prompt_dir: prompt模板目录路径，默认为项目根目录下的prompt目录
@@ -88,10 +115,25 @@ class PromptManager:
         os.makedirs(self.prompt_dir, exist_ok=True)
 
     def scan_prompt_files(self) -> List[Dict]:
-        """扫描prompt文件目录，返回文件信息列表
+        """
+        扫描prompt文件目录，返回文件信息列表
+
+        该方法扫描提示词模板目录，查找符合命名规范的提示词模板文件。
+        它使用正则表达式匹配文件名，提取版本号和目标模型信息。
+        如果文件名中没有指定目标模型，则默认为"general"。
+
+        扫描流程：
+        1. 确保提示词模板目录存在
+        2. 使用正则表达式匹配文件名，格式为`bias-detection-prompt_v{version}[_{model_target}].md`
+        3. 提取版本号和目标模型信息
+        4. 对于特殊格式的文件名，进行特殊处理
 
         Returns:
-            包含prompt文件信息的列表，每项包含path, version, model_target
+            List[Dict]: 包含prompt文件信息的列表，每项是一个字典，包含以下字段：
+                - path (str): 文件路径
+                - filename (str): 文件名
+                - version (str): 版本号
+                - model_target (str): 目标模型，如果未指定则为"general"
         """
         prompt_files = []
         prompt_pattern = re.compile(
@@ -134,7 +176,23 @@ class PromptManager:
         return prompt_files
 
     def sync_prompt_files_to_db(self):
-        """将prompt文件同步到数据库"""
+        """
+        将prompt文件同步到数据库
+
+        该方法扫描提示词模板文件，并将其同步到数据库中。
+        它会检查数据库中是否已存在相同版本和目标模型的提示词模板，
+        如果不存在，则创建新的提示词模板记录。
+
+        同步流程：
+        1. 扫描提示词模板文件，获取文件信息列表
+        2. 遍历每个文件，读取文件内容
+        3. 检查数据库中是否已存在相同版本和目标模型的提示词模板
+        4. 如果不存在，则创建新的提示词模板记录
+        5. 如果存在但内容不同，则更新现有记录
+
+        Returns:
+            None
+        """
         prompt_files = self.scan_prompt_files()
         logger.info(f"找到 {len(prompt_files)} 个prompt文件需要同步")
 
@@ -186,13 +244,24 @@ class PromptManager:
             return False
 
     def get_latest_prompt(self, model_target: str = None) -> Optional[Prompt]:
-        """获取最新版本的prompt
+        """
+        获取最新版本的prompt
+
+        该方法从数据库中获取最新版本的提示词模板。
+        如果指定了目标模型，则获取针对该模型的最新版本。
+        如果未指定目标模型，则获取通用版本（model_target为"general"）的最新版本。
+
+        查询流程：
+        1. 首先查询所有活跃的提示词模板（is_active=True）
+        2. 如果指定了目标模型，则过滤出针对该模型的模板
+        3. 如果未指定目标模型，则过滤出通用版本的模板
+        4. 按版本号降序排序，获取第一个结果（最新版本）
 
         Args:
-            model_target: 目标模型名称，如果为None则获取通用版本
+            model_target: 目标模型名称，如果为None则获取通用版本（model_target="general"）
 
         Returns:
-            最新版本的Prompt对象
+            Optional[Prompt]: 最新版本的Prompt对象，如果未找到则返回None
         """
         try:
             with db.session_scope() as session:
@@ -229,14 +298,25 @@ class PromptManager:
             return None
 
     def get_prompt_by_version(self, version: str, model_target: str = None) -> Optional[Prompt]:
-        """根据版本号获取prompt
+        """
+        根据版本号获取prompt
+
+        该方法从数据库中获取指定版本的提示词模板。
+        如果指定了目标模型，则获取针对该模型的指定版本。
+        如果未指定目标模型，则获取任意目标模型的指定版本。
+
+        查询流程：
+        1. 首先查询所有活跃的提示词模板（is_active=True）
+        2. 过滤出指定版本的模板
+        3. 如果指定了目标模型，则过滤出针对该模型的模板
+        4. 返回第一个匹配的结果
 
         Args:
-            version: 版本号
-            model_target: 目标模型名称
+            version: 要获取的提示词模板版本号，如"1.0"、"2.1"等
+            model_target: 目标模型名称，如果为None则不过滤目标模型
 
         Returns:
-            匹配的Prompt对象
+            Optional[Prompt]: 匹配的Prompt对象，如果未找到则返回None
         """
         with db.session_scope() as session:
             query = session.query(Prompt).filter(
@@ -250,10 +330,20 @@ class PromptManager:
             return query.first()
 
     def get_all_prompts(self) -> List[Prompt]:
-        """获取所有prompt
+        """
+        获取所有prompt
+
+        该方法从数据库中获取所有的提示词模板。
+        结果先按目标模型排序，然后按版本号降序排序，
+        便于查看每个目标模型的最新版本。
+
+        查询流程：
+        1. 查询所有提示词模板（不过滤活跃状态）
+        2. 按目标模型和版本号降序排序
+        3. 返回所有结果
 
         Returns:
-            所有Prompt对象列表
+            List[Prompt]: 所有Prompt对象的列表，按目标模型和版本号降序排序
         """
         with db.session_scope() as session:
             return session.query(Prompt).order_by(
