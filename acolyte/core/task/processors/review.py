@@ -28,7 +28,20 @@ class ReviewProcessor(BaseTaskProcessor):
     """
     评议处理器
 
-    处理使用多个LLM并进行评议的任务。
+    该处理器用于处理需要多个LLM协作评议的任务。它是一种高级的任务处理器，
+    结合了MultipleLlmProcessor的功能，并添加了评议机制。
+
+    评议流程：
+    1. 首先使用多个LLM并行处理内容（使用MultipleLlmProcessor）
+    2. 然后使用评议者LLM对这些结果进行评估和投票
+    3. 根据投票结果选出最佳结果
+    4. 将所有结果和评议信息保存到数据库
+
+    与multiple模式的区别：
+    - 不仅并行使用多个LLM，还使用额外的评议者LLM进行结果评估
+    - 包含投票机制，可以选出最佳结果
+    - 提供更全面的结果分析和比较
+    - 资源消耗更大，处理时间更长
     """
 
     def __init__(self):
@@ -38,13 +51,41 @@ class ReviewProcessor(BaseTaskProcessor):
 
     async def process(self, task_id: int) -> Dict:
         """
-        处理任务
+        处理评议任务
+
+        该方法是评议处理器的主要入口点，实现了BaseTaskProcessor的抽象方法。
+        它负责协调多个LLM处理内容，然后使用评议者LLM进行结果评估和投票，
+        最终选出最佳结果并返回完整的评议信息。
+
+        处理流程：
+        1. 更新任务状态为处理中
+        2. 使用MultipleLlmProcessor并行处理内容
+        3. 如果多个LLM处理成功，获取评议者LLM配置
+        4. 使用评议者LLM对结果进行评估和投票
+        5. 根据投票结果选出最佳结果
+        6. 保存评议结果和投票信息到数据库
+        7. 更新任务状态为已完成
+        8. 返回完整的评议结果
+
+        错误处理：
+        - 如果任务状态更新失败，调用_handle_error方法处理
+        - 如果多个LLM处理失败，返回错误信息
+        - 如果没有足够的结果进行评议，返回多个LLM的处理结果
+        - 如果评议者处理失败，返回多个LLM的处理结果
+        - 捕获并处理所有未预期的异常
 
         Args:
-            task_id: 任务ID
+            task_id: 要处理的任务的ID
 
         Returns:
-            处理结果字典
+            Dict: 包含处理结果的字典，包含以下字段：
+                - success (bool): 处理是否成功
+                - task_id (int): 任务ID
+                - result_ids (List[int], 可选): 所有结果记录ID列表
+                - best_result_id (int, 可选): 最佳结果记录ID
+                - results (List[Dict], 可选): 所有处理结果
+                - votes (List[Dict], 可选): 评议者投票信息
+                - error (str, 可选): 失败时包含错误信息
         """
         logger.info(f"开始多LLM评议处理: 任务ID={task_id}")
         start_time = time.time()

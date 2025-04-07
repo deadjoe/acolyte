@@ -28,16 +28,37 @@ class LlmClient(ABC):
     """
     LLM客户端基类
 
-    提供LLM调用的基础功能和共享方法。
-    支持异步操作和自动重试。
+    这是所有LLM客户端的抽象基类，提供LLM调用的基础功能和共享方法。
+    它定义了与LLM交互的标准接口，包括初始化、发送请求、处理响应等。
+
+    主要功能：
+    - 支持异步操作，使用asyncio进行非阻塞调用
+    - 内置自动重试机制，处理临时错误和网络问题
+    - 提供统一的错误处理和日志记录
+    - 实现响应解析和结果格式化
+
+    子类需要实现的抽象方法：
+    - _detect_provider: 检测当前客户端的提供商
+    - _prepare_request: 准备请求数据
+    - _process_response: 处理响应数据
+    - _parse_response: 解析响应数据
     """
 
     def __init__(self, llm_config: LlmConfig):
         """
         初始化LLM客户端
 
+        该方法初始化LLM客户端的基本属性和组件，包括配置、API密钥、基础URL、模型名称等。
+        它还初始化了响应解析器、错误处理器和重试配置等共享组件。
+
+        初始化流程：
+        1. 设置基本配置属性（名称、API密钥、URL、模型等）
+        2. 检测或设置提供商信息
+        3. 初始化超时、响应解析器、错误处理器等
+        4. 设置重试配置
+
         Args:
-            llm_config: LLM配置对象
+            llm_config: LLM配置对象，包含名称、API密钥、基础URL、模型名称等信息
         """
         self.config = llm_config
         self.name = llm_config.name

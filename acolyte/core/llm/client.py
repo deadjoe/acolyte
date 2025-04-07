@@ -12,11 +12,29 @@ logger = get_logger(__name__)
 def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
     """根据LLM配置获取对应的客户端
 
+    该函数根据提供的LLM配置对象自动检测并返回适合的LLM客户端实例。
+    检测过程按以下顺序进行：
+    1. 首先基于LLM名称进行检测（如“Claude”、“GPT”等）
+    2. 如果无法确定，则基于基础URL进行检测（如“api.anthropic.com”等）
+    3. 如果仍无法确定，则基于模型名称进行检测（如“claude-3”、“gpt-4”等）
+    4. 如果仍无法确定，则默认使用OpenAI客户端
+
+    支持的LLM提供商：
+    - Anthropic Claude
+    - OpenAI GPT
+    - Google Gemini
+    - DeepSeek
+    - Ollama（支持多种开源模型，如Llama、Mistral等）
+
     Args:
-        llm_config: LLM配置对象
+        llm_config: LLM配置对象，包含名称、基础URL、模型名称等信息
 
     Returns:
-        对应的LLM客户端实例
+        LlmClient: 对应的LLM客户端实例，可用于发送请求和处理响应
+
+    Note:
+        如果无法确定客户端类型，将返回OpenAI客户端作为默认值，并记录警告日志。
+        这可能导致在使用非OpenAI模型时出现兼容性问题。
     """
     from acolyte.core.llm.providers.anthropic import AnthropicClient
     from acolyte.core.llm.providers.openai import OpenAIClient

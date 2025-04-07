@@ -23,22 +23,53 @@ class LlmService:
     """
     LLM服务类
 
-    提供LLM相关的业务逻辑实现，包括LLM配置管理和使用。
+    该服务类提供LLM相关的业务逻辑实现，包括LLM配置的创建、查询、更新、删除等管理功能，
+    以及使用LLM处理内容的功能。它作为API路由和LLM客户端之间的中间层，封装了数据库操作和LLM调用的复杂性。
+
+    主要功能：
+    - LLM配置管理：创建、查询、更新、删除LLM配置
+    - LLM内容处理：使用LLM处理文本内容
+    - LLM测试：测试LLM配置的连通性和可用性
+    - LLM管理：获取默认LLM、设置默认LLM等
+
+    与其他组件的关系：
+    - 使用LlmManager进行内存中的LLM配置管理
+    - 使用SessionManager进行数据库会话管理
+    - 使用get_client_for_llm获取适合的LLM客户端
     """
 
     def __init__(self):
-        """初始化LLM服务"""
+        """
+        初始化LLM服务
+
+        初始化LlmService实例，创建LlmManager实例用于管理内存中的LLM配置。
+        LlmManager负责缓存默认LLM和其他常用的LLM配置，提高访问效率。
+        """
         self.llm_manager = LlmManager()
 
     async def add_llm(self, llm_data: Dict) -> Dict:
         """
         添加LLM配置
 
+        该方法将新的LLM配置添加到数据库中。它首先验证输入数据，然后创建LlmConfig对象并保存到数据库。
+        如果配置中指定了该LLM为默认LLM，还会更新默认LLM设置。
+
+        添加流程：
+        1. 验证输入数据（名称、API密钥等必要字段）
+        2. 创建LlmConfig对象并设置属性
+        3. 将对象保存到数据库
+        4. 如果指定为默认LLM，更新默认LLM设置
+        5. 刷新LlmManager中的缓存
+        6. 返回新添加的LLM配置信息
+
         Args:
-            llm_data: LLM配置数据
+            llm_data: LLM配置数据字典，包含名称、API密钥、基础URL、模型名称等信息
 
         Returns:
-            添加的LLM配置信息
+            Dict: 添加的LLM配置信息字典，包含id、名称等字段
+
+        Raises:
+            ValueError: 当输入数据不完整或无效时抛出
         """
         logger.info(f"添加LLM配置: {llm_data.get('name')}")
 

@@ -19,18 +19,57 @@ class SingleLlmProcessor(BaseTaskProcessor):
     """
     单LLM处理器
 
-    使用单个LLM处理任务。
+    该处理器用于使用单个LLM处理任务，是最基本的任务处理器实现。
+    它继承自BaseTaskProcessor基类，实现了必要的抽象方法。
+
+    处理流程：
+    1. 获取任务内容和提示词
+    2. 获取默认的LLM配置
+    3. 使用LLM处理内容
+    4. 保存处理结果
+    5. 更新任务状态
+
+    与multiple模式的区别：
+    - 只使用一个LLM进行处理，通常是默认的LLM
+    - 处理过程更简单，不需要并行处理和结果汇总
+    - 资源消耗更少，处理速度更快
     """
 
     async def process(self, task_id: int) -> Dict:
         """
         处理任务
 
+        该方法是单LLM处理器的主要入口点，实现了BaseTaskProcessor的抽象方法。
+        它负责使用单个LLM处理指定的任务，并返回处理结果。
+
+        处理流程：
+        1. 更新任务状态为处理中
+        2. 获取任务数据和内容
+        3. 获取默认的LLM配置
+        4. 获取提示词模板
+        5. 检查数据完整性（任务内容、提示词内容等）
+        6. 创建LLM客户端并处理内容
+        7. 保存处理结果到数据库
+        8. 更新任务状态为已完成
+        9. 返回处理结果
+
+        错误处理：
+        - 如果任务不存在或内容获取失败，调用_handle_error方法处理
+        - 如果没有找到有效的LLM配置或提示词，调用_handle_error方法处理
+        - 如果LLM处理失败，调用_handle_error方法处理
+        - 如果保存结果失败，调用_handle_error方法处理
+        - 捕获并处理所有未预期的异常
+
         Args:
-            task_id: 任务ID
+            task_id: 要处理的任务的ID
 
         Returns:
-            处理结果字典
+            Dict: 包含处理结果的字典，包含以下字段：
+                - success (bool): 处理是否成功
+                - task_id (int): 任务ID
+                - result_id (int, 可选): 成功时包含结果记录ID
+                - result (Dict, 可选): 成功时包含处理结果
+                - error (str, 可选): 失败时包含错误信息
         """
         logger.info(f"开始单LLM处理: 任务ID={task_id}")
         start_time = time.time()
