@@ -135,14 +135,22 @@ async def show_specific_llm_result(
     table.add_column("指标", style="cyan")
     table.add_column("分数", style="green")
 
-    if result.get("bias_index") is not None:
-        table.add_row("偏见指数 (BI)", f"{result['bias_index']:.2f}")
-    if result.get("misleading_index") is not None:
-        table.add_row("误导性指数 (MI)", f"{result['misleading_index']:.2f}")
-    if result.get("hidden_intent_index") is not None:
-        table.add_row("隐藏意图指数 (HI)", f"{result['hidden_intent_index']:.2f}")
-    if result.get("credibility_score") is not None:
-        table.add_row("综合可信度 (CS)", f"{result['credibility_score']:.2f}")
+    # 安全地格式化指标值
+    bi = result.get("bias_index")
+    if bi is not None:
+        table.add_row("偏见指数 (BI)", f"{bi:.2f}")
+
+    mi = result.get("misleading_index")
+    if mi is not None:
+        table.add_row("误导性指数 (MI)", f"{mi:.2f}")
+
+    hi = result.get("hidden_intent_index")
+    if hi is not None:
+        table.add_row("隐藏意图指数 (HI)", f"{hi:.2f}")
+
+    cs = result.get("credibility_score")
+    if cs is not None:
+        table.add_row("综合可信度 (CS)", f"{cs:.2f}")
 
     console.print(table)
 
@@ -185,10 +193,21 @@ async def show_all_llm_results(
             llm_name = llm_map.get(llm_id, {}).get("name", f"LLM-{llm_id}")
 
             console.print(f"\n[bold cyan]{llm_name} (ID={llm_id}):[/]")
-            console.print(f"BI: {result.get('bias_index', 'N/A'):.2f}, "
-                        f"MI: {result.get('misleading_index', 'N/A'):.2f}, "
-                        f"HI: {result.get('hidden_intent_index', 'N/A'):.2f}, "
-                        f"CS: {result.get('credibility_score', 'N/A'):.2f}")
+
+            # 安全地格式化指标值
+            bi = result.get('bias_index')
+            bi_str = f"{bi:.2f}" if bi is not None else "N/A"
+
+            mi = result.get('misleading_index')
+            mi_str = f"{mi:.2f}" if mi is not None else "N/A"
+
+            hi = result.get('hidden_intent_index')
+            hi_str = f"{hi:.2f}" if hi is not None else "N/A"
+
+            cs = result.get('credibility_score')
+            cs_str = f"{cs:.2f}" if cs is not None else "N/A"
+
+            console.print(f"BI: {bi_str}, MI: {mi_str}, HI: {hi_str}, CS: {cs_str}")
 
     else:  # 默认表格格式
         # 创建比较表格
@@ -203,12 +222,25 @@ async def show_all_llm_results(
             llm_id = result.get("llm_id")
             llm_name = llm_map.get(llm_id, {}).get("name", f"LLM-{llm_id}")
 
+            # 安全地格式化指标值
+            bi = result.get('bias_index')
+            bi_str = f"{bi:.2f}" if bi is not None else "N/A"
+
+            mi = result.get('misleading_index')
+            mi_str = f"{mi:.2f}" if mi is not None else "N/A"
+
+            hi = result.get('hidden_intent_index')
+            hi_str = f"{hi:.2f}" if hi is not None else "N/A"
+
+            cs = result.get('credibility_score')
+            cs_str = f"{cs:.2f}" if cs is not None else "N/A"
+
             compare_table.add_row(
                 f"{llm_name} ({llm_id})",
-                f"{result.get('bias_index', 'N/A'):.2f}",
-                f"{result.get('misleading_index', 'N/A'):.2f}",
-                f"{result.get('hidden_intent_index', 'N/A'):.2f}",
-                f"{result.get('credibility_score', 'N/A'):.2f}"
+                bi_str,
+                mi_str,
+                hi_str,
+                cs_str
             )
 
         console.print(compare_table)
@@ -257,14 +289,22 @@ async def show_final_result(
         table.add_column("指标", style="cyan")
         table.add_column("分数", style="green")
 
-        if final_result.get("bias_index") is not None:
-            table.add_row("偏见指数 (BI)", f"{final_result['bias_index']:.2f}")
-        if final_result.get("misleading_index") is not None:
-            table.add_row("误导性指数 (MI)", f"{final_result['misleading_index']:.2f}")
-        if final_result.get("hidden_intent_index") is not None:
-            table.add_row("隐藏意图指数 (HI)", f"{final_result['hidden_intent_index']:.2f}")
-        if final_result.get("credibility_score") is not None:
-            table.add_row("综合可信度 (CS)", f"{final_result['credibility_score']:.2f}")
+        # 安全地格式化指标值
+        bi = final_result.get("bias_index")
+        if bi is not None:
+            table.add_row("偏见指数 (BI)", f"{bi:.2f}")
+
+        mi = final_result.get("misleading_index")
+        if mi is not None:
+            table.add_row("误导性指数 (MI)", f"{mi:.2f}")
+
+        hi = final_result.get("hidden_intent_index")
+        if hi is not None:
+            table.add_row("隐藏意图指数 (HI)", f"{hi:.2f}")
+
+        cs = final_result.get("credibility_score")
+        if cs is not None:
+            table.add_row("综合可信度 (CS)", f"{cs:.2f}")
 
         console.print(table)
 
