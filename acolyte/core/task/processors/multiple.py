@@ -20,18 +20,44 @@ class MultipleLlmProcessor(BaseTaskProcessor):
     """
     多LLM处理器
 
-    使用多个LLM并行处理任务。
+    使用多个LLM并行处理任务。该处理器会同时调用多个LLM对同一内容进行分析，
+    并将所有结果保存到数据库。可以选择其中一个结果作为最终结果，或者将所有结果一起返回。
+
+    该处理器使用asyncio并发执行多个LLM调用，以提高效率。它会等待所有LLM处理完成，
+    然后收集结果并返回。如果某个LLM处理失败，它会记录错误但不会影响其他LLM的处理。
     """
 
     async def process(self, task_id: int) -> Dict:
         """
-        处理任务
+        使用多个LLM并行处理指定任务
+
+        该方法是多LLM处理器的主要入口点。它会从数据库中获取任务信息，
+        然后并行调用多个LLM对任务内容进行分析。它会等待所有LLM处理完成，
+        然后收集结果并保存到数据库。如果某个LLM处理失败，它会记录错误但不会影响其他LLM的处理。
+
+        流程：
+        1. 从数据库中获取任务信息
+        2. 获取指定的LLM列表
+        3. 获取提示词模板
+        4. 并行调用所有LLM处理任务
+        5. 收集结果并保存到数据库
+        6. 更新任务状态并返回结果
 
         Args:
-            task_id: 任务ID
+            task_id: 要处理的任务的ID
 
         Returns:
-            处理结果字典
+            Dict: 包含处理结果的字典，包含以下字段：
+                - success (bool): 处理是否成功
+                - task_id (int): 任务ID
+                - result_ids (List[int]): 结果记录ID列表
+                - count (int): 结果数量
+                - results (List[Dict]): 所有LLM的处理结果
+
+        Raises:
+            TaskNotFoundError: 当指定的任务不存在时抛出
+            LlmConfigError: 当LLM配置有问题时抛出
+            PromptNotFoundError: 当提示词模板不存在时抛出
         """
         logger.info(f"开始多LLM处理: 任务ID={task_id}")
         start_time = time.time()
@@ -126,15 +152,23 @@ class MultipleLlmProcessor(BaseTaskProcessor):
         llm_list: List[Dict]
     ) -> List[tuple]:
         """
-        使用多个LLM处理内容
+        并行使用多个LLM处理内容
+
+        该方法是多LLM并行处理的核心实现。它会为每个LLM创建一个处理协程，
+        然后使用asyncio.gather并行执行这些协程。它会等待所有LLM处理完成，
+        然后收集结果并返回。如果某个LLM处理失败，它会记录错误但不会影响其他LLM的处理。
+
+        注意：该方法使用return_exceptions=True参数，因此即使某个LLM处理失败，
+        也不会影响其他LLM的处理。失败的LLM处理会返回异常对象，而不是处理结果。
 
         Args:
-            task_content: 任务内容
-            prompt_content: 提示词内容
-            llm_list: LLM配置列表
+            task_content: 需要分析的文本内容
+            prompt_content: 用于分析的提示词模板内容
+            llm_list: 要使用的LLM配置列表，每项包含标识符、名称、API密钥等信息
 
         Returns:
-            处理结果列表，每项为(llm_id, result)元组
+            List[tuple]: 处理结果列表，每项为(llm_id, result)元组。
+            如果某个LLM处理失败，对应的result将是一个包含错误信息的字典。
         """
         # 创建处理协程
         coroutines = []
@@ -173,15 +207,21 @@ class MultipleLlmProcessor(BaseTaskProcessor):
     async def _create_llm_coroutine(self, llm_data: Dict, task_content: str, prompt_content: str) -> Dict:
         # 注意：此方法直接返回Dict而不是Awaitable[Dict]，修复类型不匹配问题
         """
-        创建LLM处理协程
+        使用指定LLM处理内容并返回结果
+
+        注意：尽管方法名称中包含"coroutine"，但实际上这个方法会等待LLM处理完成并直接返回结果，
+        而不是返回一个协程对象。这个方法本身是异步的，但它返回的是处理结果而不是协程。
 
         Args:
-            llm_data: LLM配置数据
-            task_content: 任务内容
-            prompt_content: 提示词内容
+            llm_data: LLM配置数据，包含标识符、名称、API密钥等信息
+            task_content: 需要分析的文本内容
+            prompt_content: 用于分析的提示词模板内容
 
         Returns:
-            异步协程对象
+            Dict: LLM处理结果，包含原始响应、处理结果和成功状态
+
+        Raises:
+            Exception: 当LLM处理过程中发生错误时抛出异常
         """
         # 重建LLM配置对象
         reconstructed_llm = self._rebuild_llm_config(llm_data)
@@ -205,13 +245,20 @@ class MultipleLlmProcessor(BaseTaskProcessor):
 
     def _rebuild_llm_config(self, llm_data: Dict) -> LlmConfig:
         """
-        重建LLM配置对象
+        从字典数据重建LlmConfig对象
+
+        该方法将从数据库中获取的LLM配置字典转换为LlmConfig对象。
+        LlmConfig对象是系统中表示LLM配置的标准对象，包含所有必要的属性，
+        如ID、名称、描述、API密钥、基础URL、模型名称、提供商等。
 
         Args:
-            llm_data: LLM配置数据
+            llm_data: 包含LLM配置数据的字典，通常来自数据库查询结果
 
         Returns:
-            LLM配置对象
+            LlmConfig: 重建LLM配置对象，可用于创建LLM客户端
+
+        Raises:
+            LlmConfigError: 当配置数据不完整或无效时抛出
         """
         reconstructed_llm = LlmConfig(
             id=llm_data.get("id"),
