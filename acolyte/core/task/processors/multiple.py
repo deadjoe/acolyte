@@ -4,7 +4,7 @@
 处理使用多个LLM的任务。
 """
 import time
-from typing import Dict, List, Awaitable
+from typing import Dict, List
 
 from acolyte.core.db.models import LlmConfig, TaskStatus
 from acolyte.core.llm.client import get_client_for_llm
@@ -170,7 +170,8 @@ class MultipleLlmProcessor(BaseTaskProcessor):
 
         return llm_results
 
-    async def _create_llm_coroutine(self, llm_data: Dict, task_content: str, prompt_content: str) -> Awaitable[Dict]:
+    async def _create_llm_coroutine(self, llm_data: Dict, task_content: str, prompt_content: str) -> Dict:
+        # 注意：此方法直接返回Dict而不是Awaitable[Dict]，修复类型不匹配问题
         """
         创建LLM处理协程
 
