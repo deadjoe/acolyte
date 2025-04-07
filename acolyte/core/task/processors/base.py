@@ -232,6 +232,8 @@ class BaseTaskProcessor(ABC):
         Returns:
             LLM配置数据字典列表
         """
+        logger.debug(f"开始获取任务 {task_id} 关联的LLM列表")
+
         async def _get_llm_list(session: Session):
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
@@ -239,25 +241,51 @@ class BaseTaskProcessor(ABC):
                 logger.warning(f"任务不存在: ID={task_id}")
                 return []
 
+            logger.debug(f"找到任务: ID={task_id}, 处理模式={task.processing_mode.value if task.processing_mode else 'None'}, 状态={task.status.value if task.status else 'None'}")
+
             # 获取关联的LLM
+            task_llm_configs = list(task.llm_configs)
+            logger.debug(f"任务 {task_id} 关联的LLM数量: {len(task_llm_configs)}")
+
+            if task_llm_configs:
+                logger.debug(f"任务关联的LLM IDs: {[llm.id for llm in task_llm_configs]}")
+                logger.debug(f"任务关联的LLM名称: {[llm.name for llm in task_llm_configs]}")
+
             llms = []
-            for llm_assoc in task.llm_configs:
-                llms.append(extract_model_data(llm_assoc, include_relationships=False))
+            for llm_assoc in task_llm_configs:
+                llm_data = extract_model_data(llm_assoc, include_relationships=False)
+                llms.append(llm_data)
+                logger.debug(f"提取LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}, 角色={llm_data.get('role')}")
 
             if not llms:
                 logger.debug(f"任务 {task_id} 没有关联的LLM，尝试获取默认角色的LLM")
                 # 如果没有关联的LLM，获取所有普通角色的LLM
                 normal_llms = session.query(LlmConfig).filter_by(role="normal").all()
+                logger.debug(f"从数据库查询到 {len(normal_llms)} 个普通角色的LLM")
+
                 if normal_llms:
-                    llms = [extract_model_data(llm, include_relationships=False) for llm in normal_llms]
+                    logger.debug(f"普通角色LLM IDs: {[llm.id for llm in normal_llms]}")
+                    logger.debug(f"普通角色LLM名称: {[llm.name for llm in normal_llms]}")
+
+                    llms = []
+                    for llm in normal_llms:
+                        llm_data = extract_model_data(llm, include_relationships=False)
+                        llms.append(llm_data)
+                        logger.debug(f"提取普通角色LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}")
+
                     logger.info(f"找到 {len(llms)} 个普通角色的LLM")
                 else:
                     logger.warning("未找到普通角色的LLM")
 
+            logger.debug(f"最终返回 {len(llms)} 个LLM数据对象")
+            if llms:
+                logger.debug(f"返回LLM IDs: {[llm.get('id') for llm in llms]}")
+
             return llms
 
         try:
-            return await run_in_session(_get_llm_list)
+            result = await run_in_session(_get_llm_list)
+            return result
         except Exception as e:
             logger.error(f"获取任务关联的LLM列表失败: ID={task_id}, 错误: {str(e)}", exc_info=True)
             return []
