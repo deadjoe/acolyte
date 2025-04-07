@@ -3,10 +3,8 @@
 
 处理使用多个LLM的任务。
 """
-import asyncio
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional
+from typing import Dict, List, Awaitable
 
 from acolyte.core.db.models import LlmConfig, TaskStatus
 from acolyte.core.llm.client import get_client_for_llm
@@ -138,20 +136,20 @@ class MultipleLlmProcessor(BaseTaskProcessor):
         Returns:
             处理结果列表，每项为(llm_id, result)元组
         """
-        # 创建处理任务
-        tasks = []
+        # 创建处理协程
+        coroutines = []
 
         for llm_data in llm_list:
-            # 包装处理任务
-            task = self._create_llm_task(
+            # 创建协程
+            coroutine = self._create_llm_coroutine(
                 llm_data=llm_data,
                 task_content=task_content,
                 prompt_content=prompt_content
             )
-            tasks.append(task)
+            coroutines.append(coroutine)
 
-        # 并行执行所有任务，最多3个并发
-        results = await gather_with_concurrency(3, *tasks, return_exceptions=True)
+        # 并行执行所有协程，最多3个并发
+        results = await gather_with_concurrency(3, *coroutines, return_exceptions=True)
 
         # 处理结果
         llm_results = []
@@ -172,9 +170,9 @@ class MultipleLlmProcessor(BaseTaskProcessor):
 
         return llm_results
 
-    async def _create_llm_task(self, llm_data: Dict, task_content: str, prompt_content: str) -> asyncio.Task:
+    async def _create_llm_coroutine(self, llm_data: Dict, task_content: str, prompt_content: str) -> Awaitable[Dict]:
         """
-        创建LLM处理任务
+        创建LLM处理协程
 
         Args:
             llm_data: LLM配置数据
@@ -182,34 +180,27 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             prompt_content: 提示词内容
 
         Returns:
-            异步任务对象
+            异步协程对象
         """
         # 重建LLM配置对象
         reconstructed_llm = self._rebuild_llm_config(llm_data)
 
-        # 创建处理函数
-        async def process_with_llm():
-            try:
-                # 获取客户端
-                client = get_client_for_llm(reconstructed_llm)
+        # 获取客户端
+        client = get_client_for_llm(reconstructed_llm)
 
-                # 处理内容
-                llm_id = llm_data.get("id")
-                llm_name = llm_data.get("name")
-                logger.info(f"开始LLM处理: LLM={llm_name} (ID={llm_id})")
+        # 处理内容
+        llm_id = llm_data.get("id")
+        llm_name = llm_data.get("name")
+        logger.info(f"开始LLM处理: LLM={llm_name} (ID={llm_id})")
 
-                # 运行处理
-                result = await client.process_content(content=task_content, prompt=prompt_content)
-
-                logger.info(f"LLM处理完成: LLM={llm_name} (ID={llm_id}), 成功={result.get('success', False)}")
-                return result
-
-            except Exception as e:
-                logger.error(f"LLM处理失败: LLM={llm_data.get('name')} (ID={llm_data.get('id')}), 错误: {str(e)}")
-                raise
-
-        # 创建任务
-        return asyncio.create_task(process_with_llm())
+        try:
+            # 返回处理协程
+            result = await client.process_content(content=task_content, prompt=prompt_content)
+            logger.info(f"LLM处理完成: LLM={llm_name} (ID={llm_id}), 成功={result.get('success', False)}")
+            return result
+        except Exception as e:
+            logger.error(f"LLM处理失败: LLM={llm_data.get('name')} (ID={llm_data.get('id')}), 错误: {str(e)}")
+            raise
 
     def _rebuild_llm_config(self, llm_data: Dict) -> LlmConfig:
         """
