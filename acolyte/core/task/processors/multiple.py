@@ -170,20 +170,22 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             List[tuple]: 处理结果列表，每项为(llm_id, result)元组。
             如果某个LLM处理失败，对应的result将是一个包含错误信息的字典。
         """
-        # 创建处理协程
+        # 创建处理任务列表
         coroutines = []
 
         for llm_data in llm_list:
-            # 创建协程
-            coroutine = self._create_llm_coroutine(
+            # 创建处理任务
+            process_task = self._process_with_llm(
                 llm_data=llm_data,
                 task_content=task_content,
                 prompt_content=prompt_content
             )
-            coroutines.append(coroutine)
+            coroutines.append(process_task)
 
-        # 并行执行所有协程，最多3个并发
+        # 并行执行所有任务，最多3个并发
+        logger.debug(f"开始并行执行 {len(coroutines)} 个LLM处理任务")
         results = await gather_with_concurrency(3, *coroutines, return_exceptions=True)
+        logger.debug(f"完成并行执行 {len(results)} 个LLM处理任务")
 
         # 处理结果
         llm_results = []
@@ -204,13 +206,12 @@ class MultipleLlmProcessor(BaseTaskProcessor):
 
         return llm_results
 
-    async def _create_llm_coroutine(self, llm_data: Dict, task_content: str, prompt_content: str) -> Dict:
-        # 注意：此方法直接返回Dict而不是Awaitable[Dict]，修复类型不匹配问题
+    async def _process_with_llm(self, llm_data: Dict, task_content: str, prompt_content: str) -> Dict:
         """
         使用指定LLM处理内容并返回结果
 
-        注意：尽管方法名称中包含"coroutine"，但实际上这个方法会等待LLM处理完成并直接返回结果，
-        而不是返回一个协程对象。这个方法本身是异步的，但它返回的是处理结果而不是协程。
+        此方法是异步的，它会等待LLM处理完成并返回处理结果。
+        它负责创建LLM客户端，发送请求，并处理响应。
 
         Args:
             llm_data: LLM配置数据，包含标识符、名称、API密钥等信息

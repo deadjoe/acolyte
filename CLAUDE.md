@@ -536,3 +536,59 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
     - 异步代码需要特别注意返回类型和执行流程的一致性
     - 方法名称应准确反映其实际行为，避免误导
     - 最小化修改在紧急情况下是有效的，但应考虑长期的代码健康
+
+### 16. 技术债务清理 [2025-04-08]
+- **修复Multiple模式LLM选择问题**
+  - 发现问题：在multiple模式下，即使用户指定了特定的LLM ID，系统也会使用所有"normal"角色的LLM
+  - 问题诊断：通过增强日志记录，发现`Task`对象创建后，其`llm_configs`属性已经自动关联了所有"normal"角色的LLM
+  - 根本原因：在`_create_task_in_db`方法中，当尝试关联指定的LLM时，它们已经在`new_task.llm_configs`中，导致`new_llms`列表为空
+  - 解决方案：修改`_create_task_in_db`方法，在关联指定的LLM之前，先清空`new_task.llm_configs`，然后直接设置为指定的LLM
+  - 验证结果：修复后，multiple模式下系统只使用用户指定的LLM，而不是所有"normal"角色的LLM
+
+- **增强日志系统用于问题诊断**
+  - 设计并实现了全面的日志记录系统，用于跟踪任务创建和处理的完整流程
+  - 在`_create_task_in_db`方法中添加详细日志，记录任务创建过程中的关键步骤和状态变化
+  - 在`_get_llms_for_task`方法中添加详细日志，记录任务关联的LLM获取过程
+  - 日志关键字设计：
+    - 任务创建相关：
+      - "任务创建后的初始LLM关联数量" - 记录任务创建后`llm_configs`的初始状态
+      - "初始关联的LLM IDs" - 记录初始关联的LLM ID列表
+      - "清空初始关联的LLM" - 记录清空操作的执行
+      - "关联LLM(去重后)" - 记录去重后的LLM ID列表
+      - "从数据库查询到" - 记录从数据库查询到的LLM对象数量
+      - "查询到的LLM IDs" - 记录查询到的LLM ID列表
+      - "直接设置LLM关联" - 记录设置操作的执行
+      - "最终LLM关联数量" - 记录最终关联的LLM数量
+      - "最终关联的LLM IDs" - 记录最终关联的LLM ID列表
+      - "成功关联" - 记录成功关联的LLM数量
+    - 任务处理相关：
+      - "开始获取任务关联的LLM列表" - 记录开始获取LLM列表
+      - "任务关联的LLM数量" - 记录任务关联的LLM数量
+      - "任务关联的LLM IDs" - 记录任务关联的LLM ID列表
+      - "提取LLM数据" - 记录LLM数据的提取过程
+      - "最终返回个LLM数据对象" - 记录最终返回的LLM数据对象数量
+      - "返回LLM IDs" - 记录返回的LLM ID列表
+      - "开始并行处理" - 记录开始并行处理的LLM数量
+      - "开始LLM处理" - 记录开始处理特定LLM
+
+- **使用日志进行问题诊断的最佳实践**
+  - 问题定位流程：
+    1. 首先检查任务创建日志，确认初始LLM关联状态
+    2. 检查LLM关联过程的日志，确认关联操作是否成功
+    3. 检查任务处理日志，确认实际使用的LLM
+    4. 检查数据库中的任务与LLM关联，验证日志与实际状态是否一致
+  - 关键日志查询命令：
+    - `grep "任务创建后的初始LLM关联数量" logs/acolyte_*.log` - 查看任务创建后的初始LLM关联状态
+    - `grep "初始关联的LLM IDs" logs/acolyte_*.log` - 查看初始关联的LLM ID列表
+    - `grep "清空初始关联的LLM" logs/acolyte_*.log` - 查看清空操作的执行情况
+    - `grep "最终关联的LLM IDs" logs/acolyte_*.log` - 查看最终关联的LLM ID列表
+    - `grep "任务关联的LLM数量" logs/acolyte_*.log` - 查看任务处理时关联的LLM数量
+    - `grep "开始并行处理" logs/acolyte_*.log` - 查看并行处理的LLM数量
+  - 数据库验证命令：
+    - `sqlite3 acolyte.db "SELECT * FROM task_llm_association WHERE task_id=X;"` - 查看任务与LLM的关联关系
+
+- **代码重构与优化**
+  - 重命名`_create_llm_coroutine`方法为`_process_with_llm`，使其名称更准确地反映其行为
+  - 更新方法的文档字符串，准确描述其行为和返回值
+  - 优化异步任务处理逻辑，确保资源正确释放
+  - 增强日志记录，提供更详细的诊断信息

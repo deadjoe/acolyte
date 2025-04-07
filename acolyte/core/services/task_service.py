@@ -28,41 +28,41 @@ logger = get_logger(__name__)
 class TaskService:
     """
     任务服务类
-    
+
     提供任务相关的业务逻辑实现，包括任务创建、处理和查询。
     """
-    
+
     def __init__(self):
         """初始化任务服务"""
         self.processor = TaskProcessor()
         self.prompt_manager = PromptManager()
-    
+
     async def create_task(self, task_data: Dict) -> Dict:
         """
         创建任务
-        
+
         Args:
             task_data: 任务数据字典，包含内容、处理模式等
-            
+
         Returns:
             创建的任务信息
         """
         logger.info(f"创建新任务，处理模式: {task_data.get('processing_mode')}")
-        
+
         # 提取任务数据
         content = task_data.get('content')
         processing_mode = task_data.get('processing_mode')
         prompt_id = task_data.get('prompt_id')
         llm_ids = task_data.get('llm_ids', [])
-        
+
         if not content:
             logger.error("任务内容不能为空")
             return {"error": "任务内容不能为空", "success": False}
-            
+
         if not processing_mode:
             logger.error("处理模式不能为空")
             return {"error": "处理模式不能为空", "success": False}
-        
+
         # 转换处理模式字符串为枚举
         try:
             if isinstance(processing_mode, str):
@@ -72,48 +72,48 @@ class TaskService:
         except ValueError:
             logger.error(f"无效的处理模式: {processing_mode}")
             return {"error": f"无效的处理模式: {processing_mode}", "success": False}
-        
+
         # 在会话中创建任务
         try:
             task_id = await self._create_task_in_db(
-                content, 
-                processing_mode_enum, 
-                prompt_id, 
+                content,
+                processing_mode_enum,
+                prompt_id,
                 llm_ids
             )
-            
+
             if not task_id:
                 return {"error": "创建任务失败", "success": False}
-                
+
             # 启动异步处理
             task = await self._get_task(task_id)
             if not task:
                 return {"error": "获取创建的任务失败", "success": False}
-                
+
             # 异步处理任务
             asyncio.create_task(self.process_task_async(task_id))
-            
+
             return {"id": task_id, **task, "success": True}
         except Exception as e:
             logger.error(f"创建任务时发生错误: {str(e)}", exc_info=True)
             return {"error": f"创建任务失败: {str(e)}", "success": False}
-    
+
     async def _create_task_in_db(
-        self, 
-        content: str, 
-        processing_mode: ProcessingMode, 
+        self,
+        content: str,
+        processing_mode: ProcessingMode,
         prompt_id: Optional[int] = None,
         llm_ids: Optional[List[int]] = None
     ) -> Optional[int]:
         """
         在数据库中创建任务
-        
+
         Args:
             content: 任务内容
             processing_mode: 处理模式
             prompt_id: 提示词ID
             llm_ids: LLM ID列表
-            
+
         Returns:
             创建的任务ID，创建失败则返回None
         """
@@ -129,37 +129,69 @@ class TaskService:
             session.add(new_task)
             session.flush()
             task_id = new_task.id
-            
+
+            # 记录new_task创建后llm_configs的初始状态
+            initial_llm_configs = list(new_task.llm_configs)
+            logger.debug(f"任务 {task_id} 创建后的初始LLM关联数量: {len(initial_llm_configs)}")
+            if initial_llm_configs:
+                logger.debug(f"初始关联的LLM IDs: {[llm.id for llm in initial_llm_configs]}")
+                logger.debug(f"初始关联的LLM名称: {[llm.name for llm in initial_llm_configs]}")
+
             # 如果指定了LLM，关联任务与LLM
             if llm_ids:
+                # 清空初始关联的LLM
+                initial_llm_count = len(new_task.llm_configs)
+                if initial_llm_count > 0:
+                    logger.debug(f"清空初始关联的LLM，数量: {initial_llm_count}")
+                    logger.debug(f"清空前关联的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
+                    new_task.llm_configs = []
+                    logger.debug(f"清空后关联的LLM数量: {len(new_task.llm_configs)}")
+
                 # 去除重复的LLM ID
                 unique_llm_ids = list(set(llm_ids))
                 logger.debug(f"关联LLM(去重后): {unique_llm_ids}")
-                
+
+                # 查询数据库获取LLM对象
                 llms = session.query(LlmConfig).filter(LlmConfig.id.in_(unique_llm_ids)).all()
+                logger.debug(f"从数据库查询到 {len(llms)} 个LLM对象")
+                if llms:
+                    logger.debug(f"查询到的LLM IDs: {[llm.id for llm in llms]}")
+                    logger.debug(f"查询到的LLM名称: {[llm.name for llm in llms]}")
+
                 if len(llms) != len(unique_llm_ids):
+                    missing_ids = set(unique_llm_ids) - set(llm.id for llm in llms)
                     logger.warning(f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配")
-                
-                # 使用列表推导式找出任务中不存在的LLM，避免重复添加
-                new_llms = [llm for llm in llms if llm not in new_task.llm_configs]
-                new_task.llm_configs.extend(new_llms)
-                logger.debug(f"成功关联 {len(new_llms)} 个LLM")
-                
+                    logger.warning(f"未找到的LLM IDs: {missing_ids}")
+
+                # 直接设置llm_configs，而不是使用extend
+                new_task.llm_configs = llms
+                logger.debug(f"直接设置LLM关联，数量: {len(llms)}")
+                if llms:
+                    logger.debug(f"设置的LLM IDs: {[llm.id for llm in llms]}")
+
+                # 记录最终的llm_configs状态
+                final_llm_configs = list(new_task.llm_configs)
+                logger.debug(f"最终LLM关联数量: {len(final_llm_configs)}")
+                if final_llm_configs:
+                    logger.debug(f"最终关联的LLM IDs: {[llm.id for llm in final_llm_configs]}")
+
+                logger.debug(f"成功关联 {len(llms)} 个LLM")
+
             return task_id
-        
+
         try:
             return await run_in_session(_create_task)
         except Exception as e:
             logger.error(f"在数据库中创建任务失败: {str(e)}", exc_info=True)
             return None
-    
+
     async def get_task(self, task_id: int) -> Dict:
         """
         获取任务信息
-        
+
         Args:
             task_id: 任务ID
-            
+
         Returns:
             任务信息字典
         """
@@ -173,14 +205,14 @@ class TaskService:
         except Exception as e:
             logger.error(f"获取任务失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务失败: {str(e)}", "success": False}
-    
+
     async def _get_task(self, task_id: int) -> Optional[Dict]:
         """
         从数据库获取任务信息
-        
+
         Args:
             task_id: 任务ID
-            
+
         Returns:
             任务信息字典，如果不存在则返回None
         """
@@ -189,33 +221,33 @@ class TaskService:
             if not task:
                 return None
             return extract_model_data(task)
-        
+
         try:
             return await run_in_session(_get_task_data)
         except Exception as e:
             logger.error(f"从数据库获取任务信息失败: {str(e)}", exc_info=True)
             return None
-    
+
     async def get_task_results(self, task_id: int, include_raw_response: bool = False) -> Dict:
         """
         获取任务结果
-        
+
         Args:
             task_id: 任务ID
             include_raw_response: 是否包含原始响应
-            
+
         Returns:
             任务结果字典
         """
         logger.info(f"获取任务结果: ID={task_id}, 包含原始响应={include_raw_response}")
-        
+
         async def _get_results(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
-                
+
             results = session.query(TaskResult).filter(TaskResult.task_id == task_id).all()
-            
+
             # 检查是否有缺失指标
             for idx, result in enumerate(results):
                 missing_metrics = []
@@ -227,12 +259,12 @@ class TaskService:
                     missing_metrics.append("hidden_intent_index")
                 if result.credibility_score is None:
                     missing_metrics.append("credibility_score")
-                    
+
                 if missing_metrics:
                     logger.warning(f"任务结果 #{idx+1} (ID={result.id}) 缺少以下指标: {', '.join(missing_metrics)}")
-            
+
             return [r.to_dict(include_raw_response=include_raw_response) for r in results]
-        
+
         try:
             results = await run_in_session(_get_results)
             if results is None:
@@ -241,31 +273,31 @@ class TaskService:
         except Exception as e:
             logger.error(f"获取任务结果失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务结果失败: {str(e)}", "success": False}
-    
+
     async def process_task_async(self, task_id: int) -> Dict:
         """
         异步处理任务
-        
+
         Args:
             task_id: 任务ID
-            
+
         Returns:
             处理结果
         """
         logger.info(f"开始异步处理任务 {task_id}")
         start_time = time.time()
-        
+
         try:
             # 更新任务状态为处理中
             await self._update_task_status(task_id, TaskStatus.PROCESSING)
-            
+
             # 使用任务处理器处理任务
             result = await self.processor.process_task(task_id)
-            
+
             # 处理完成后记录时间
             elapsed_time = time.time() - start_time
             logger.info(f"任务处理完成: ID={task_id}, 耗时={elapsed_time:.2f}秒, 结果: {result.get('success', False)}")
-            
+
             return result
         except Exception as e:
             # 处理异常
@@ -273,20 +305,20 @@ class TaskService:
             error_msg = str(e)
             logger.error(f"任务处理异常: ID={task_id}, 耗时={elapsed_time:.2f}秒, 错误: {error_msg}")
             logger.debug(f"异常详情: {traceback.format_exc()}")
-            
+
             # 更新任务状态为失败
             await self._update_task_status(task_id, TaskStatus.FAILED)
-            
+
             return {"success": False, "error": f"处理任务时发生异常: {error_msg}"}
-    
+
     async def _update_task_status(self, task_id: int, status: TaskStatus) -> bool:
         """
         更新任务状态
-        
+
         Args:
             task_id: 任务ID
             status: 新状态
-            
+
         Returns:
             更新是否成功
         """
@@ -295,39 +327,39 @@ class TaskService:
             if not task:
                 logger.warning(f"更新状态失败: 任务不存在, ID={task_id}")
                 return False
-                
+
             task.status = status
             task.updated_at = datetime.utcnow()
             return True
-        
+
         try:
             return await run_in_session(_update_status)
         except Exception as e:
             logger.error(f"更新任务状态失败: ID={task_id}, 状态={status}, 错误: {str(e)}", exc_info=True)
             return False
-    
+
     async def get_tasks(
-        self, 
-        status: Optional[str] = None, 
-        skip: int = 0, 
+        self,
+        status: Optional[str] = None,
+        skip: int = 0,
         limit: int = 100
     ) -> Dict:
         """
         获取任务列表
-        
+
         Args:
             status: 过滤的任务状态
             skip: 跳过的记录数
             limit: 返回的最大记录数
-            
+
         Returns:
             任务列表
         """
         logger.info(f"获取任务列表: 状态筛选={status}, 跳过={skip}, 限制={limit}")
-        
+
         async def _get_tasks(session: Session):
             query = session.query(Task)
-            
+
             # 如果指定了状态，进行筛选
             if status:
                 try:
@@ -336,46 +368,46 @@ class TaskService:
                 except ValueError:
                     logger.warning(f"无效的任务状态值: {status}")
                     return []
-            
+
             # 获取分页结果
             results = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
             logger.debug(f"找到 {len(results)} 个任务")
-            
+
             return [task.to_dict() for task in results]
-        
+
         try:
             tasks = await run_in_session(_get_tasks)
             return {"tasks": tasks, "total": len(tasks), "success": True}
         except Exception as e:
             logger.error(f"获取任务列表失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务列表失败: {str(e)}", "success": False}
-    
+
     async def delete_task(self, task_id: int) -> Dict:
         """
         删除任务
-        
+
         Args:
             task_id: 任务ID
-            
+
         Returns:
             删除结果
         """
         logger.info(f"删除任务: ID={task_id}")
-        
+
         async def _delete_task(session: Session):
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return False
-                
+
             # 先删除关联的任务结果
             result_count = session.query(TaskResult).filter_by(task_id=task_id).delete()
             logger.debug(f"已删除 {result_count} 个关联结果")
-            
+
             # 删除任务
             session.delete(task)
             return True
-        
+
         try:
             success = await run_in_session(_delete_task)
             if not success:
@@ -384,23 +416,23 @@ class TaskService:
         except Exception as e:
             logger.error(f"删除任务失败: ID={task_id}, 错误: {str(e)}", exc_info=True)
             return {"error": f"删除任务失败: {str(e)}", "success": False}
-    
+
     async def clear_tasks(self, status: Optional[str] = None) -> Dict:
         """
         清空任务
-        
+
         Args:
             status: 可选的状态筛选
-            
+
         Returns:
             清空结果
         """
         logger.info(f"清空任务, 状态筛选: {status}")
-        
+
         async def _clear_tasks(session: Session):
             # 创建任务查询
             task_query = session.query(Task)
-            
+
             # 如果指定了状态，先筛选
             if status:
                 try:
@@ -408,22 +440,22 @@ class TaskService:
                     task_query = task_query.filter(Task.status == status_enum)
                 except ValueError:
                     return {"error": f"无效的任务状态: {status}", "count": 0}
-            
+
             # 获取要删除的任务ID列表
             task_ids = [task.id for task in task_query.all()]
-            
+
             # 如果没有任务，直接返回
             if not task_ids:
                 return {"message": "没有找到需要删除的任务", "count": 0}
-            
+
             # 先删除关联的任务结果
             result_count = session.query(TaskResult).filter(TaskResult.task_id.in_(task_ids)).delete()
-            
+
             # 然后删除任务
             task_count = task_query.delete()
-            
+
             return {"message": f"已清空{task_count}个任务和{result_count}个任务结果", "count": task_count}
-        
+
         try:
             result = await run_in_session(_clear_tasks)
             return {**result, "success": True}
