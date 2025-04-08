@@ -418,7 +418,7 @@ class AcolyteClient:
 class OrderedGroup(Group):
     """自定义命令组，用于控制命令的显示顺序"""
 
-    def __init__(self, name: Optional[str] = None, commands: Optional[Dict[str, Any]] = None, **attrs) -> None:
+    def __init__(self, name: Optional[str] = None, commands: Optional[Dict[str, Any]] = None, **attrs: Any) -> None:
         super(OrderedGroup, self).__init__(name, commands, **attrs)
         # 定义命令的显示顺序
         self.command_order: List[str] = []
