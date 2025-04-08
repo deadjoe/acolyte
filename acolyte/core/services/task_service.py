@@ -8,7 +8,7 @@ import asyncio
 import time
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 

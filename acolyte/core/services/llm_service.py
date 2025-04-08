@@ -115,7 +115,9 @@ class LlmService:
             logger.error(f"添加LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"添加LLM配置失败: {str(e)}", "success": False}
 
-    async def get_llms(self, role: Optional[str] = None, is_default: Optional[bool] = None) -> Dict[str, Any]:
+    async def get_llms(
+        self, role: Optional[str] = None, is_default: Optional[bool] = None
+    ) -> Dict[str, Any]:
         """
         获取LLM配置列表
 

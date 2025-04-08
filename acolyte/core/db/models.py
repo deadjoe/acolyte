@@ -4,12 +4,13 @@
 
 import enum
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Engine,
     Enum,
     Float,
     ForeignKey,
@@ -18,7 +19,6 @@ from sqlalchemy import (
     Table,
     Text,
     create_engine,
-    Engine,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker

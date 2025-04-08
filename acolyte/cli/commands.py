@@ -145,7 +145,7 @@ class AcolyteClient:
         content: str,
         mode: str,
         llm_ids: Optional[List[int]] = None,
-        prompt_id: Optional[int] = None
+        prompt_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """分析内容
 
@@ -203,9 +203,7 @@ class AcolyteClient:
         return response.json()
 
     async def get_task_results(
-        self,
-        task_id: int,
-        include_raw_response: bool = False
+        self, task_id: int, include_raw_response: bool = False
     ) -> List[Dict[str, Any]]:
         """获取任务结果
 
@@ -223,9 +221,7 @@ class AcolyteClient:
         return response.json()
 
     async def get_task_final_result(
-        self,
-        task_id: int,
-        include_raw_response: bool = True
+        self, task_id: int, include_raw_response: bool = True
     ) -> Optional[Dict[str, Any]]:
         """获取任务最终结果
 
@@ -369,7 +365,9 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def clear_tasks(self, confirm: bool = False, status: Optional[str] = None) -> Dict[str, Any]:
+    async def clear_tasks(
+        self, confirm: bool = False, status: Optional[str] = None
+    ) -> Dict[str, Any]:
         """清空所有任务
 
         Args:
@@ -418,7 +416,9 @@ class AcolyteClient:
 class OrderedGroup(Group):
     """自定义命令组，用于控制命令的显示顺序"""
 
-    def __init__(self, name: Optional[str] = None, commands: Optional[Dict[str, Any]] = None, **attrs: Any) -> None:
+    def __init__(
+        self, name: Optional[str] = None, commands: Optional[Dict[str, Any]] = None, **attrs: Any
+    ) -> None:
         super(OrderedGroup, self).__init__(name, commands, **attrs)
         # 定义命令的显示顺序
         self.command_order: List[str] = []
@@ -519,7 +519,15 @@ def status() -> None:
 @click.option("--llm-config", "-c", help="从配置文件使用的LLM名称")
 @click.option("--prompt", "-p", type=int, help="Prompt ID")
 @click.option("--wait/--no-wait", default=True, help="是否等待处理完成")
-def analyze(file: Optional[str], text: Optional[str], mode: str, llm: Tuple[int, ...], llm_config: Optional[str], prompt: Optional[int], wait: bool) -> None:
+def analyze(
+    file: Optional[str],
+    text: Optional[str],
+    mode: str,
+    llm: Tuple[int, ...],
+    llm_config: Optional[str],
+    prompt: Optional[int],
+    wait: bool,
+) -> None:
     """分析内容
 
     可以通过文件或直接提供文本内容进行分析。
@@ -784,11 +792,11 @@ def _set_history_command_order() -> None:
     # 使用hasattr检查是否有command_order属性，避免类型错误
     if hasattr(history, "command_order"):
         history.command_order = [
-        "list",  # 列出历史任务
-        "show",  # 显示任务结果
-        "delete",  # 删除任务
-        "clear",  # 清空任务
-    ]
+            "list",  # 列出历史任务
+            "show",  # 显示任务结果
+            "delete",  # 删除任务
+            "clear",  # 清空任务
+        ]
 
 
 @history.command()
@@ -1001,20 +1009,20 @@ def config() -> None:
     # 使用hasattr检查是否有command_order属性，避免类型错误
     if hasattr(config, "command_order"):
         config.command_order = [
-        # LLM相关命令
-        "list-llms",
-        "add-llm",
-        "set-default",
-        "delete-llm",
-        # Prompt相关命令
-        "list-prompts",
-        "show-prompt",
-        "sync-prompts",
-        "delete-prompt",
-        # 配置导入导出命令
-        "import-config",
-        "export-config",
-    ]
+            # LLM相关命令
+            "list-llms",
+            "add-llm",
+            "set-default",
+            "delete-llm",
+            # Prompt相关命令
+            "list-prompts",
+            "show-prompt",
+            "sync-prompts",
+            "delete-prompt",
+            # 配置导入导出命令
+            "import-config",
+            "export-config",
+        ]
     pass
 
 
@@ -1190,7 +1198,16 @@ def delete_llm(llm_id: int) -> None:
 )
 @click.option("--default/--no-default", default=False, help="是否设为默认")
 @click.option("--save-to-config/--no-save-to-config", default=True, help="是否保存到配置文件")
-def add_llm(name: str, api_key: str, base_url: str, model: str, description: str, role: str, default: bool, save_to_config: bool) -> None:
+def add_llm(
+    name: str,
+    api_key: str,
+    base_url: str,
+    model: str,
+    description: str,
+    role: str,
+    default: bool,
+    save_to_config: bool,
+) -> None:
     """添加LLM配置
 
     例如: acolyte config add-llm -n "Claude-3" -k "sk-..." \

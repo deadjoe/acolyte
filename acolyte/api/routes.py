@@ -4,7 +4,7 @@ API路由定义
 使用FastAPI定义API端点，处理请求和响应，但将业务逻辑委托给服务层。
 """
 
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -149,7 +149,9 @@ async def create_llm(llm_config: LlmConfigCreate) -> LlmConfigResponse:
 
 
 @router.get("/llms", response_model=List[LlmConfigResponse])
-async def get_llms(role: Optional[LlmRole] = None, is_default: Optional[bool] = None) -> List[Dict[str, Any]]:
+async def get_llms(
+    role: Optional[LlmRole] = None, is_default: Optional[bool] = None
+) -> List[Dict[str, Any]]:
     """获取LLM配置列表"""
     logger.info(f"API请求: 获取LLM配置列表, 角色={role}, 是否默认={is_default}")
 
@@ -288,7 +290,9 @@ async def create_task(task_data: TaskCreate) -> Dict[str, Any]:
 
 
 @router.get("/tasks", response_model=List[TaskResponse])
-async def get_tasks(status: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
+async def get_tasks(
+    status: Optional[str] = None, skip: int = 0, limit: int = 100
+) -> List[Dict[str, Any]]:
     """获取任务列表"""
     task_service = TaskService()
     result = await task_service.get_tasks(status=status, skip=skip, limit=limit)
@@ -350,7 +354,9 @@ async def delete_task(task_id: int) -> Dict[str, Any]:
 
 
 @router.get("/tasks/{task_id}/results", response_model=List[TaskResultResponse])
-async def get_task_results(task_id: int, include_raw_response: bool = False) -> List[Dict[str, Any]]:
+async def get_task_results(
+    task_id: int, include_raw_response: bool = False
+) -> List[Dict[str, Any]]:
     """获取任务结果"""
     task_service = TaskService()
     result = await task_service.get_task_results(task_id, include_raw_response)
@@ -363,7 +369,9 @@ async def get_task_results(task_id: int, include_raw_response: bool = False) -> 
 
 
 @router.get("/tasks/{task_id}/final-result", response_model=TaskResultResponse)
-async def get_task_final_result(task_id: int, include_raw_response: bool = False) -> TaskResultResponse:
+async def get_task_final_result(
+    task_id: int, include_raw_response: bool = False
+) -> TaskResultResponse:
     """获取任务最终结果"""
     logger.info(f"API请求: 获取任务最终结果, ID={task_id}, 包含原始响应={include_raw_response}")
 
@@ -459,7 +467,9 @@ async def export_config() -> Dict[str, Any]:
 
 # 提示词路由
 @router.get("/prompts", response_model=List[PromptResponse])
-async def get_prompts(model_target: Optional[str] = None, version: Optional[str] = None) -> List[Dict[str, Any]]:
+async def get_prompts(
+    model_target: Optional[str] = None, version: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """获取提示词列表"""
     prompt_service = PromptService()
     result = await prompt_service.get_prompts(model_target=model_target, version=version)

@@ -8,8 +8,7 @@ from contextlib import contextmanager
 from typing import Generator, Optional
 
 from sqlalchemy import create_engine
-
-from sqlalchemy.orm import scoped_session, Session, sessionmaker
+from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 from acolyte.core.db.models import Base
 from acolyte.utils.logging import get_logger

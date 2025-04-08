@@ -2,10 +2,10 @@
 
 import os
 import sys
-from typing import Any, Generator
+from typing import Generator
 
 import pytest
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, clear_mappers, sessionmaker
 
 # 确保可以导入项目模块

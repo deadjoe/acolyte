@@ -42,7 +42,9 @@ class TestBaseTaskProcessor:
         return TestProcessor()
 
     @pytest.mark.asyncio
-    async def test_get_task_data(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
+    async def test_get_task_data(
+        self, processor: BaseTaskProcessor, mock_session_run: MagicMock
+    ) -> None:
         """测试获取任务数据"""
         # 模拟任务数据
         task_data = {
@@ -83,7 +85,9 @@ class TestBaseTaskProcessor:
             mock_session_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_result(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
+    async def test_save_result(
+        self, processor: BaseTaskProcessor, mock_session_run: MagicMock
+    ) -> None:
         """测试保存处理结果"""
         # 模拟数据
         task_id = 1
@@ -129,7 +133,9 @@ class TestBaseTaskProcessor:
             mock_session_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_task_status(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
+    async def test_update_task_status(
+        self, processor: BaseTaskProcessor, mock_session_run: MagicMock
+    ) -> None:
         """测试更新任务状态"""
         # 模拟任务
         task_id = 1

@@ -6,7 +6,7 @@
 
 import time
 import traceback
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.task.processors.multiple import MultipleLlmProcessor
