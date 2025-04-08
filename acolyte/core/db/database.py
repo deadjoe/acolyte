@@ -5,9 +5,11 @@
 import os
 import traceback
 from contextlib import contextmanager
+from typing import Generator, Optional
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+
+from sqlalchemy.orm import scoped_session, Session, sessionmaker
 
 from acolyte.core.db.models import Base
 from acolyte.utils.logging import get_logger
@@ -19,7 +21,7 @@ logger = get_logger(__name__)
 class Database:
     """数据库管理类"""
 
-    def __init__(self, db_url=None):
+    def __init__(self, db_url: Optional[str] = None) -> None:
         """初始化数据库连接
 
         Args:
@@ -32,19 +34,19 @@ class Database:
         self.Session = scoped_session(self.session_factory)
         logger.debug("数据库会话工厂已创建")
 
-    def create_tables(self):
+    def create_tables(self) -> None:
         """创建所有表"""
         logger.info("创建数据库表")
         Base.metadata.create_all(self.engine)
         logger.debug("数据库表创建完成")
 
-    def drop_tables(self):
+    def drop_tables(self) -> None:
         """删除所有表"""
         logger.warning("删除所有数据库表")
         Base.metadata.drop_all(self.engine)
         logger.debug("数据库表删除完成")
 
-    def get_session(self):
+    def get_session(self) -> Session:
         """获取一个新的会话
 
         Returns:
@@ -55,7 +57,7 @@ class Database:
         return session
 
     @contextmanager
-    def session_scope(self):
+    def session_scope(self) -> Generator[Session, None, None]:
         """提供事务范围的会话上下文管理器
 
         使用示例:
