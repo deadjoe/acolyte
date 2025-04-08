@@ -5,7 +5,8 @@ CLI命令定义
 import asyncio
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+import traceback  # 用于异常处理中的format_exc()
+from typing import List
 
 import click
 import httpx
@@ -16,7 +17,6 @@ from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
 
-from acolyte.cli.history_show import register_command as register_show_command
 from acolyte.utils.logging import get_logger
 
 # 创建日志记录器
@@ -29,7 +29,7 @@ console = Console()
 class AcolyteClient:
     """Acolyte API客户端"""
 
-    def __init__(self, base_url: Optional[str] = None) -> None:
+    def __init__(self, base_url=None):
         """初始化客户端
 
         Args:
@@ -39,12 +39,12 @@ class AcolyteClient:
         logger.info(f"初始化API客户端: {self.base_url}")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=60.0)
 
-    async def close(self) -> None:
+    async def close(self):
         """关闭客户端连接"""
         logger.debug("关闭API客户端连接")
         await self.client.aclose()
 
-    async def check_connection(self) -> Tuple[bool, str]:
+    async def check_connection(self):
         """检查API服务连接状态
 
         Returns:
@@ -64,8 +64,7 @@ class AcolyteClient:
                 response = await client.get(root_url)
                 response.raise_for_status()
                 logger.debug("API服务连接正常")
-                # 返回空字符串而不是None，以符合返回类型注解
-                return True, ""
+                return True, None
         except httpx.ConnectError as e:
             logger.error(f"无法连接到API服务: {str(e)}")
             return False, "无法连接到API服务，请确保服务已启动（运行 'uv run -m acolyte.main'）"
@@ -79,7 +78,7 @@ class AcolyteClient:
             logger.error(f"检查API服务连接时发生未知错误: {str(e)}")
             return False, f"检查API服务连接时发生错误: {str(e)}"
 
-    async def get_system_info(self) -> Dict[str, Any]:
+    async def get_system_info(self):
         """获取系统信息
 
         Returns:
@@ -471,7 +470,7 @@ def status():
                     logger.warning(f"获取系统信息失败: {str(e)}")
                     console.print("[yellow]警告:[/] 无法获取系统详细信息")
             else:
-                console.print("[bold red]状态:[/] API服务不可用")
+                console.print(f"[bold red]状态:[/] API服务不可用")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
                     "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
@@ -953,7 +952,8 @@ def clear(status, force):
     asyncio.run(_clear())
 
 
-# 注册history_show命令
+# 导入并使用history_show模块中的函数
+from acolyte.cli.history_show import register_command as register_show_command
 
 # 注册命令
 register_show_command(history)
@@ -1096,7 +1096,7 @@ def delete_llm(llm_id):
                     llm = response.json()
 
                 # 确认删除
-                console.print("将删除以下LLM配置:")
+                console.print(f"将删除以下LLM配置:")
                 console.print(
                     Panel(
                         f"ID: {llm['id']}\n"
