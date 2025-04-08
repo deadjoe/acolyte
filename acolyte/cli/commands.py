@@ -161,7 +161,8 @@ class AcolyteClient:
         logger.info(f"提交内容分析任务: 模式={mode}, 内容长度={len(content)}")
         logger.debug(f"LLM IDs: {llm_ids}, Prompt ID: {prompt_id}")
 
-        data = {
+        # 创建请求数据字典，显式指定类型为Dict[str, Any]
+        data: Dict[str, Any] = {
             "content": content,
             "processing_mode": mode,
         }
@@ -378,10 +379,10 @@ class AcolyteClient:
         Returns:
             清空结果
         """
-        # 确保类型兼容，将bool转换为字符串
-        params = {"confirm": str(confirm).lower()}
+        # 确保类型兼容，将bool转换为字符串，显式指定类型为Dict[str, Any]
+        params: Dict[str, Any] = {"confirm": str(confirm).lower()}
         if status:
-            params["status"] = status
+            params["status"] = str(status) if status else ""
         response = await self.client.delete("/tasks", params=params)
         response.raise_for_status()
         return response.json()
@@ -813,9 +814,9 @@ def list(status: Optional[str], limit: int) -> None:
                 )
                 return
 
-            # 构建API请求参数
+            # 构建API请求参数，显式指定类型为Dict[str, Any]
             # 确保类型兼容，将参数转换为正确的类型
-            params = {"limit": int(limit)}
+            params: Dict[str, Any] = {"limit": int(limit)}
             if status:
                 # 确保类型兼容，将状态转换为字符串
                 params["status"] = str(status)
