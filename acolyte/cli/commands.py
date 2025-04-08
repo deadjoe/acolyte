@@ -1160,7 +1160,8 @@ def delete_llm(llm_id):
 def add_llm(name, api_key, base_url, model, description, role, default, save_to_config):
     """添加LLM配置
 
-    例如: acolyte config add-llm -n "Claude-3" -k "sk-..." -u "https://api.anthropic.com" -m "claude-3-opus-20240229" -r reviewer
+    例如: acolyte config add-llm -n "Claude-3" -k "sk-..." \
+        -u "https://api.anthropic.com" -m "claude-3-opus-20240229" -r reviewer
     """
 
     async def _add_llm():
