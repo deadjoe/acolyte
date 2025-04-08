@@ -2,10 +2,11 @@
 
 import os
 import sys
+from typing import Any, Generator
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import clear_mappers, sessionmaker
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, clear_mappers, sessionmaker
 
 # 确保可以导入项目模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,7 +15,7 @@ from acolyte.core.db.models import Base
 
 
 @pytest.fixture(scope="function")
-def in_memory_db():
+def in_memory_db() -> Generator[sessionmaker, None, None]:
     """创建内存数据库"""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -31,7 +32,7 @@ def in_memory_db():
 
 
 @pytest.fixture(scope="function")
-def db_session(in_memory_db):
+def db_session(in_memory_db) -> Generator[Session, None, None]:
     """创建数据库会话"""
     session = in_memory_db()
 

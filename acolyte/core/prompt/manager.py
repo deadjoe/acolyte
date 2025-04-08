@@ -5,7 +5,7 @@ Prompt模板管理器
 import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from acolyte.core.db.database import db
 from acolyte.core.db.models import Prompt
@@ -111,7 +111,7 @@ class PromptManager:
         self.prompt_dir = prompt_dir
         self._ensure_prompt_dir_exists()
 
-    def _ensure_prompt_dir_exists(self):
+    def _ensure_prompt_dir_exists(self) -> None:
         """确保prompt目录存在"""
         os.makedirs(self.prompt_dir, exist_ok=True)
 
@@ -180,7 +180,7 @@ class PromptManager:
         logger.debug(f"排序后的prompt列表: {[p['filename'] for p in prompt_files]}")
         return prompt_files
 
-    def sync_prompt_files_to_db(self):
+    def sync_prompt_files_to_db(self) -> Dict[str, Any]:
         """
         将prompt文件同步到数据库
 

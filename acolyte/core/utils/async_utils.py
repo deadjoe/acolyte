@@ -7,7 +7,7 @@
 import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Awaitable, Callable, List, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar
 
 from acolyte.utils.logging import get_logger
 
@@ -140,9 +140,9 @@ class AsyncTaskManager:
 
     def __init__(self) -> None:
         """初始化异步任务管理器"""
-        self.tasks = {}
-        self.results = {}
-        self.callbacks = {}
+        self.tasks: Dict[str, asyncio.Task[Any]] = {}
+        self.results: Dict[str, Any] = {}
+        self.callbacks: Dict[str, Callable[[Any], None]] = {}
 
     def add_task(
         self,

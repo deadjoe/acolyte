@@ -190,7 +190,7 @@ class TestDatabaseModels:
         # 跳过测试，因为模拟对象测试不稳定
         pass
 
-    def test_task_final_result(self, db_session) -> None:
+    def test_task_final_result(self, db_session: Session) -> None:
         """测试任务最终结果关系"""
         # 使用模拟对象
         mock_llm = MagicMock()

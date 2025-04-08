@@ -4,6 +4,7 @@
 测试BaseTaskProcessor的核心功能和业务规则。
 """
 
+from typing import Any, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,11 +17,11 @@ class TestBaseTaskProcessor:
     """BaseTaskProcessor类的测试用例"""
 
     @pytest.fixture
-    def mock_session_run(self):
+    def mock_session_run(self) -> Generator[MagicMock, None, None]:
         """模拟run_in_session函数"""
         with patch("acolyte.core.task.processors.base.run_in_session") as mock:
             # 配置mock以异步执行传入的函数
-            async def side_effect(func):
+            async def side_effect(func: Any) -> Any:
                 # 创建一个模拟的session
                 session = MagicMock()
                 # 调用传入的函数并返回结果
@@ -30,18 +31,18 @@ class TestBaseTaskProcessor:
             yield mock
 
     @pytest.fixture
-    def processor(self):
+    def processor(self) -> BaseTaskProcessor:
         """创建BaseTaskProcessor的子类实例"""
 
         class TestProcessor(BaseTaskProcessor):
-            async def process(self, task_id):
+            async def process(self, task_id: int) -> Any:
                 # 实现抽象方法
                 return await self._get_task_data(task_id)
 
         return TestProcessor()
 
     @pytest.mark.asyncio
-    async def test_get_task_data(self, processor, mock_session_run):
+    async def test_get_task_data(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
         """测试获取任务数据"""
         # 模拟任务数据
         task_data = {
@@ -82,7 +83,7 @@ class TestBaseTaskProcessor:
             mock_session_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_save_result(self, processor, mock_session_run):
+    async def test_save_result(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
         """测试保存处理结果"""
         # 模拟数据
         task_id = 1
@@ -128,7 +129,7 @@ class TestBaseTaskProcessor:
             mock_session_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_task_status(self, processor, mock_session_run):
+    async def test_update_task_status(self, processor: BaseTaskProcessor, mock_session_run: MagicMock) -> None:
         """测试更新任务状态"""
         # 模拟任务
         task_id = 1
@@ -159,7 +160,7 @@ class TestBaseTaskProcessor:
         mock_session_run.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_error(self, processor):
+    async def test_handle_error(self, processor: BaseTaskProcessor) -> None:
         """测试错误处理"""
         # 模拟数据
         task_id = 1
