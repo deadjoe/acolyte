@@ -54,8 +54,7 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
 
     # 使用模块级别的日志记录器
     logger.debug(
-        f"为LLM创建客户端: 名称={llm_config.name}, "
-        f"URL={llm_config.base_url}, 模型={llm_config.model_name}"
+        f"为LLM创建客户端: 名称={llm_config.name}, URL={llm_config.base_url}, 模型={llm_config.model_name}"
     )
 
     # 基于LLM名称检测提供商

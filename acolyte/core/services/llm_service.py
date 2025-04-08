@@ -5,7 +5,7 @@ LLM服务
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -38,7 +38,7 @@ class LlmService:
     - 使用get_client_for_llm获取适合的LLM客户端
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """
         初始化LLM服务
 
@@ -47,7 +47,7 @@ class LlmService:
         """
         self.llm_manager = LlmManager()
 
-    async def add_llm(self, llm_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_llm(self, llm_data: Dict) -> Dict:
         """
         添加LLM配置
 
@@ -115,9 +115,7 @@ class LlmService:
             logger.error(f"添加LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"添加LLM配置失败: {str(e)}", "success": False}
 
-    async def get_llms(
-        self, role: Optional[str] = None, is_default: Optional[bool] = None
-    ) -> Dict[str, Any]:
+    async def get_llms(self, role: Optional[str] = None, is_default: Optional[bool] = None) -> Dict:
         """
         获取LLM配置列表
 
@@ -130,7 +128,7 @@ class LlmService:
         """
         logger.info(f"获取LLM配置列表: 角色={role}, 是否默认={is_default}")
 
-        async def _get_llms(session: Session) -> List[Dict[str, Any]]:
+        async def _get_llms(session: Session):
             query = session.query(LlmConfig)
 
             # 应用筛选条件
@@ -157,7 +155,7 @@ class LlmService:
             logger.error(f"获取LLM配置列表失败: {str(e)}", exc_info=True)
             return {"error": f"获取LLM配置列表失败: {str(e)}", "success": False}
 
-    async def get_llm(self, llm_id: int) -> Dict[str, Any]:
+    async def get_llm(self, llm_id: int) -> Dict:
         """
         获取特定LLM配置
 
@@ -169,7 +167,7 @@ class LlmService:
         """
         logger.info(f"获取LLM配置: ID={llm_id}")
 
-        async def _get_llm(session: Session) -> Optional[Dict[str, Any]]:
+        async def _get_llm(session: Session):
             llm = session.query(LlmConfig).filter(LlmConfig.id == llm_id).first()
             if not llm:
                 return None
@@ -184,7 +182,7 @@ class LlmService:
             logger.error(f"获取LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"获取LLM配置失败: {str(e)}", "success": False}
 
-    async def update_llm(self, llm_id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_llm(self, llm_id: int, update_data: Dict) -> Dict:
         """
         更新LLM配置
 
@@ -243,7 +241,7 @@ class LlmService:
             logger.error(f"删除LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"删除LLM配置失败: {str(e)}", "success": False}
 
-    async def test_connection(self, llm_id: int) -> Dict[str, Any]:
+    async def test_connection(self, llm_id: int) -> Dict:
         """
         测试LLM连接
 
@@ -257,7 +255,7 @@ class LlmService:
 
         try:
             # 获取LLM配置
-            async def _get_llm(session: Session) -> Optional[LlmConfig]:
+            async def _get_llm(session: Session):
                 return session.query(LlmConfig).filter_by(id=llm_id).first()
 
             llm_config = await run_in_session(_get_llm)
@@ -280,7 +278,7 @@ class LlmService:
             logger.error(f"LLM连接测试失败: {str(e)}", exc_info=True)
             return {"success": False, "message": f"连接测试失败: {str(e)}"}
 
-    async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict[str, Any]:
+    async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict:
         """
         使用特定LLM处理内容
 
@@ -294,7 +292,7 @@ class LlmService:
         """
         logger.info(f"使用LLM处理内容: LLM ID={llm_id}, 内容长度={len(content)}字符")
 
-        async def _get_llm(session: Session) -> Optional[LlmConfig]:
+        async def _get_llm(session: Session):
             return session.query(LlmConfig).filter(LlmConfig.id == llm_id).first()
 
         try:

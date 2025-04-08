@@ -28,7 +28,7 @@ class BaseTaskProcessor(ABC):
     提供任务处理的基础功能和共享方法。子类需要实现process方法。
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """初始化基础任务处理器"""
         self.prompt_manager = PromptManager()
 
@@ -56,7 +56,7 @@ class BaseTaskProcessor(ABC):
             任务数据字典，如果不存在则返回None
         """
 
-        async def _get_task(session: Session) -> Optional[Dict]:
+        async def _get_task(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -79,7 +79,7 @@ class BaseTaskProcessor(ABC):
             任务数据字典，如果不存在则返回None
         """
 
-        async def _get_task_content(session: Session) -> Optional[Dict]:
+        async def _get_task_content(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -109,7 +109,7 @@ class BaseTaskProcessor(ABC):
             提示词数据字典，如果不存在则返回None
         """
 
-        async def _get_prompt_data(session: Session) -> Optional[Dict]:
+        async def _get_prompt_data(session: Session):
             prompt = None
 
             # 如果指定了提示词ID，尝试获取
@@ -131,15 +131,14 @@ class BaseTaskProcessor(ABC):
                 # 直接在当前会话中查询，避免使用prompt_manager
                 model_prompt = (
                     session.query(Prompt)
-                    .filter(Prompt.model_target == model_name, Prompt.is_active)
+                    .filter(Prompt.model_target == model_name, Prompt.is_active == True)
                     .order_by(Prompt.version.desc())
                     .first()
                 )
 
                 if model_prompt:
                     logger.info(
-                        f"使用适用于模型 {model_name} 的提示词: "
-                        f"ID={model_prompt.id}, 版本={model_prompt.version}"
+                        f"使用适用于模型 {model_name} 的提示词: ID={model_prompt.id}, 版本={model_prompt.version}"
                     )
                     data = extract_model_data(model_prompt, include_relationships=False)
                     # 确保包含content字段
@@ -150,7 +149,10 @@ class BaseTaskProcessor(ABC):
 
             # 获取最新的活跃提示词
             prompt = (
-                session.query(Prompt).filter(Prompt.is_active).order_by(Prompt.id.desc()).first()
+                session.query(Prompt)
+                .filter(Prompt.is_active == True)
+                .order_by(Prompt.id.desc())
+                .first()
             )
 
             if prompt:
@@ -200,7 +202,7 @@ class BaseTaskProcessor(ABC):
             LLM配置数据字典，如果不存在则返回None
         """
 
-        async def _get_llm_data(session: Session) -> Optional[Dict]:
+        async def _get_llm_data(session: Session):
             llm = None
 
             # 如果指定了LLM ID，尝试获取
@@ -227,8 +229,7 @@ class BaseTaskProcessor(ABC):
             any_llm = session.query(LlmConfig).order_by(LlmConfig.id.asc()).first()
             if any_llm:
                 logger.info(
-                    f"使用第一个可用的LLM: ID={any_llm.id}, "
-                    f"名称={any_llm.name}, 模型={any_llm.model_name}"
+                    f"使用第一个可用的LLM: ID={any_llm.id}, 名称={any_llm.name}, 模型={any_llm.model_name}"
                 )
                 return extract_model_data(any_llm, include_relationships=False)
 
@@ -253,7 +254,7 @@ class BaseTaskProcessor(ABC):
         """
         logger.debug(f"开始获取任务 {task_id} 关联的LLM列表")
 
-        async def _get_llm_list(session: Session) -> List[Dict]:
+        async def _get_llm_list(session: Session):
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -261,9 +262,7 @@ class BaseTaskProcessor(ABC):
                 return []
 
             logger.debug(
-                f"找到任务: ID={task_id}, "
-                f"处理模式={task.processing_mode.value if task.processing_mode else 'None'}, "
-                f"状态={task.status.value if task.status else 'None'}"
+                f"找到任务: ID={task_id}, 处理模式={task.processing_mode.value if task.processing_mode else 'None'}, 状态={task.status.value if task.status else 'None'}"
             )
 
             # 获取关联的LLM
@@ -279,8 +278,7 @@ class BaseTaskProcessor(ABC):
                 llm_data = extract_model_data(llm_assoc, include_relationships=False)
                 llms.append(llm_data)
                 logger.debug(
-                    f"提取LLM数据: ID={llm_data.get('id')}, "
-                    f"名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
+                    f"提取LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
                 )
 
             if not llms:
@@ -298,8 +296,7 @@ class BaseTaskProcessor(ABC):
                         llm_data = extract_model_data(llm, include_relationships=False)
                         llms.append(llm_data)
                         logger.debug(
-                            f"提取普通角色LLM数据: ID={llm_data.get('id')}, "
-                            f"名称={llm_data.get('name')}"
+                            f"提取普通角色LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}"
                         )
 
                     logger.info(f"找到 {len(llms)} 个普通角色的LLM")
@@ -330,7 +327,7 @@ class BaseTaskProcessor(ABC):
             评议者LLM配置数据字典列表
         """
 
-        async def _get_reviewer_list(session: Session) -> List[Dict]:
+        async def _get_reviewer_list(session: Session):
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -382,7 +379,7 @@ class BaseTaskProcessor(ABC):
             结果ID，保存失败则返回None
         """
 
-        async def _save_result_to_db(session: Session) -> Optional[int]:
+        async def _save_result_to_db(session: Session):
 
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()
@@ -419,8 +416,7 @@ class BaseTaskProcessor(ABC):
 
             # 记录提取到的评分
             logger.debug(
-                f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, "
-                f"MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}"
+                f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}"
             )
 
             # 检查是否有缺失的评分
@@ -468,8 +464,7 @@ class BaseTaskProcessor(ABC):
 
                 if old_final_result_id:
                     logger.info(
-                        f"更新任务最终结果: 任务ID={task_id}, "
-                        f"旧结果ID={old_final_result_id}, 新结果ID={task_result.id}"
+                        f"更新任务最终结果: 任务ID={task_id}, 旧结果ID={old_final_result_id}, 新结果ID={task_result.id}"
                     )
                 else:
                     logger.info(f"设置任务最终结果: 任务ID={task_id}, 结果ID={task_result.id}")
@@ -497,7 +492,7 @@ class BaseTaskProcessor(ABC):
             更新是否成功
         """
 
-        async def _update_status(session: Session) -> bool:
+        async def _update_status(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 logger.warning(f"更新状态失败: 任务不存在, ID={task_id}")

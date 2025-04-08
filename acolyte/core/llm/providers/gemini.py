@@ -150,8 +150,7 @@ class GeminiClient(LlmClient):
         logger.debug(f"Gemini API请求数据: {json.dumps(data, ensure_ascii=False)[:500]}...")
 
         logger.debug(
-            f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, "
-            f"user_prompt长度={len(user_prompt)}字符"
+            f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, user_prompt长度={len(user_prompt)}字符"
         )
 
         # 准备请求头
@@ -181,8 +180,7 @@ class GeminiClient(LlmClient):
                 )
                 logger.debug(f"Gemini API响应内容长度: {len(response.text)}字符")
                 logger.debug(
-                    f"Gemini API响应JSON键: "
-                    f"{list(result.keys()) if isinstance(result, dict) else '非字典'}"
+                    f"Gemini API响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}"
                 )
             except json.JSONDecodeError as e:
                 logger.error(f"Gemini API响应不是有效的JSON: {str(e)}")
@@ -203,8 +201,7 @@ class GeminiClient(LlmClient):
 
                 # 记录详细错误信息
                 logger.error(
-                    f"Gemini API返回错误: 代码={error_code}, "
-                    f"状态={error_status}, 消息={error_message}"
+                    f"Gemini API返回错误: 代码={error_code}, 状态={error_status}, 消息={error_message}"
                 )
                 if error_details:
                     logger.error(
@@ -243,10 +240,7 @@ class GeminiClient(LlmClient):
                     # 其他错误
                     return {
                         "success": False,
-                        "error": (
-                            f"Gemini API错误: {error_message} "
-                            f"(代码: {error_code}, 状态: {error_status})"
-                        ),
+                        "error": f"Gemini API错误: {error_message} (代码: {error_code}, 状态: {error_status})",
                         "raw_response": json.dumps(result),
                     }
 
@@ -271,8 +265,7 @@ class GeminiClient(LlmClient):
                         and len(result.keys()) == 2
                     ):
                         logger.error(
-                            "Gemini API可能遇到了配额限制或内容过滤: "
-                            "响应中只有usageMetadata和modelVersion"
+                            "Gemini API可能遇到了配额限制或内容过滤: 响应中只有usageMetadata和modelVersion"
                         )
                         return {
                             "success": False,
@@ -326,8 +319,7 @@ class GeminiClient(LlmClient):
 
                     candidate = candidates[0]
                     logger.debug(
-                        f"Gemini候选项键: "
-                        f"{list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}"
+                        f"Gemini候选项键: {list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}"
                     )
 
                     if "content" not in candidate:
@@ -342,8 +334,7 @@ class GeminiClient(LlmClient):
 
                     content = candidate["content"]
                     logger.debug(
-                        f"Gemini内容键: "
-                        f"{list(content.keys()) if isinstance(content, dict) else '非字典'}"
+                        f"Gemini内容键: {list(content.keys()) if isinstance(content, dict) else '非字典'}"
                     )
 
                     if "parts" not in content:
@@ -457,8 +448,7 @@ class GeminiClient(LlmClient):
                 result = response.json()
                 logger.debug(f"Gemini API测试连接响应状态码: {response.status_code}")
                 logger.debug(
-                    f"Gemini API测试连接响应JSON键: "
-                    f"{list(result.keys()) if isinstance(result, dict) else '非字典'}"
+                    f"Gemini API测试连接响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}"
                 )
             except json.JSONDecodeError as e:
                 logger.error(f"Gemini API测试连接响应不是有效的JSON: {str(e)}")
@@ -494,8 +484,7 @@ class GeminiClient(LlmClient):
                 }
             else:
                 logger.warning(
-                    f"Google Gemini连接测试成功，但响应中没有models字段, "
-                    f"响应键: {list(result.keys())}"
+                    f"Google Gemini连接测试成功，但响应中没有models字段, 响应键: {list(result.keys())}"
                 )
                 return {"success": True, "status": "warning", "message": "连接成功，但响应格式异常"}
 

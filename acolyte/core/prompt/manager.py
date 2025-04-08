@@ -5,7 +5,7 @@ Prompt模板管理器
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from acolyte.core.db.database import db
 from acolyte.core.db.models import Prompt
@@ -111,7 +111,7 @@ class PromptManager:
         self.prompt_dir = prompt_dir
         self._ensure_prompt_dir_exists()
 
-    def _ensure_prompt_dir_exists(self) -> None:
+    def _ensure_prompt_dir_exists(self):
         """确保prompt目录存在"""
         os.makedirs(self.prompt_dir, exist_ok=True)
 
@@ -180,7 +180,7 @@ class PromptManager:
         logger.debug(f"排序后的prompt列表: {[p['filename'] for p in prompt_files]}")
         return prompt_files
 
-    def sync_prompt_files_to_db(self) -> Dict[str, Any]:
+    def sync_prompt_files_to_db(self):
         """
         将prompt文件同步到数据库
 
@@ -205,8 +205,7 @@ class PromptManager:
             with db.session_scope() as session:
                 for prompt_info in prompt_files:
                     logger.info(
-                        f"处理prompt: {prompt_info['filename']}, "
-                        f"版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}"
+                        f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}"
                     )
 
                     try:
@@ -286,7 +285,7 @@ class PromptManager:
                 logger.info(
                     f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}"
                 )
-                query = session.query(Prompt).filter(Prompt.is_active)
+                query = session.query(Prompt).filter(Prompt.is_active == True)
 
                 # 如果指定了模型目标，优先获取针对该模型的prompt
                 if model_target:
@@ -295,8 +294,7 @@ class PromptManager:
                     ).first()
                     if model_specific_prompt:
                         logger.info(
-                            f"找到针对模型 {model_target} 的prompt: "
-                            f"ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}"
+                            f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}"
                         )
                         return model_specific_prompt
                     logger.info(f"未找到针对模型 {model_target} 的特定prompt，寻找通用prompt")
@@ -315,8 +313,7 @@ class PromptManager:
                 first_prompt = query.first()
                 if first_prompt:
                     logger.info(
-                        f"找到第一个活跃prompt: ID={first_prompt.id}, "
-                        f"版本={first_prompt.version}, 目标={first_prompt.model_target}"
+                        f"找到第一个活跃prompt: ID={first_prompt.id}, 版本={first_prompt.version}, 目标={first_prompt.model_target}"
                     )
                     return first_prompt
                 else:
@@ -348,7 +345,9 @@ class PromptManager:
             Optional[Prompt]: 匹配的Prompt对象，如果未找到则返回None
         """
         with db.session_scope() as session:
-            query = session.query(Prompt).filter(Prompt.version == version, Prompt.is_active)
+            query = session.query(Prompt).filter(
+                Prompt.version == version, Prompt.is_active == True
+            )
 
             if model_target:
                 query = query.filter(Prompt.model_target == model_target)

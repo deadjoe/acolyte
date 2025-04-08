@@ -4,7 +4,7 @@ API路由定义
 使用FastAPI定义API端点，处理请求和响应，但将业务逻辑委托给服务层。
 """
 
-from typing import Any, Dict, Generator, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 # 获取数据库会话依赖
-def get_db() -> Generator[Session, None, None]:
+def get_db():
     with db.session_scope() as session:
         yield session
 
@@ -132,7 +132,7 @@ class PromptResponse(BaseModel):
 
 # LLM配置路由
 @router.post("/llms", response_model=LlmConfigResponse)
-async def create_llm(llm_config: LlmConfigCreate) -> LlmConfigResponse:
+async def create_llm(llm_config: LlmConfigCreate):
     """创建新的LLM配置"""
     logger.info(f"API请求: 创建LLM配置, 名称={llm_config.name}, 模型={llm_config.model_name}")
 
@@ -149,9 +149,7 @@ async def create_llm(llm_config: LlmConfigCreate) -> LlmConfigResponse:
 
 
 @router.get("/llms", response_model=List[LlmConfigResponse])
-async def get_llms(
-    role: Optional[LlmRole] = None, is_default: Optional[bool] = None
-) -> List[Dict[str, Any]]:
+async def get_llms(role: Optional[LlmRole] = None, is_default: Optional[bool] = None):
     """获取LLM配置列表"""
     logger.info(f"API请求: 获取LLM配置列表, 角色={role}, 是否默认={is_default}")
 
@@ -169,7 +167,7 @@ async def get_llms(
 
 
 @router.get("/llms/{llm_id}", response_model=LlmConfigResponse)
-async def get_llm(llm_id: int) -> Dict[str, Any]:
+async def get_llm(llm_id: int):
     """获取特定LLM配置"""
     logger.info(f"API请求: 获取LLM配置, ID={llm_id}")
 
@@ -189,11 +187,10 @@ async def get_llm(llm_id: int) -> Dict[str, Any]:
 
 
 @router.put("/llms/{llm_id}", response_model=LlmConfigResponse)
-async def update_llm(llm_id: int, llm_config: LlmConfigUpdate) -> Dict[str, Any]:
+async def update_llm(llm_id: int, llm_config: LlmConfigUpdate):
     """更新LLM配置"""
     logger.info(
-        f"API请求: 更新LLM配置, ID={llm_id}, "
-        f"更新字段={list(llm_config.dict(exclude_unset=True).keys())}"
+        f"API请求: 更新LLM配置, ID={llm_id}, 更新字段={list(llm_config.dict(exclude_unset=True).keys())}"
     )
 
     llm_service = LlmService()
@@ -212,7 +209,7 @@ async def update_llm(llm_id: int, llm_config: LlmConfigUpdate) -> Dict[str, Any]
 
 
 @router.delete("/llms/{llm_id}")
-async def delete_llm(llm_id: int) -> Dict[str, str]:
+async def delete_llm(llm_id: int):
     """删除LLM配置"""
     logger.info(f"API请求: 删除LLM配置, ID={llm_id}")
 
@@ -232,7 +229,7 @@ async def delete_llm(llm_id: int) -> Dict[str, str]:
 
 
 @router.post("/llms/{llm_id}/test")
-async def test_llm_connection(llm_id: int) -> Dict[str, Any]:
+async def test_llm_connection(llm_id: int):
     """测试LLM连接"""
     logger.info(f"API请求: 测试LLM连接, ID={llm_id}")
 
@@ -249,7 +246,7 @@ async def test_llm_connection(llm_id: int) -> Dict[str, Any]:
 
 
 @router.post("/llms/{llm_id}/set-default")
-async def set_default_llm(llm_id: int) -> Dict[str, Any]:
+async def set_default_llm(llm_id: int):
     """设置指定LLM为默认"""
     logger.info(f"API请求: 设置LLM为默认, ID={llm_id}")
 
@@ -270,11 +267,10 @@ async def set_default_llm(llm_id: int) -> Dict[str, Any]:
 
 # 任务路由
 @router.post("/tasks", response_model=TaskResponse)
-async def create_task(task_data: TaskCreate) -> Dict[str, Any]:
+async def create_task(task_data: TaskCreate):
     """创建新任务"""
     logger.info(
-        f"API请求: 创建任务, 处理模式={task_data.processing_mode}, "
-        f"内容长度={len(task_data.content)}字符"
+        f"API请求: 创建任务, 处理模式={task_data.processing_mode}, 内容长度={len(task_data.content)}字符"
     )
 
     task_service = TaskService()
@@ -290,9 +286,7 @@ async def create_task(task_data: TaskCreate) -> Dict[str, Any]:
 
 
 @router.get("/tasks", response_model=List[TaskResponse])
-async def get_tasks(
-    status: Optional[str] = None, skip: int = 0, limit: int = 100
-) -> List[Dict[str, Any]]:
+async def get_tasks(status: Optional[str] = None, skip: int = 0, limit: int = 100):
     """获取任务列表"""
     task_service = TaskService()
     result = await task_service.get_tasks(status=status, skip=skip, limit=limit)
@@ -304,7 +298,7 @@ async def get_tasks(
 
 
 @router.delete("/tasks")
-async def clear_tasks(confirm: bool = False, status: Optional[str] = None) -> Dict[str, Any]:
+async def clear_tasks(confirm: bool = False, status: Optional[str] = None):
     """清空所有任务及其关联结果
 
     Args:
@@ -328,7 +322,7 @@ async def clear_tasks(confirm: bool = False, status: Optional[str] = None) -> Di
 
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
-async def get_task(task_id: int) -> Dict[str, Any]:
+async def get_task(task_id: int):
     """获取特定任务"""
     task_service = TaskService()
     result = await task_service.get_task(task_id)
@@ -341,7 +335,7 @@ async def get_task(task_id: int) -> Dict[str, Any]:
 
 
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: int) -> Dict[str, Any]:
+async def delete_task(task_id: int):
     """删除特定任务及其关联结果"""
     task_service = TaskService()
     result = await task_service.delete_task(task_id)
@@ -354,9 +348,7 @@ async def delete_task(task_id: int) -> Dict[str, Any]:
 
 
 @router.get("/tasks/{task_id}/results", response_model=List[TaskResultResponse])
-async def get_task_results(
-    task_id: int, include_raw_response: bool = False
-) -> List[Dict[str, Any]]:
+async def get_task_results(task_id: int, include_raw_response: bool = False):
     """获取任务结果"""
     task_service = TaskService()
     result = await task_service.get_task_results(task_id, include_raw_response)
@@ -369,13 +361,11 @@ async def get_task_results(
 
 
 @router.get("/tasks/{task_id}/final-result", response_model=TaskResultResponse)
-async def get_task_final_result(
-    task_id: int, include_raw_response: bool = False
-) -> TaskResultResponse:
+async def get_task_final_result(task_id: int, include_raw_response: bool = False):
     """获取任务最终结果"""
     logger.info(f"API请求: 获取任务最终结果, ID={task_id}, 包含原始响应={include_raw_response}")
 
-    async def _get_final_result(session: Session) -> Optional[Dict[str, Any]]:
+    async def _get_final_result(session: Session):
         task = session.query(Task).filter_by(id=task_id).first()
         if not task:
             logger.warning(f"任务不存在: ID={task_id}")
@@ -407,12 +397,12 @@ async def get_task_final_result(
         raise
     except Exception as e:
         logger.error(f"API错误: 获取任务最终结果失败, ID={task_id}, 错误={str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"获取任务最终结果失败: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"获取任务最终结果失败: {str(e)}")
 
 
 # 配置路由
 @router.post("/config/import")
-async def import_config(name: Optional[str] = None) -> Dict[str, Any]:
+async def import_config(name: Optional[str] = None):
     """从配置文件导入LLM配置到数据库
 
     Args:
@@ -441,11 +431,11 @@ async def import_config(name: Optional[str] = None) -> Dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}")
 
 
 @router.post("/config/export")
-async def export_config() -> Dict[str, Any]:
+async def export_config():
     """将数据库中的LLM配置导出到配置文件"""
     logger.info("API请求: 导出LLM配置到配置文件")
 
@@ -462,14 +452,12 @@ async def export_config() -> Dict[str, Any]:
             raise HTTPException(status_code=500, detail="LLM配置导出失败")
     except Exception as e:
         logger.error(f"导出LLM配置失败: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}")
 
 
 # 提示词路由
 @router.get("/prompts", response_model=List[PromptResponse])
-async def get_prompts(
-    model_target: Optional[str] = None, version: Optional[str] = None
-) -> List[Dict[str, Any]]:
+async def get_prompts(model_target: Optional[str] = None, version: Optional[str] = None):
     """获取提示词列表"""
     prompt_service = PromptService()
     result = await prompt_service.get_prompts(model_target=model_target, version=version)
@@ -481,7 +469,7 @@ async def get_prompts(
 
 
 @router.get("/prompts/latest", response_model=PromptResponse)
-async def get_latest_prompt(model_target: Optional[str] = None) -> Dict[str, Any]:
+async def get_latest_prompt(model_target: Optional[str] = None):
     """获取最新版本的提示词"""
     prompt_service = PromptService()
     result = await prompt_service.get_latest_prompt(model_target=model_target)
@@ -496,7 +484,7 @@ async def get_latest_prompt(model_target: Optional[str] = None) -> Dict[str, Any
 
 
 @router.get("/prompts/{prompt_id}", response_model=PromptResponse)
-async def get_prompt(prompt_id: int) -> Dict[str, Any]:
+async def get_prompt(prompt_id: int):
     """获取特定提示词"""
     prompt_service = PromptService()
     result = await prompt_service.get_prompt(prompt_id)
@@ -509,7 +497,7 @@ async def get_prompt(prompt_id: int) -> Dict[str, Any]:
 
 
 @router.post("/prompts", response_model=PromptResponse)
-async def create_prompt(prompt_data: PromptCreate) -> PromptResponse:
+async def create_prompt(prompt_data: PromptCreate):
     """创建新提示词"""
     prompt_service = PromptService()
     result = await prompt_service.create_prompt(prompt_data.dict())
@@ -521,7 +509,7 @@ async def create_prompt(prompt_data: PromptCreate) -> PromptResponse:
 
 
 @router.put("/prompts/{prompt_id}", response_model=PromptResponse)
-async def update_prompt(prompt_id: int, prompt_data: PromptUpdate) -> PromptResponse:
+async def update_prompt(prompt_id: int, prompt_data: PromptUpdate):
     """更新提示词"""
     prompt_service = PromptService()
     result = await prompt_service.update_prompt(prompt_id, prompt_data.dict(exclude_unset=True))
@@ -534,7 +522,7 @@ async def update_prompt(prompt_id: int, prompt_data: PromptUpdate) -> PromptResp
 
 
 @router.delete("/prompts/{prompt_id}")
-async def delete_prompt(prompt_id: int, delete_file: bool = False) -> Dict[str, Any]:
+async def delete_prompt(prompt_id: int, delete_file: bool = False):
     """删除提示词"""
     prompt_service = PromptService()
     result = await prompt_service.delete_prompt(prompt_id, delete_file=delete_file)
@@ -555,7 +543,7 @@ class PromptSyncRequest(BaseModel):
 
 
 @router.post("/prompts/sync")
-async def sync_prompts(request_data: Optional[PromptSyncRequest] = None) -> Dict[str, Any]:
+async def sync_prompts(request_data: Optional[PromptSyncRequest] = None):
     """同步提示词文件到数据库
 
     Args:
@@ -586,7 +574,7 @@ async def sync_prompts(request_data: Optional[PromptSyncRequest] = None) -> Dict
 
 
 @router.patch("/prompts/{prompt_id}/status")
-async def set_prompt_status(prompt_id: int, is_active: bool) -> Dict[str, Any]:
+async def set_prompt_status(prompt_id: int, is_active: bool):
     """设置提示词活跃状态"""
     prompt_service = PromptService()
     result = await prompt_service.set_active_status(prompt_id, is_active)

@@ -6,12 +6,9 @@ import json
 import os
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from acolyte.api.routes import router
 from acolyte.core.db.database import db
@@ -24,7 +21,7 @@ logger = get_logger("acolyte.api")
 
 # 自定义JSON编码器，处理datetime, date等类型
 class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
+    def default(self, obj):
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
         if isinstance(obj, Enum):
@@ -33,10 +30,11 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 # 重写默认的JSON响应类
+from fastapi.responses import JSONResponse
 
 
 class FastAPICustomJSONResponse(JSONResponse):
-    def render(self, content: Any) -> bytes:
+    def render(self, content) -> bytes:
         # 使用自定义编码器编码响应内容
         return json.dumps(
             content,
@@ -66,10 +64,11 @@ app.add_middleware(
 )
 
 # 添加自定义中间件处理响应
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Any, call_next: Any) -> Any:
+    async def dispatch(self, request, call_next):
         # 记录请求信息
         logger.debug(f"收到请求: {request.method} {request.url.path}")
 
@@ -87,7 +86,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
                 body_text = body.decode("utf-8")
                 json_body = json.loads(body_text)
                 logger.debug(f"请求体(JSON): {json_body}")
-            except (json.JSONDecodeError, UnicodeDecodeError):
+            except:
                 # 如果不是JSON，显示原始内容
                 if len(body) < 500:
                     logger.debug(f"请求体(原始): {body}")
@@ -96,7 +95,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
 
         # 创建具有相同主体的新请求
 
-        async def receive() -> Dict[str, Any]:
+        async def receive():
             return {"type": "http.request", "body": body}
 
         request._receive = receive
@@ -106,8 +105,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             # 记录响应状态
             logger.debug(
-                f"请求处理完成: {request.method} {request.url.path} - "
-                f"状态码: {response.status_code}"
+                f"请求处理完成: {request.method} {request.url.path} - 状态码: {response.status_code}"
             )
             return response
         except Exception as e:
@@ -124,7 +122,7 @@ app.include_router(router, prefix="/api")
 
 
 @app.on_event("startup")
-async def startup_event() -> None:
+async def startup_event():
     """应用启动时执行的操作"""
     logger.info("API服务正在启动...")
 
@@ -154,7 +152,7 @@ async def startup_event() -> None:
 
 
 @app.on_event("shutdown")
-async def shutdown_event() -> None:
+async def shutdown_event():
     """应用关闭时执行的操作"""
     logger.info("API服务正在关闭...")
     try:
@@ -168,7 +166,7 @@ async def shutdown_event() -> None:
 
 
 @app.get("/")
-async def root() -> Dict[str, Any]:
+async def root():
     """API根路径响应"""
     logger.debug("访问API根路径")
     return {"message": "Acolyte内容分析评估系统API", "version": "0.1.0", "docs_url": "/docs"}

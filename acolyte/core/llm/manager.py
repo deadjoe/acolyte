@@ -2,7 +2,7 @@
 LLM管理模块
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from acolyte.core.db.database import db
 from acolyte.core.db.models import LlmConfig, LlmRole
@@ -97,7 +97,7 @@ class LlmManager:
             logger.error(f"创建LLM配置失败: {str(e)}", exc_info=True)
             raise
 
-    def update_llm(self, llm_id: int, **kwargs: Any) -> Optional[LlmConfig]:
+    def update_llm(self, llm_id: int, **kwargs) -> Optional[LlmConfig]:
         """
         更新LLM配置
 
@@ -392,7 +392,7 @@ class LlmManager:
             logger.error(f"测试LLM连接失败: {str(e)}", exc_info=True)
             return {"success": False, "message": f"连接测试失败: {str(e)}"}
 
-    def _clear_default_status(self, session: Any) -> None:
+    def _clear_default_status(self, session):
         """清除所有LLM的默认状态
 
         Args:

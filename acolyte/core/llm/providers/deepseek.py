@@ -100,8 +100,7 @@ class DeepSeekClient(LlmClient):
         system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
         user_prompt = self._prepare_prompt(content, prompt)
         logger.debug(
-            f"DeepSeek提示词准备完成: 系统提示词长度={len(system_prompt)}, "
-            f"用户提示词长度={len(user_prompt)}"
+            f"DeepSeek提示词准备完成: 系统提示词长度={len(system_prompt)}, 用户提示词长度={len(user_prompt)}"
         )
 
         # 处理内容
@@ -113,8 +112,7 @@ class DeepSeekClient(LlmClient):
             logger.info(f"DeepSeek处理成功: 耗时={elapsed_time:.2f}秒")
         else:
             logger.error(
-                f"DeepSeek处理失败: 耗时={elapsed_time:.2f}秒, "
-                f"错误={result.get('error', '未知错误')}"
+                f"DeepSeek处理失败: 耗时={elapsed_time:.2f}秒, 错误={result.get('error', '未知错误')}"
             )
 
         return result

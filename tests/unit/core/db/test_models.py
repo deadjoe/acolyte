@@ -8,7 +8,6 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy.orm import Session
 
 
 # 使用模拟对象而不是实际的模型类
@@ -33,7 +32,7 @@ class MockTaskStatus:
 class TestDatabaseModels:
     """数据库模型测试用例"""
 
-    def test_llm_config_creation(self, db_session: Session) -> None:
+    def test_llm_config_creation(self, db_session):
         """测试创建LLM配置"""
         # 使用模拟对象代替实际的模型类
         # 模拟数据库会话和查询
@@ -66,7 +65,7 @@ class TestDatabaseModels:
         assert isinstance(saved_llm.created_at, datetime)
         assert isinstance(saved_llm.updated_at, datetime)
 
-    def test_prompt_creation(self, db_session: Session) -> None:
+    def test_prompt_creation(self, db_session):
         """测试创建Prompt"""
         # 使用模拟对象
         mock_prompt = MagicMock()
@@ -96,7 +95,7 @@ class TestDatabaseModels:
         assert isinstance(saved_prompt.created_at, datetime)
         assert isinstance(saved_prompt.updated_at, datetime)
 
-    def test_task_creation(self, db_session: Session) -> None:
+    def test_task_creation(self, db_session):
         """测试创建任务"""
         # 使用模拟对象
         mock_prompt = MagicMock()
@@ -133,7 +132,7 @@ class TestDatabaseModels:
         assert saved_task.prompt is not None
         assert saved_task.prompt.version == "1.0"
 
-    def test_task_result_creation(self, db_session: Session) -> None:
+    def test_task_result_creation(self, db_session):
         """测试创建任务结果"""
         # 使用模拟对象
         mock_llm = MagicMock()
@@ -184,12 +183,12 @@ class TestDatabaseModels:
         assert saved_result.llm_config.name == "Test LLM"
 
     @pytest.mark.skip(reason="模拟对象测试不稳定，需要重新设计")
-    def test_task_llm_association(self, db_session: Session) -> None:
+    def test_task_llm_association(self, db_session):
         """测试任务与LLM的多对多关系"""
         # 跳过测试，因为模拟对象测试不稳定
         pass
 
-    def test_task_final_result(self, db_session: Session) -> None:
+    def test_task_final_result(self, db_session):
         """测试任务最终结果关系"""
         # 使用模拟对象
         mock_llm = MagicMock()

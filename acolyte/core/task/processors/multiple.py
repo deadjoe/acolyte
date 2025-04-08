@@ -141,8 +141,7 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             # 统计处理时间
             elapsed_time = time.time() - start_time
             logger.info(
-                f"多LLM处理完成: 任务ID={task_id}, "
-                f"成功结果数={len(result_ids)}, 耗时={elapsed_time:.2f}秒"
+                f"多LLM处理完成: 任务ID={task_id}, 成功结果数={len(result_ids)}, 耗时={elapsed_time:.2f}秒"
             )
 
             # 返回成功结果

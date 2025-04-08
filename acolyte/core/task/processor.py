@@ -25,7 +25,7 @@ class TaskProcessor:
     使用策略模式选择适合的处理器处理任务。
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """初始化任务处理器"""
         # 创建处理器
         self.processors = {
@@ -74,8 +74,7 @@ class TaskProcessor:
                 )
             else:
                 logger.error(
-                    f"任务处理失败: ID={task_id}, 模式={processing_mode}, "
-                    f"耗时={elapsed_time:.2f}秒, 错误: {result.get('error', '未知错误')}"
+                    f"任务处理失败: ID={task_id}, 模式={processing_mode}, 耗时={elapsed_time:.2f}秒, 错误: {result.get('error', '未知错误')}"
                 )
 
             # 返回结果

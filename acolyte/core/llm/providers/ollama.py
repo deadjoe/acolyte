@@ -73,10 +73,7 @@ class OllamaClient(LlmClient):
 
         try:
             # Prepare prompt
-            system_prompt = (
-                "You are a content analyst specializing in detecting bias, "
-                "misleading information, and hidden intent."
-            )
+            system_prompt = "You are a content analyst specializing in detecting bias, misleading information, and hidden intent."
             user_prompt = self._prepare_prompt(content, prompt)
 
             # Call API
@@ -171,8 +168,7 @@ class OllamaClient(LlmClient):
                     # 记录响应解析
                     parse_time = time.time() - start_time - request_time
                     logger.debug(
-                        f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, "
-                        f"总耗时={(time.time()-start_time):.2f}秒"
+                        f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, 总耗时={(time.time()-start_time):.2f}秒"
                     )
 
                     return {
@@ -192,8 +188,7 @@ class OllamaClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             logger.error(
-                f"Ollama HTTP错误: 状态码={e.response.status_code}, "
-                f"URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
+                f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
             return self.error_handler.handle_request_error(e, "Ollama")
 
@@ -243,8 +238,7 @@ class OllamaClient(LlmClient):
                     model_names = [model.get("name") for model in models_response.get("models", [])]
                     if self.model_name in model_names:
                         logger.info(
-                            f"Ollama连接测试成功: 找到模型={self.model_name}, "
-                            f"耗时={time.time()-start_time:.2f}秒"
+                            f"Ollama连接测试成功: 找到模型={self.model_name}, 耗时={time.time()-start_time:.2f}秒"
                         )
                         return {
                             "success": True,
@@ -254,15 +248,11 @@ class OllamaClient(LlmClient):
                     else:
                         available_models = ", ".join(model_names[:5])
                         logger.warning(
-                            f"Ollama连接测试部分成功: 未找到模型={self.model_name}, "
-                            f"可用模型={available_models}, 耗时={time.time()-start_time:.2f}秒"
+                            f"Ollama连接测试部分成功: 未找到模型={self.model_name}, 可用模型={available_models}, 耗时={time.time()-start_time:.2f}秒"
                         )
                         return {
                             "success": False,
-                            "message": (
-                                f"已连接到Ollama API但未找到模型 {self.model_name}。"
-                                f"可用模型: {available_models}..."
-                            ),
+                            "message": f"已连接到Ollama API但未找到模型 {self.model_name}。可用模型: {available_models}...",
                             "status": "warning",
                         }
 
@@ -274,8 +264,7 @@ class OllamaClient(LlmClient):
             elapsed_time = time.time() - start_time
             error_details = self.error_handler.format_error_message(e, "Ollama")
             logger.error(
-                f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, "
-                f"耗时={elapsed_time:.2f}秒, 错误={error_details}"
+                f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, 耗时={elapsed_time:.2f}秒, 错误={error_details}"
             )
             return {"success": False, "message": error_details, "status": "error"}
 

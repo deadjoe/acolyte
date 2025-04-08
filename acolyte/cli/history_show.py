@@ -316,7 +316,7 @@ async def show_final_result(
             raise e
 
 
-def register_command(history_group: click.Group) -> None:
+def register_command(history_group):
     """注册history show命令"""
 
     @history_group.command()
@@ -334,7 +334,7 @@ def register_command(history_group: click.Group) -> None:
         default="table",
         help="结果显示格式",
     )
-    def show(task_id: int, all: bool, llm: Optional[int], raw: bool, format: str) -> None:
+    def show(task_id, all, llm, raw, format):
         """显示特定任务结果
 
         例如: acolyte history show 123 --raw

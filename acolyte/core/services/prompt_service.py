@@ -5,7 +5,7 @@
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -38,7 +38,7 @@ class PromptService:
     - 使用数据库会话进行数据存取
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """
         初始化提示词服务
 
@@ -77,7 +77,7 @@ class PromptService:
         """
         logger.info(f"获取提示词列表: 目标模型={model_target}, 版本={version}")
 
-        async def _get_prompts(session: Session) -> list:
+        async def _get_prompts(session: Session):
             query = session.query(Prompt)
 
             # 应用筛选条件
@@ -113,7 +113,7 @@ class PromptService:
         """
         logger.info(f"获取提示词: ID={prompt_id}")
 
-        async def _get_prompt(session: Session) -> Optional[Dict]:
+        async def _get_prompt(session: Session):
             prompt = session.query(Prompt).filter(Prompt.id == prompt_id).first()
             if not prompt:
                 return None
@@ -211,7 +211,7 @@ class PromptService:
                 result = self.prompt_manager.sync_prompt_files_to_db()
                 if result:
                     # 查询同步后的提示词数量
-                    async def _count_prompts(session: Session) -> int:
+                    async def _count_prompts(session: Session):
                         return session.query(Prompt).count()
 
                     count = await run_in_session(_count_prompts)
@@ -244,8 +244,7 @@ class PromptService:
             创建的提示词信息
         """
         logger.info(
-            f"创建提示词: 版本={prompt_data.get('version')}, "
-            f"目标模型={prompt_data.get('model_target')}"
+            f"创建提示词: 版本={prompt_data.get('version')}, 目标模型={prompt_data.get('model_target')}"
         )
 
         # 检查必要字段
@@ -284,7 +283,7 @@ class PromptService:
         if "is_active" not in prompt_data:
             prompt_data["is_active"] = True
 
-        async def _create_prompt(session: Session) -> Dict[str, Any]:
+        async def _create_prompt(session: Session):
             # 检查是否已存在
             existing = (
                 session.query(Prompt)
@@ -338,7 +337,7 @@ class PromptService:
         """
         logger.info(f"更新提示词: ID={prompt_id}")
 
-        async def _update_prompt(session: Session) -> Optional[Dict[str, Any]]:
+        async def _update_prompt(session: Session):
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None
@@ -399,7 +398,7 @@ class PromptService:
         """
         logger.info(f"删除提示词: ID={prompt_id}, 删除文件={delete_file}")
 
-        async def _delete_prompt(session: Session) -> Optional[Dict[str, Any]]:
+        async def _delete_prompt(session: Session):
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None
@@ -447,7 +446,7 @@ class PromptService:
         """
         logger.info(f"设置提示词活跃状态: ID={prompt_id}, 状态={is_active}")
 
-        async def _set_active(session: Session) -> Optional[Dict[str, Any]]:
+        async def _set_active(session: Session):
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None

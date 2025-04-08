@@ -227,8 +227,7 @@ async def fetch(
                     retry_delay = max(retry_delay, 5.0 * attempt)
 
                 logger.warning(
-                    f"请求失败，状态码: {response.status_code}，将在 {retry_delay:.2f} 秒后"
-                    f"进行第 {attempt}/{max_retries} 次重试"
+                    f"请求失败，状态码: {response.status_code}，将在 {retry_delay:.2f} 秒后进行第 {attempt}/{max_retries} 次重试"
                 )
 
                 # 等待延迟时间
@@ -251,8 +250,7 @@ async def fetch(
             retry_delay = 1.0 * (2 ** (attempt - 1))
 
             logger.warning(
-                f"请求异常: {type(e).__name__}: {str(e)}，将在 {retry_delay:.2f} 秒后"
-                f"进行第 {attempt}/{max_retries} 次重试"
+                f"请求异常: {type(e).__name__}: {str(e)}，将在 {retry_delay:.2f} 秒后进行第 {attempt}/{max_retries} 次重试"
             )
 
             # 等待延迟时间

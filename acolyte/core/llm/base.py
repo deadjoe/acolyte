@@ -290,8 +290,7 @@ class LlmClient(ABC):
 
             # 记录响应信息
             logger.debug(
-                f"{self.provider.capitalize()}响应: 状态码={response.status_code}, "
-                f"耗时={elapsed_time:.2f}秒"
+                f"{self.provider.capitalize()}响应: 状态码={response.status_code}, 耗时={elapsed_time:.2f}秒"
             )
 
             # 检查响应状态
@@ -302,8 +301,7 @@ class LlmClient(ABC):
         except Exception as e:
             elapsed_time = time.time() - start_time
             logger.error(
-                f"{self.provider.capitalize()}请求失败: {type(e).__name__}: {str(e)}, "
-                f"耗时={elapsed_time:.2f}秒"
+                f"{self.provider.capitalize()}请求失败: {type(e).__name__}: {str(e)}, 耗时={elapsed_time:.2f}秒"
             )
             raise
 

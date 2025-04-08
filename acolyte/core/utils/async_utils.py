@@ -7,7 +7,7 @@
 import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Awaitable, Callable, List, Optional, TypeVar
 
 from acolyte.utils.logging import get_logger
 
@@ -94,16 +94,14 @@ async def gather_with_concurrency(
     Args:
         n: 最大并发数，限制同时运行的任务数量
         tasks: 要执行的异步任务列表
-        return_exceptions: 当为True时，异常会作为结果返回而不是抛出；
-            当为False时，第一个异常会终止所有任务
+        return_exceptions: 当为True时，异常会作为结果返回而不是抛出；当为False时，第一个异常会终止所有任务
         timeout: 可选的超时时间（秒），如果指定，则所有任务必须在这个时间内完成，否则抛出超时异常
 
     Returns:
         List[Any]: 任务结果列表，顺序与输入任务相同
 
     Raises:
-        asyncio.TimeoutError: 如果指定了timeout并且任务没有在指定时间内完成
-            （当return_exceptions=False时）
+        asyncio.TimeoutError: 如果指定了timeout并且任务没有在指定时间内完成（当return_exceptions=False时）
         Exception: 如果任一任务抛出异常且return_exceptions=False
 
     Note:
@@ -112,7 +110,7 @@ async def gather_with_concurrency(
     """
     semaphore = asyncio.Semaphore(n)
 
-    async def sem_task(task: Awaitable[T]) -> T:
+    async def sem_task(task):
         async with semaphore:
             return await task
 
@@ -138,11 +136,11 @@ class AsyncTaskManager:
     管理和监控异步任务的执行。
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """初始化异步任务管理器"""
-        self.tasks: Dict[str, asyncio.Task[Any]] = {}
-        self.results: Dict[str, Any] = {}
-        self.callbacks: Dict[str, Callable[[Any], None]] = {}
+        self.tasks = {}
+        self.results = {}
+        self.callbacks = {}
 
     def add_task(
         self,
@@ -163,7 +161,7 @@ class AsyncTaskManager:
             return
 
         # 创建任务
-        task: asyncio.Task[Any] = asyncio.create_task(coro)
+        task = asyncio.create_task(coro)
         self.tasks[task_id] = task
         self.callbacks[task_id] = callback
 

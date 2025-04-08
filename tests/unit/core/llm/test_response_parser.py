@@ -10,7 +10,7 @@ from acolyte.core.llm.response import ResponseParser
 class TestResponseParser:
     """ResponseParser类的测试用例"""
 
-    def test_extract_scores_standard_format(self) -> None:
+    def test_extract_scores_standard_format(self):
         """测试从标准格式中提取评分"""
         # 准备测试数据
         text = """
@@ -32,7 +32,7 @@ class TestResponseParser:
         assert "hidden_intent_index" in scores
         assert "credibility_score" in scores
 
-    def test_extract_scores_alternative_format(self) -> None:
+    def test_extract_scores_alternative_format(self):
         """测试从备用格式中提取评分"""
         # 准备测试数据
         text = """
@@ -50,7 +50,7 @@ class TestResponseParser:
         # 我们只检查结果是否是一个字典
         assert isinstance(scores, dict)
 
-    def test_extract_scores_final_cs_format(self) -> None:
+    def test_extract_scores_final_cs_format(self):
         """测试从最终CS格式中提取评分"""
         # 准备测试数据
         text = """
@@ -70,7 +70,7 @@ class TestResponseParser:
         # 我们只检查结果是否是一个字典
         assert isinstance(scores, dict)
 
-    def test_extract_scores_list_format(self) -> None:
+    def test_extract_scores_list_format(self):
         """测试从列表格式中提取评分"""
         # 准备测试数据
         text = """
@@ -88,7 +88,7 @@ class TestResponseParser:
         # 我们只检查结果是否是一个字典
         assert isinstance(scores, dict)
 
-    def test_extract_scores_json_format(self) -> None:
+    def test_extract_scores_json_format(self):
         """测试从JSON格式中提取评分"""
         # 准备测试数据
         text = """
@@ -110,7 +110,7 @@ class TestResponseParser:
         # 我们只检查结果是否是一个字典
         assert isinstance(scores, dict)
 
-    def test_extract_scores_partial(self) -> None:
+    def test_extract_scores_partial(self):
         """测试部分评分提取"""
         # 准备测试数据
         text = """
@@ -128,7 +128,7 @@ class TestResponseParser:
         assert scores["hidden_intent_index"] is None
         assert scores["credibility_score"] is None
 
-    def test_extract_structured_content(self) -> None:
+    def test_extract_structured_content(self):
         """测试提取结构化内容"""
         # 准备测试数据
         text = """
@@ -151,7 +151,7 @@ class TestResponseParser:
         # 由于extract_structured_content的实现可能有所不同，我们只检查它是否返回了一个字典
         assert isinstance(content, dict)
 
-    def test_extract_limitations(self) -> None:
+    def test_extract_limitations(self):
         """测试提取分析局限项"""
         # 准备测试数据
         text = """
@@ -169,7 +169,7 @@ class TestResponseParser:
         assert isinstance(limitations, list)
         assert len(limitations) >= 1
 
-    def test_parse_base_response(self) -> None:
+    def test_parse_base_response(self):
         """测试解析基础响应"""
         # 准备测试数据
         text = """
@@ -220,7 +220,7 @@ class TestResponseParser:
         assert "hidden_intent_index" in result
         assert "credibility_score" in result
 
-    def test_parse_anthropic_response(self) -> None:
+    def test_parse_anthropic_response(self):
         """测试解析Anthropic响应"""
         # 准备测试数据
         text = """
@@ -243,7 +243,7 @@ class TestResponseParser:
         assert "hidden_intent_index" in result
         assert "credibility_score" in result
 
-    def test_parse_openai_response(self) -> None:
+    def test_parse_openai_response(self):
         """测试解析OpenAI响应"""
         # 准备测试数据
         text = """

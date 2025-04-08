@@ -8,11 +8,11 @@ import asyncio
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, ReviewerVote, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, ReviewerVote, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.task.processors.base import BaseTaskProcessor
@@ -44,7 +44,7 @@ class ReviewProcessor(BaseTaskProcessor):
     - 资源消耗更大，处理时间更长
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         """初始化评议处理器"""
         super().__init__()
         self.multiple_processor = MultipleLlmProcessor()
@@ -88,6 +88,7 @@ class ReviewProcessor(BaseTaskProcessor):
                 - error (str, 可选): 失败时包含错误信息
         """
         logger.info(f"开始多LLM评议处理: 任务ID={task_id}")
+        start_time = time.time()
 
         try:
             # 更新任务状态为处理中
@@ -325,7 +326,7 @@ class ReviewProcessor(BaseTaskProcessor):
             结果字典列表
         """
 
-        async def _get_results(session: Session) -> List[TaskResult]:
+        async def _get_results(session: Session):
             results = (
                 session.query(TaskResult)
                 .filter(TaskResult.task_id == task_id, TaskResult.id.in_(result_ids))
@@ -448,7 +449,7 @@ class ReviewProcessor(BaseTaskProcessor):
         reconstructed_reviewer = self._rebuild_llm_config(reviewer)
 
         # 创建处理函数
-        async def process_with_reviewer() -> Dict[str, Any]:
+        async def process_with_reviewer():
             try:
                 # 获取客户端
                 client = get_client_for_llm(reconstructed_reviewer)
@@ -463,15 +464,13 @@ class ReviewProcessor(BaseTaskProcessor):
                 result = await client.process_content(content=task_content, prompt=prompt_content)
 
                 logger.info(
-                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), "
-                    f"成功={result.get('success', False)}"
+                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), 成功={result.get('success', False)}"
                 )
                 return result
 
             except Exception as e:
                 logger.error(
-                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), "
-                    f"错误: {str(e)}"
+                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), 错误: {str(e)}"
                 )
                 raise
 
@@ -515,7 +514,7 @@ class ReviewProcessor(BaseTaskProcessor):
             votes: 投票列表，每项为(reviewer_id, vote_result)元组
         """
 
-        async def _save_vote_records(session: Session) -> List[ReviewerVote]:
+        async def _save_vote_records(session: Session):
             for reviewer_id, vote_result in votes:
                 if not vote_result:
                     continue
@@ -602,12 +601,12 @@ class ReviewProcessor(BaseTaskProcessor):
             投票统计字典，键为结果ID，值为票数
         """
 
-        async def _count_vote_records(session: Session) -> Dict[int, int]:
+        async def _count_vote_records(session: Session):
             # 查询所有投票记录
             votes = session.query(ReviewerVote).filter_by(task_id=task_id).all()
 
             # 统计票数
-            vote_counts: Dict[int, int] = {}
+            vote_counts = {}
             for vote in votes:
                 if vote.voted_result_id in result_ids:  # 确保投票的是有效结果
                     vote_counts[vote.voted_result_id] = vote_counts.get(vote.voted_result_id, 0) + 1
@@ -632,7 +631,7 @@ class ReviewProcessor(BaseTaskProcessor):
             设置是否成功
         """
 
-        async def _update_final_result(session: Session) -> bool:
+        async def _update_final_result(session: Session):
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
