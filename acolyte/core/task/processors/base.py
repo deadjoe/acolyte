@@ -28,7 +28,7 @@ class BaseTaskProcessor(ABC):
     提供任务处理的基础功能和共享方法。子类需要实现process方法。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化基础任务处理器"""
         self.prompt_manager = PromptManager()
 
@@ -56,7 +56,7 @@ class BaseTaskProcessor(ABC):
             任务数据字典，如果不存在则返回None
         """
 
-        async def _get_task(session: Session):
+        async def _get_task(session: Session) -> Optional[Dict]:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -79,7 +79,7 @@ class BaseTaskProcessor(ABC):
             任务数据字典，如果不存在则返回None
         """
 
-        async def _get_task_content(session: Session):
+        async def _get_task_content(session: Session) -> Optional[Dict]:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -109,7 +109,7 @@ class BaseTaskProcessor(ABC):
             提示词数据字典，如果不存在则返回None
         """
 
-        async def _get_prompt_data(session: Session):
+        async def _get_prompt_data(session: Session) -> Optional[Dict]:
             prompt = None
 
             # 如果指定了提示词ID，尝试获取
@@ -200,7 +200,7 @@ class BaseTaskProcessor(ABC):
             LLM配置数据字典，如果不存在则返回None
         """
 
-        async def _get_llm_data(session: Session):
+        async def _get_llm_data(session: Session) -> Optional[Dict]:
             llm = None
 
             # 如果指定了LLM ID，尝试获取
@@ -253,7 +253,7 @@ class BaseTaskProcessor(ABC):
         """
         logger.debug(f"开始获取任务 {task_id} 关联的LLM列表")
 
-        async def _get_llm_list(session: Session):
+        async def _get_llm_list(session: Session) -> List[Dict]:
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -330,7 +330,7 @@ class BaseTaskProcessor(ABC):
             评议者LLM配置数据字典列表
         """
 
-        async def _get_reviewer_list(session: Session):
+        async def _get_reviewer_list(session: Session) -> List[Dict]:
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -382,7 +382,7 @@ class BaseTaskProcessor(ABC):
             结果ID，保存失败则返回None
         """
 
-        async def _save_result_to_db(session: Session):
+        async def _save_result_to_db(session: Session) -> Optional[int]:
 
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()
@@ -497,7 +497,7 @@ class BaseTaskProcessor(ABC):
             更新是否成功
         """
 
-        async def _update_status(session: Session):
+        async def _update_status(session: Session) -> bool:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 logger.warning(f"更新状态失败: 任务不存在, ID={task_id}")

@@ -316,7 +316,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def sync_prompts(self, prompt_dir=None):
+    async def sync_prompts(self, prompt_dir=None) -> Dict[str, Any]:
         """同步Prompt
 
         Args:
@@ -334,7 +334,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_prompt(self, prompt_id: int):
+    async def get_prompt(self, prompt_id: int) -> Dict[str, Any]:
         """获取特定Prompt内容
 
         Args:
@@ -347,7 +347,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def delete_task(self, task_id: int):
+    async def delete_task(self, task_id: int) -> Dict[str, Any]:
         """删除特定任务
 
         Args:
@@ -360,7 +360,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def clear_tasks(self, confirm: bool = False, status: str = None):
+    async def clear_tasks(self, confirm: bool = False, status: str = None) -> Dict[str, Any]:
         """清空所有任务
 
         Args:
@@ -377,7 +377,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def export_config(self):
+    async def export_config(self) -> Dict[str, Any]:
         """导出配置到文件
 
         Returns:
@@ -387,7 +387,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def import_config(self, name: str = None):
+    async def import_config(self, name: str = None) -> Dict[str, Any]:
         """从配置文件导入LLM配置
 
         Args:
@@ -408,12 +408,12 @@ class AcolyteClient:
 class OrderedGroup(Group):
     """自定义命令组，用于控制命令的显示顺序"""
 
-    def __init__(self, name=None, commands=None, **attrs):
+    def __init__(self, name=None, commands=None, **attrs) -> None:
         super(OrderedGroup, self).__init__(name, commands, **attrs)
         # 定义命令的显示顺序
         self.command_order = []
 
-    def list_commands(self, _):
+    def list_commands(self, _) -> List[str]:
         """返回排序后的命令列表"""
         # 获取所有已注册的命令
         commands = self.commands.keys()
@@ -425,7 +425,7 @@ class OrderedGroup(Group):
             ),
         )
 
-    def get_command(self, _, cmd_name):
+    def get_command(self, _, cmd_name) -> Any:
         """获取命令"""
         return self.commands.get(cmd_name)
 

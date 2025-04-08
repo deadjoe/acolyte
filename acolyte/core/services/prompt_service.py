@@ -38,7 +38,7 @@ class PromptService:
     - 使用数据库会话进行数据存取
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         初始化提示词服务
 
@@ -77,7 +77,7 @@ class PromptService:
         """
         logger.info(f"获取提示词列表: 目标模型={model_target}, 版本={version}")
 
-        async def _get_prompts(session: Session):
+        async def _get_prompts(session: Session) -> list:
             query = session.query(Prompt)
 
             # 应用筛选条件
@@ -113,7 +113,7 @@ class PromptService:
         """
         logger.info(f"获取提示词: ID={prompt_id}")
 
-        async def _get_prompt(session: Session):
+        async def _get_prompt(session: Session) -> Optional[Dict]:
             prompt = session.query(Prompt).filter(Prompt.id == prompt_id).first()
             if not prompt:
                 return None
@@ -211,7 +211,7 @@ class PromptService:
                 result = self.prompt_manager.sync_prompt_files_to_db()
                 if result:
                     # 查询同步后的提示词数量
-                    async def _count_prompts(session: Session):
+                    async def _count_prompts(session: Session) -> int:
                         return session.query(Prompt).count()
 
                     count = await run_in_session(_count_prompts)
