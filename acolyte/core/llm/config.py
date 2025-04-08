@@ -13,9 +13,7 @@ from acolyte.utils.logging import get_logger
 logger = get_logger("acolyte.core.llm.config")
 
 
-def import_llm_config_from_file(
-    llm_name: Optional[str] = None
-) -> List[Dict]:
+def import_llm_config_from_file(llm_name: Optional[str] = None) -> List[Dict]:
     """从配置文件导入LLM配置
 
     Args:

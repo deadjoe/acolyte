@@ -150,10 +150,7 @@ class BaseTaskProcessor(ABC):
 
             # 获取最新的活跃提示词
             prompt = (
-                session.query(Prompt)
-                .filter(Prompt.is_active)
-                .order_by(Prompt.id.desc())
-                .first()
+                session.query(Prompt).filter(Prompt.is_active).order_by(Prompt.id.desc()).first()
             )
 
             if prompt:

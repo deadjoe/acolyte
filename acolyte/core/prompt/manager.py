@@ -348,9 +348,7 @@ class PromptManager:
             Optional[Prompt]: 匹配的Prompt对象，如果未找到则返回None
         """
         with db.session_scope() as session:
-            query = session.query(Prompt).filter(
-                Prompt.version == version, Prompt.is_active
-            )
+            query = session.query(Prompt).filter(Prompt.version == version, Prompt.is_active)
 
             if model_target:
                 query = query.filter(Prompt.model_target == model_target)
