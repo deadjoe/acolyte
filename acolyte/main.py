@@ -15,7 +15,7 @@ from acolyte.utils.logging import LOG_LEVELS, get_logger
 logger = get_logger(__name__)
 
 
-def main():
+def main() -> None:
     """启动API服务"""
     # 检查日志级别配置
     log_level = os.environ.get("ACOLYTE_LOG_LEVEL", "info").lower()
