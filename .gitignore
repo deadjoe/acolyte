@@ -24,6 +24,11 @@ var/
 venv/
 ENV/
 .env
+.venv/
+
+# Package management
+uv.lock
+.uv/
 
 # IDE
 .idea/
