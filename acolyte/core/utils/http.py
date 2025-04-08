@@ -124,7 +124,8 @@ class HttpClient:
 
                 elapsed_time = time.time() - start_time
                 logger.debug(
-                    f"HTTP响应: {method} {log_url} - 状态码: {response.status_code}, 耗时: {elapsed_time:.2f}秒"
+                    f"HTTP响应: {method} {log_url} - 状态码: {response.status_code}, "
+                    f"耗时: {elapsed_time:.2f}秒"
                 )
 
                 # 检查是否需要重试
@@ -151,14 +152,16 @@ class HttpClient:
                     wait_time = self.retry_delay * (2 ** (retry_count - 1))  # 指数退避
 
                     logger.warning(
-                        f"HTTP请求异常重试 ({retry_count}/{self.max_retries}): {method} {log_url} - "
+                        f"HTTP请求异常重试 ({retry_count}/{self.max_retries}): "
+                        f"{method} {log_url} - "
                         f"错误: {str(e)}, 等待时间: {wait_time:.2f}秒, 耗时: {elapsed_time:.2f}秒"
                     )
 
                     time.sleep(wait_time)
                 else:
                     logger.error(
-                        f"HTTP请求失败: {method} {log_url} - 错误: {str(e)}, 耗时: {elapsed_time:.2f}秒",
+                        f"HTTP请求失败: {method} {log_url} - "
+                        f"错误: {str(e)}, 耗时: {elapsed_time:.2f}秒",
                         exc_info=True,
                     )
                     raise
@@ -229,7 +232,8 @@ class HttpClient:
 
                 elapsed_time = time.time() - start_time
                 logger.debug(
-                    f"异步HTTP响应: {method} {log_url} - 状态码: {response.status_code}, 耗时: {elapsed_time:.2f}秒"
+                    f"异步HTTP响应: {method} {log_url} - "
+                    f"状态码: {response.status_code}, 耗时: {elapsed_time:.2f}秒"
                 )
 
                 # 检查是否需要重试
@@ -238,7 +242,8 @@ class HttpClient:
                     wait_time = self.retry_delay * (2 ** (retry_count - 1))  # 指数退避
 
                     logger.warning(
-                        f"异步HTTP请求重试 ({retry_count}/{self.max_retries}): {method} {log_url} - "
+                        f"异步HTTP请求重试 ({retry_count}/{self.max_retries}): "
+                        f"{method} {log_url} - "
                         f"状态码: {response.status_code}, 等待时间: {wait_time:.2f}秒"
                     )
 
@@ -256,14 +261,16 @@ class HttpClient:
                     wait_time = self.retry_delay * (2 ** (retry_count - 1))  # 指数退避
 
                     logger.warning(
-                        f"异步HTTP请求异常重试 ({retry_count}/{self.max_retries}): {method} {log_url} - "
+                        f"异步HTTP请求异常重试 ({retry_count}/{self.max_retries}): "
+                        f"{method} {log_url} - "
                         f"错误: {str(e)}, 等待时间: {wait_time:.2f}秒, 耗时: {elapsed_time:.2f}秒"
                     )
 
                     await asyncio.sleep(wait_time)
                 else:
                     logger.error(
-                        f"异步HTTP请求失败: {method} {log_url} - 错误: {str(e)}, 耗时: {elapsed_time:.2f}秒",
+                        f"异步HTTP请求失败: {method} {log_url} - "
+                        f"错误: {str(e)}, 耗时: {elapsed_time:.2f}秒",
                         exc_info=True,
                     )
                     raise
