@@ -8,7 +8,7 @@ import asyncio
 import time
 import traceback
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.orm import Session
 
@@ -41,7 +41,7 @@ class TaskService:
     - 使用数据库会话进行数据存取
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         初始化任务服务
 
@@ -154,7 +154,7 @@ class TaskService:
             创建的任务ID，创建失败则返回None
         """
 
-        async def _create_task(session: Session):
+        async def _create_task(session: Session) -> Optional[int]:
             # 创建任务对象
             new_task = Task(
                 content=content,
@@ -257,7 +257,7 @@ class TaskService:
             任务信息字典，如果不存在则返回None
         """
 
-        async def _get_task_data(session: Session):
+        async def _get_task_data(session: Session) -> Optional[Dict[str, Any]]:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -282,7 +282,7 @@ class TaskService:
         """
         logger.info(f"获取任务结果: ID={task_id}, 包含原始响应={include_raw_response}")
 
-        async def _get_results(session: Session):
+        async def _get_results(session: Session) -> Optional[Dict[str, Any]]:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 return None
@@ -291,7 +291,7 @@ class TaskService:
 
             # 检查是否有缺失指标
             for idx, result in enumerate(results):
-                missing_metrics = []
+                missing_metrics: List[str] = []
                 if result.bias_index is None:
                     missing_metrics.append("bias_index")
                 if result.misleading_index is None:
@@ -372,7 +372,7 @@ class TaskService:
             更新是否成功
         """
 
-        async def _update_status(session: Session):
+        async def _update_status(session: Session) -> bool:
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
                 logger.warning(f"更新状态失败: 任务不存在, ID={task_id}")
@@ -406,7 +406,7 @@ class TaskService:
         """
         logger.info(f"获取任务列表: 状态筛选={status}, 跳过={skip}, 限制={limit}")
 
-        async def _get_tasks(session: Session):
+        async def _get_tasks(session: Session) -> List[Dict[str, Any]]:
             query = session.query(Task)
 
             # 如果指定了状态，进行筛选
@@ -443,7 +443,7 @@ class TaskService:
         """
         logger.info(f"删除任务: ID={task_id}")
 
-        async def _delete_task(session: Session):
+        async def _delete_task(session: Session) -> bool:
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -478,7 +478,7 @@ class TaskService:
         """
         logger.info(f"清空任务, 状态筛选: {status}")
 
-        async def _clear_tasks(session: Session):
+        async def _clear_tasks(session: Session) -> Dict[str, int]:
             # 创建任务查询
             task_query = session.query(Task)
 

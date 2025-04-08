@@ -6,7 +6,7 @@
 
 import time
 import traceback
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.task.processors.multiple import MultipleLlmProcessor
@@ -25,7 +25,7 @@ class TaskProcessor:
     使用策略模式选择适合的处理器处理任务。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化任务处理器"""
         # 创建处理器
         self.processors = {

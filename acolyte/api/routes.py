@@ -437,7 +437,7 @@ async def import_config(name: Optional[str] = None) -> Dict[str, Any]:
 
 
 @router.post("/config/export")
-async def export_config():
+async def export_config() -> Dict[str, Any]:
     """将数据库中的LLM配置导出到配置文件"""
     logger.info("API请求: 导出LLM配置到配置文件")
 
@@ -471,7 +471,7 @@ async def get_prompts(model_target: Optional[str] = None, version: Optional[str]
 
 
 @router.get("/prompts/latest", response_model=PromptResponse)
-async def get_latest_prompt(model_target: Optional[str] = None):
+async def get_latest_prompt(model_target: Optional[str] = None) -> Dict[str, Any]:
     """获取最新版本的提示词"""
     prompt_service = PromptService()
     result = await prompt_service.get_latest_prompt(model_target=model_target)
@@ -524,7 +524,7 @@ async def update_prompt(prompt_id: int, prompt_data: PromptUpdate) -> PromptResp
 
 
 @router.delete("/prompts/{prompt_id}")
-async def delete_prompt(prompt_id: int, delete_file: bool = False):
+async def delete_prompt(prompt_id: int, delete_file: bool = False) -> Dict[str, Any]:
     """删除提示词"""
     prompt_service = PromptService()
     result = await prompt_service.delete_prompt(prompt_id, delete_file=delete_file)

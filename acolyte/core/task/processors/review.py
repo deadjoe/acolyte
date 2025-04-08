@@ -8,7 +8,7 @@ import asyncio
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -515,7 +515,7 @@ class ReviewProcessor(BaseTaskProcessor):
             votes: 投票列表，每项为(reviewer_id, vote_result)元组
         """
 
-        async def _save_vote_records(session: Session):
+        async def _save_vote_records(session: Session) -> List[ReviewerVote]:
             for reviewer_id, vote_result in votes:
                 if not vote_result:
                     continue
@@ -607,7 +607,7 @@ class ReviewProcessor(BaseTaskProcessor):
             votes = session.query(ReviewerVote).filter_by(task_id=task_id).all()
 
             # 统计票数
-            vote_counts = {}
+            vote_counts: Dict[int, int] = {}
             for vote in votes:
                 if vote.voted_result_id in result_ids:  # 确保投票的是有效结果
                     vote_counts[vote.voted_result_id] = vote_counts.get(vote.voted_result_id, 0) + 1

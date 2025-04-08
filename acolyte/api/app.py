@@ -6,7 +6,7 @@ import json
 import os
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -69,7 +69,7 @@ app.add_middleware(
 
 
 class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
+    async def dispatch(self, request: Any, call_next: Any) -> Any:
         # 记录请求信息
         logger.debug(f"收到请求: {request.method} {request.url.path}")
 
@@ -96,7 +96,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
 
         # 创建具有相同主体的新请求
 
-        async def receive():
+        async def receive() -> Dict[str, Any]:
             return {"type": "http.request", "body": body}
 
         request._receive = receive
@@ -168,7 +168,7 @@ async def shutdown_event() -> None:
 
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, Any]:
     """API根路径响应"""
     logger.debug("访问API根路径")
     return {"message": "Acolyte内容分析评估系统API", "version": "0.1.0", "docs_url": "/docs"}
