@@ -37,7 +37,8 @@ class AcolyteClient:
         """
         self.base_url = base_url or os.environ.get("ACOLYTE_API_URL", "http://localhost:8000/api")
         logger.info(f"初始化API客户端: {self.base_url}")
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=60.0)
+        # 确保base_url不为None，避免类型错误
+        self.client = httpx.AsyncClient(base_url=str(self.base_url), timeout=60.0)
 
     async def close(self) -> None:
         """关闭客户端连接"""
@@ -55,7 +56,9 @@ class AcolyteClient:
             # 尝试访问API根端点
             # 注意：API的根端点在 http://localhost:8000/，而不是 http://localhost:8000/api/
             # 所以我们需要使用绝对URL而不是相对路径
-            base_url_parts = self.base_url.split("/api")
+            # 确保基础URL不为None
+            base_url = str(self.base_url)  # 将Optional[str]转换为str
+            base_url_parts = base_url.split("/api")
             root_url = base_url_parts[0]  # 获取没有/api的基础URL
             logger.debug(f"访问根端点: {root_url}")
 
@@ -64,7 +67,8 @@ class AcolyteClient:
                 response = await client.get(root_url)
                 response.raise_for_status()
                 logger.debug("API服务连接正常")
-                return True, None
+                # 返回空字符串而不是None，以符合返回类型注解
+                return True, ""
         except httpx.ConnectError as e:
             logger.error(f"无法连接到API服务: {str(e)}")
             return False, "无法连接到API服务，请确保服务已启动（运行 'uv run -m acolyte.main'）"
@@ -87,7 +91,9 @@ class AcolyteClient:
         logger.debug("获取系统信息")
         try:
             # 尝试从根端点获取基本信息
-            base_url_parts = self.base_url.split("/api")
+            # 确保基础URL不为None
+            base_url = str(self.base_url)  # 将Optional[str]转换为str
+            base_url_parts = base_url.split("/api")
             root_url = base_url_parts[0]  # 获取没有/api的基础URL
             logger.debug(f"访问根端点获取版本信息: {root_url}")
 
@@ -160,9 +166,11 @@ class AcolyteClient:
             "processing_mode": mode,
         }
         if llm_ids:
-            data["llm_ids"] = llm_ids
+            # 确保类型兼容，将list[int]转换为JSON兼容的列表
+            data["llm_ids"] = [int(id) for id in llm_ids]
         if prompt_id:
-            data["prompt_id"] = prompt_id
+            # 确保类型兼容，将int转换为JSON兼容的整数
+            data["prompt_id"] = int(prompt_id)
 
         try:
             response = await self.client.post("/tasks", json=data)
@@ -370,7 +378,8 @@ class AcolyteClient:
         Returns:
             清空结果
         """
-        params = {"confirm": confirm}
+        # 确保类型兼容，将bool转换为字符串
+        params = {"confirm": str(confirm).lower()}
         if status:
             params["status"] = status
         response = await self.client.delete("/tasks", params=params)
@@ -509,7 +518,7 @@ def status() -> None:
 @click.option("--llm-config", "-c", help="从配置文件使用的LLM名称")
 @click.option("--prompt", "-p", type=int, help="Prompt ID")
 @click.option("--wait/--no-wait", default=True, help="是否等待处理完成")
-def analyze(file, text, mode, llm, llm_config, prompt, wait) -> None:
+def analyze(file: Optional[str], text: Optional[str], mode: str, llm: Tuple[int, ...], llm_config: Optional[str], prompt: Optional[int], wait: bool) -> None:
     """分析内容
 
     可以通过文件或直接提供文本内容进行分析。
@@ -645,7 +654,8 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait) -> None:
                                 check_interval = 2  # 重置为初始检查间隔
                             else:
                                 # 状态未变化时，逐渐增加检查间隔，但不超过最大值
-                                check_interval = min(check_interval * 1.5, max_check_interval)
+                                # 将浮点数转换为整数
+                                check_interval = int(min(check_interval * 1.5, max_check_interval))
 
                             logger.debug(
                                 f"任务状态检查 #{status_check_count}: {task_status}，"
@@ -668,7 +678,11 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait) -> None:
                         final_result = await client.get_task_final_result(task_id)
                         logger.info("成功获取任务最终结果")
                         # 显示结果
-                        _display_result(final_result)
+                        # 确保结果不为None再显示
+                        if final_result is not None:
+                            _display_result(final_result)
+                        else:
+                            console.print("[bold yellow]警告:[/] 未能获取到结果数据")
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 404:
                             logger.warning(f"任务 {task_id} 无最终结果，尝试获取所有结果")
@@ -766,7 +780,9 @@ def history() -> None:
 # 在所有history命令定义完成后设置显示顺序
 # 这个函数将在模块定义结束时执行
 def _set_history_command_order() -> None:
-    history.command_order = [
+    # 使用hasattr检查是否有command_order属性，避免类型错误
+    if hasattr(history, "command_order"):
+        history.command_order = [
         "list",  # 列出历史任务
         "show",  # 显示任务结果
         "delete",  # 删除任务
@@ -798,9 +814,11 @@ def list(status: Optional[str], limit: int) -> None:
                 return
 
             # 构建API请求参数
-            params = {"limit": limit}
+            # 确保类型兼容，将参数转换为正确的类型
+            params = {"limit": int(limit)}
             if status:
-                params["status"] = status
+                # 确保类型兼容，将状态转换为字符串
+                params["status"] = str(status)
 
             # 获取任务列表
             with console.status("[bold green]获取历史记录中...[/]"):
@@ -979,7 +997,9 @@ register_show_command(history)
 def config() -> None:
     """配置管理"""
     # 设置config命令组中命令的显示顺序
-    config.command_order = [
+    # 使用hasattr检查是否有command_order属性，避免类型错误
+    if hasattr(config, "command_order"):
+        config.command_order = [
         # LLM相关命令
         "list-llms",
         "add-llm",
