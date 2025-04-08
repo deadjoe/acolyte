@@ -4,6 +4,7 @@
 
 import enum
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -17,6 +18,7 @@ from sqlalchemy import (
     Table,
     Text,
     create_engine,
+    Engine,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -118,7 +120,7 @@ class LlmConfig(Base):
     api_key = Column(String(255), nullable=False)
     base_url = Column(String(255), nullable=False)
     model_name = Column(String(100), nullable=False)
-    role = Column(Enum(LlmRole), default=LlmRole.NORMAL)
+    role: Column = Column(Enum(LlmRole), default=LlmRole.NORMAL)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -128,7 +130,7 @@ class LlmConfig(Base):
     tasks = relationship("Task", secondary=task_llm_association, back_populates="llm_configs")
     reviewer_votes = relationship("ReviewerVote", back_populates="reviewer")
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """转换为字典，不包含关系和日期"""
         return {
             "id": self.id,
@@ -162,7 +164,7 @@ class Prompt(Base):
     # 关系
     tasks = relationship("Task", back_populates="prompt")
 
-    def to_dict(self, include_content=False):
+    def to_dict(self, include_content: bool = False) -> Dict[str, Any]:
         """转换为字典，不包含关系和日期"""
         result = {
             "id": self.id,
@@ -200,7 +202,7 @@ class TaskResult(Base):
     llm_config = relationship("LlmConfig", back_populates="task_results")
     votes = relationship("ReviewerVote", back_populates="voted_result")
 
-    def to_dict(self, include_raw_response=False):
+    def to_dict(self, include_raw_response: bool = False) -> Dict[str, Any]:
         """转换为字典，不包含关系和日期"""
         result = {
             "id": self.id,
@@ -225,8 +227,8 @@ class Task(Base):
 
     id = Column(Integer, primary_key=True)
     content = Column(Text, nullable=False)
-    processing_mode = Column(Enum(ProcessingMode), nullable=False)
-    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+    processing_mode: Column = Column(Enum(ProcessingMode), nullable=False)
+    status: Column = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
     prompt_id = Column(Integer, ForeignKey("prompts.id"))
     final_result_id = Column(Integer, ForeignKey("task_results.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -239,7 +241,7 @@ class Task(Base):
     llm_configs = relationship("LlmConfig", secondary=task_llm_association, back_populates="tasks")
     reviewer_votes = relationship("ReviewerVote", back_populates="task")
 
-    def to_dict(self, include_content=True):
+    def to_dict(self, include_content: bool = True) -> Dict[str, Any]:
         """转换为字典，不包含关系和日期"""
         result = {
             "id": self.id,
@@ -278,14 +280,14 @@ class ReviewerVote(Base):
 
 
 # 数据库连接和会话
-def get_engine(db_url="sqlite:///acolyte.db"):
+def get_engine(db_url: str = "sqlite:///acolyte.db") -> Engine:
     return create_engine(db_url)
 
 
-def get_session_maker(engine):
+def get_session_maker(engine: Engine) -> sessionmaker:
     return sessionmaker(bind=engine)
 
 
-def init_db(engine):
+def init_db(engine: Engine) -> None:
     """初始化数据库"""
     Base.metadata.create_all(engine)
