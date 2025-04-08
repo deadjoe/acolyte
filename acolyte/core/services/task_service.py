@@ -198,7 +198,8 @@ class TaskService:
                 if len(llms) != len(unique_llm_ids):
                     missing_ids = set(unique_llm_ids) - set(llm.id for llm in llms)
                     logger.warning(
-                        f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配"
+                        f"请求的LLM数量 ({len(unique_llm_ids)}) "
+                        f"与找到的LLM数量 ({len(llms)}) 不匹配"
                     )
                     logger.warning(f"未找到的LLM IDs: {missing_ids}")
 
@@ -302,7 +303,8 @@ class TaskService:
 
                 if missing_metrics:
                     logger.warning(
-                        f"任务结果 #{idx+1} (ID={result.id}) 缺少以下指标: {', '.join(missing_metrics)}"
+                        f"任务结果 #{idx+1} (ID={result.id}) 缺少以下指标: "
+                        f"{', '.join(missing_metrics)}"
                     )
 
             return [r.to_dict(include_raw_response=include_raw_response) for r in results]
@@ -339,7 +341,8 @@ class TaskService:
             # 处理完成后记录时间
             elapsed_time = time.time() - start_time
             logger.info(
-                f"任务处理完成: ID={task_id}, 耗时={elapsed_time:.2f}秒, 结果: {result.get('success', False)}"
+                f"任务处理完成: ID={task_id}, 耗时={elapsed_time:.2f}秒, "
+                f"结果: {result.get('success', False)}"
             )
 
             return result

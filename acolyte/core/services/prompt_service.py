@@ -244,7 +244,8 @@ class PromptService:
             创建的提示词信息
         """
         logger.info(
-            f"创建提示词: 版本={prompt_data.get('version')}, 目标模型={prompt_data.get('model_target')}"
+            f"创建提示词: 版本={prompt_data.get('version')}, "
+            f"目标模型={prompt_data.get('model_target')}"
         )
 
         # 检查必要字段

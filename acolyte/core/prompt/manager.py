@@ -205,7 +205,8 @@ class PromptManager:
             with db.session_scope() as session:
                 for prompt_info in prompt_files:
                     logger.info(
-                        f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}"
+                        f"处理prompt: {prompt_info['filename']}, "
+                        f"版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}"
                     )
 
                     try:
@@ -294,7 +295,8 @@ class PromptManager:
                     ).first()
                     if model_specific_prompt:
                         logger.info(
-                            f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}"
+                            f"找到针对模型 {model_target} 的prompt: "
+                            f"ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}"
                         )
                         return model_specific_prompt
                     logger.info(f"未找到针对模型 {model_target} 的特定prompt，寻找通用prompt")
@@ -313,7 +315,8 @@ class PromptManager:
                 first_prompt = query.first()
                 if first_prompt:
                     logger.info(
-                        f"找到第一个活跃prompt: ID={first_prompt.id}, 版本={first_prompt.version}, 目标={first_prompt.model_target}"
+                        f"找到第一个活跃prompt: ID={first_prompt.id}, "
+                        f"版本={first_prompt.version}, 目标={first_prompt.model_target}"
                     )
                     return first_prompt
                 else:

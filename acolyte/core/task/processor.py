@@ -74,7 +74,8 @@ class TaskProcessor:
                 )
             else:
                 logger.error(
-                    f"任务处理失败: ID={task_id}, 模式={processing_mode}, 耗时={elapsed_time:.2f}秒, 错误: {result.get('error', '未知错误')}"
+                    f"任务处理失败: ID={task_id}, 模式={processing_mode}, "
+                    f"耗时={elapsed_time:.2f}秒, 错误: {result.get('error', '未知错误')}"
                 )
 
             # 返回结果

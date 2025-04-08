@@ -138,7 +138,8 @@ class BaseTaskProcessor(ABC):
 
                 if model_prompt:
                     logger.info(
-                        f"使用适用于模型 {model_name} 的提示词: ID={model_prompt.id}, 版本={model_prompt.version}"
+                        f"使用适用于模型 {model_name} 的提示词: "
+                        f"ID={model_prompt.id}, 版本={model_prompt.version}"
                     )
                     data = extract_model_data(model_prompt, include_relationships=False)
                     # 确保包含content字段
@@ -229,7 +230,8 @@ class BaseTaskProcessor(ABC):
             any_llm = session.query(LlmConfig).order_by(LlmConfig.id.asc()).first()
             if any_llm:
                 logger.info(
-                    f"使用第一个可用的LLM: ID={any_llm.id}, 名称={any_llm.name}, 模型={any_llm.model_name}"
+                    f"使用第一个可用的LLM: ID={any_llm.id}, "
+                    f"名称={any_llm.name}, 模型={any_llm.model_name}"
                 )
                 return extract_model_data(any_llm, include_relationships=False)
 
@@ -262,7 +264,9 @@ class BaseTaskProcessor(ABC):
                 return []
 
             logger.debug(
-                f"找到任务: ID={task_id}, 处理模式={task.processing_mode.value if task.processing_mode else 'None'}, 状态={task.status.value if task.status else 'None'}"
+                f"找到任务: ID={task_id}, "
+                f"处理模式={task.processing_mode.value if task.processing_mode else 'None'}, "
+                f"状态={task.status.value if task.status else 'None'}"
             )
 
             # 获取关联的LLM
@@ -278,7 +282,8 @@ class BaseTaskProcessor(ABC):
                 llm_data = extract_model_data(llm_assoc, include_relationships=False)
                 llms.append(llm_data)
                 logger.debug(
-                    f"提取LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
+                    f"提取LLM数据: ID={llm_data.get('id')}, "
+                    f"名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
                 )
 
             if not llms:
@@ -296,7 +301,8 @@ class BaseTaskProcessor(ABC):
                         llm_data = extract_model_data(llm, include_relationships=False)
                         llms.append(llm_data)
                         logger.debug(
-                            f"提取普通角色LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}"
+                            f"提取普通角色LLM数据: ID={llm_data.get('id')}, "
+                            f"名称={llm_data.get('name')}"
                         )
 
                     logger.info(f"找到 {len(llms)} 个普通角色的LLM")
@@ -416,7 +422,8 @@ class BaseTaskProcessor(ABC):
 
             # 记录提取到的评分
             logger.debug(
-                f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}"
+                f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, "
+                f"MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}"
             )
 
             # 检查是否有缺失的评分
@@ -464,7 +471,8 @@ class BaseTaskProcessor(ABC):
 
                 if old_final_result_id:
                     logger.info(
-                        f"更新任务最终结果: 任务ID={task_id}, 旧结果ID={old_final_result_id}, 新结果ID={task_result.id}"
+                        f"更新任务最终结果: 任务ID={task_id}, "
+                        f"旧结果ID={old_final_result_id}, 新结果ID={task_result.id}"
                     )
                 else:
                     logger.info(f"设置任务最终结果: 任务ID={task_id}, 结果ID={task_result.id}")

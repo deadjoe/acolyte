@@ -463,13 +463,15 @@ class ReviewProcessor(BaseTaskProcessor):
                 result = await client.process_content(content=task_content, prompt=prompt_content)
 
                 logger.info(
-                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), 成功={result.get('success', False)}"
+                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), "
+                    f"成功={result.get('success', False)}"
                 )
                 return result
 
             except Exception as e:
                 logger.error(
-                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), 错误: {str(e)}"
+                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), "
+                    f"错误: {str(e)}"
                 )
                 raise
 
