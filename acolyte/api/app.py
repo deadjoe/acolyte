@@ -105,7 +105,8 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             # 记录响应状态
             logger.debug(
-                f"请求处理完成: {request.method} {request.url.path} - 状态码: {response.status_code}"
+                f"请求处理完成: {request.method} {request.url.path} - "
+                f"状态码: {response.status_code}"
             )
             return response
         except Exception as e:

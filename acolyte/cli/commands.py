@@ -473,7 +473,8 @@ def status():
                 console.print("[bold red]状态:[/] API服务不可用")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
         finally:
             await client.close()
@@ -634,7 +635,8 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                                 check_interval = min(check_interval * 1.5, max_check_interval)
 
                             logger.debug(
-                                f"任务状态检查 #{status_check_count}: {task_status}，下次检查间隔: {check_interval:.1f}秒"
+                                f"任务状态检查 #{status_check_count}: {task_status}，"
+                                f"下次检查间隔: {check_interval:.1f}秒"
                             )
 
                             # 更新进度条描述
@@ -674,7 +676,8 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                                 console.print(f"[bold red]获取任务结果失败:[/] {str(e2)}")
                         else:
                             logger.error(
-                                f"获取任务最终结果失败: 状态码={e.response.status_code}, 错误={e.response.text}",
+                                f"获取任务最终结果失败: 状态码={e.response.status_code}, "
+                                f"错误={e.response.text}",
                                 exc_info=True,
                             )
                             console.print(f"[bold red]获取任务最终结果失败:[/] {str(e)}")

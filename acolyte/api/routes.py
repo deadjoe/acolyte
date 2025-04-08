@@ -190,7 +190,8 @@ async def get_llm(llm_id: int):
 async def update_llm(llm_id: int, llm_config: LlmConfigUpdate):
     """更新LLM配置"""
     logger.info(
-        f"API请求: 更新LLM配置, ID={llm_id}, 更新字段={list(llm_config.dict(exclude_unset=True).keys())}"
+        f"API请求: 更新LLM配置, ID={llm_id}, "
+        f"更新字段={list(llm_config.dict(exclude_unset=True).keys())}"
     )
 
     llm_service = LlmService()
@@ -270,7 +271,8 @@ async def set_default_llm(llm_id: int):
 async def create_task(task_data: TaskCreate):
     """创建新任务"""
     logger.info(
-        f"API请求: 创建任务, 处理模式={task_data.processing_mode}, 内容长度={len(task_data.content)}字符"
+        f"API请求: 创建任务, 处理模式={task_data.processing_mode}, "
+        f"内容长度={len(task_data.content)}字符"
     )
 
     task_service = TaskService()
