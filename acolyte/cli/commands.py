@@ -517,7 +517,8 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 console.print("[yellow]日志信息:[/] 查看 logs 目录中的日志文件获取更多信息")
                 return
@@ -779,7 +780,8 @@ def list(status, limit):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -860,7 +862,8 @@ def delete(task_id):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -923,7 +926,8 @@ def clear(status, force):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -994,7 +998,8 @@ def list_llms():
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1044,7 +1049,8 @@ def set_default(llm_id):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保API服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保API服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1084,7 +1090,8 @@ def delete_llm(llm_id):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1165,7 +1172,8 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1221,7 +1229,8 @@ def export_config():
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1252,7 +1261,8 @@ def import_config(name):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1300,7 +1310,8 @@ def list_prompts():
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1348,7 +1359,8 @@ def sync_prompts(prompt_dir):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1388,7 +1400,8 @@ def show_prompt(prompt_id):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
@@ -1460,7 +1473,8 @@ def delete_prompt(prompt_id, delete_file, force):
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
-                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                    "[yellow]提示:[/] 请确保 API 服务已启动，"
+                    "可以运行 'uv run -m acolyte.main' 启动服务"
                 )
                 return
 
