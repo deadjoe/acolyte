@@ -150,7 +150,8 @@ class GeminiClient(LlmClient):
         logger.debug(f"Gemini API请求数据: {json.dumps(data, ensure_ascii=False)[:500]}...")
 
         logger.debug(
-            f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, user_prompt长度={len(user_prompt)}字符"
+            f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, "
+            f"user_prompt长度={len(user_prompt)}字符"
         )
 
         # 准备请求头
@@ -180,7 +181,8 @@ class GeminiClient(LlmClient):
                 )
                 logger.debug(f"Gemini API响应内容长度: {len(response.text)}字符")
                 logger.debug(
-                    f"Gemini API响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}"
+                    f"Gemini API响应JSON键: "
+                    f"{list(result.keys()) if isinstance(result, dict) else '非字典'}"
                 )
             except json.JSONDecodeError as e:
                 logger.error(f"Gemini API响应不是有效的JSON: {str(e)}")

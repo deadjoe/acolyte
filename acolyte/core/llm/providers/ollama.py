@@ -73,7 +73,10 @@ class OllamaClient(LlmClient):
 
         try:
             # Prepare prompt
-            system_prompt = "You are a content analyst specializing in detecting bias, misleading information, and hidden intent."
+            system_prompt = (
+                "You are a content analyst specializing in detecting bias, "
+                "misleading information, and hidden intent."
+            )
             user_prompt = self._prepare_prompt(content, prompt)
 
             # Call API
@@ -168,7 +171,8 @@ class OllamaClient(LlmClient):
                     # 记录响应解析
                     parse_time = time.time() - start_time - request_time
                     logger.debug(
-                        f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, 总耗时={(time.time()-start_time):.2f}秒"
+                        f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, "
+                        f"总耗时={(time.time()-start_time):.2f}秒"
                     )
 
                     return {
