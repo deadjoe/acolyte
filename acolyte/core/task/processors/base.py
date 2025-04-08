@@ -131,7 +131,7 @@ class BaseTaskProcessor(ABC):
                 # 直接在当前会话中查询，避免使用prompt_manager
                 model_prompt = (
                     session.query(Prompt)
-                    .filter(Prompt.model_target == model_name, Prompt.is_active == True)
+                    .filter(Prompt.model_target == model_name, Prompt.is_active)
                     .order_by(Prompt.version.desc())
                     .first()
                 )
@@ -150,7 +150,7 @@ class BaseTaskProcessor(ABC):
             # 获取最新的活跃提示词
             prompt = (
                 session.query(Prompt)
-                .filter(Prompt.is_active == True)
+                .filter(Prompt.is_active)
                 .order_by(Prompt.id.desc())
                 .first()
             )

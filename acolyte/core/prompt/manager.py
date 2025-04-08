@@ -285,7 +285,7 @@ class PromptManager:
                 logger.info(
                     f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}"
                 )
-                query = session.query(Prompt).filter(Prompt.is_active == True)
+                query = session.query(Prompt).filter(Prompt.is_active)
 
                 # 如果指定了模型目标，优先获取针对该模型的prompt
                 if model_target:
@@ -346,7 +346,7 @@ class PromptManager:
         """
         with db.session_scope() as session:
             query = session.query(Prompt).filter(
-                Prompt.version == version, Prompt.is_active == True
+                Prompt.version == version, Prompt.is_active
             )
 
             if model_target:

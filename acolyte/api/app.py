@@ -9,6 +9,8 @@ from enum import Enum
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from acolyte.api.routes import router
 from acolyte.core.db.database import db
@@ -30,7 +32,6 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 # 重写默认的JSON响应类
-from fastapi.responses import JSONResponse
 
 
 class FastAPICustomJSONResponse(JSONResponse):
@@ -64,7 +65,6 @@ app.add_middleware(
 )
 
 # 添加自定义中间件处理响应
-from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
@@ -86,7 +86,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
                 body_text = body.decode("utf-8")
                 json_body = json.loads(body_text)
                 logger.debug(f"请求体(JSON): {json_body}")
-            except:
+            except (json.JSONDecodeError, UnicodeDecodeError):
                 # 如果不是JSON，显示原始内容
                 if len(body) < 500:
                     logger.debug(f"请求体(原始): {body}")

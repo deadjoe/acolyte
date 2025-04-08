@@ -16,6 +16,7 @@ from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
 
+from acolyte.cli.history_show import register_command as register_show_command
 from acolyte.utils.logging import get_logger
 
 # 创建日志记录器
@@ -950,9 +951,6 @@ def clear(status, force):
     # 运行异步函数
     asyncio.run(_clear())
 
-
-# 导入并使用history_show模块中的函数
-from acolyte.cli.history_show import register_command as register_show_command
 
 # 注册命令
 register_show_command(history)

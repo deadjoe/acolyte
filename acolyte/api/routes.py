@@ -397,7 +397,7 @@ async def get_task_final_result(task_id: int, include_raw_response: bool = False
         raise
     except Exception as e:
         logger.error(f"API错误: 获取任务最终结果失败, ID={task_id}, 错误={str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"获取任务最终结果失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取任务最终结果失败: {str(e)}") from e
 
 
 # 配置路由
@@ -431,7 +431,7 @@ async def import_config(name: Optional[str] = None):
         }
     except Exception as e:
         logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}") from e
 
 
 @router.post("/config/export")
@@ -452,7 +452,7 @@ async def export_config():
             raise HTTPException(status_code=500, detail="LLM配置导出失败")
     except Exception as e:
         logger.error(f"导出LLM配置失败: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}") from e
 
 
 # 提示词路由
