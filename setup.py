@@ -2,11 +2,16 @@
 Acolyte安装配置
 """
 
+import re
 from setuptools import find_packages, setup
+
+# 从__init__.py文件中提取版本号
+with open("acolyte/__init__.py", "r", encoding="utf-8") as f:
+    version = re.search(r'__version__ = "(.*?)"', f.read()).group(1)
 
 setup(
     name="acolyte",
-    version="0.1.0",
+    version=version,
     description="内容分析评估系统",
     author="Acolyte Team",
     packages=find_packages(),

@@ -10,6 +10,7 @@ from enum import Enum
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from acolyte import __version__
 from acolyte.api.routes import router
 from acolyte.core.db.database import db
 from acolyte.core.prompt.manager import PromptManager
@@ -50,7 +51,7 @@ class FastAPICustomJSONResponse(JSONResponse):
 app = FastAPI(
     title="Acolyte API",
     description="内容分析评估系统API",
-    version="0.1.0",
+    version=__version__,
     default_response_class=FastAPICustomJSONResponse,
 )
 
@@ -169,4 +170,4 @@ async def shutdown_event():
 async def root():
     """API根路径响应"""
     logger.debug("访问API根路径")
-    return {"message": "Acolyte内容分析评估系统API", "version": "0.1.0", "docs_url": "/docs"}
+    return {"message": "Acolyte内容分析评估系统API", "version": __version__, "docs_url": "/docs"}

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import uvicorn
 
+from acolyte import __version__
 from acolyte.utils.logging import LOG_LEVELS, get_logger
 
 # 获取模块日志记录器
@@ -38,7 +39,7 @@ def main():
     logger.info("=" * 40)
     logger.info("Acolyte内容分析评估系统启动")
     logger.info("-" * 40)
-    logger.info("应用版本: 0.1.0")
+    logger.info(f"应用版本: {__version__}")
     logger.info(f"Python版本: {sys.version}")
     logger.info(f"系统平台: {sys.platform}")
     logger.info(f"主机名: {socket.gethostname()}")
