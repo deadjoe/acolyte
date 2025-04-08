@@ -4,7 +4,7 @@ API路由定义
 使用FastAPI定义API端点，处理请求和响应，但将业务逻辑委托给服务层。
 """
 
-from typing import List, Optional
+from typing import Any, Dict, Generator, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 # 获取数据库会话依赖
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     with db.session_scope() as session:
         yield session
 
@@ -132,7 +132,7 @@ class PromptResponse(BaseModel):
 
 # LLM配置路由
 @router.post("/llms", response_model=LlmConfigResponse)
-async def create_llm(llm_config: LlmConfigCreate):
+async def create_llm(llm_config: LlmConfigCreate) -> LlmConfigResponse:
     """创建新的LLM配置"""
     logger.info(f"API请求: 创建LLM配置, 名称={llm_config.name}, 模型={llm_config.model_name}")
 
@@ -363,11 +363,11 @@ async def get_task_results(task_id: int, include_raw_response: bool = False):
 
 
 @router.get("/tasks/{task_id}/final-result", response_model=TaskResultResponse)
-async def get_task_final_result(task_id: int, include_raw_response: bool = False):
+async def get_task_final_result(task_id: int, include_raw_response: bool = False) -> TaskResultResponse:
     """获取任务最终结果"""
     logger.info(f"API请求: 获取任务最终结果, ID={task_id}, 包含原始响应={include_raw_response}")
 
-    async def _get_final_result(session: Session):
+    async def _get_final_result(session: Session) -> Optional[Dict[str, Any]]:
         task = session.query(Task).filter_by(id=task_id).first()
         if not task:
             logger.warning(f"任务不存在: ID={task_id}")
@@ -499,7 +499,7 @@ async def get_prompt(prompt_id: int):
 
 
 @router.post("/prompts", response_model=PromptResponse)
-async def create_prompt(prompt_data: PromptCreate):
+async def create_prompt(prompt_data: PromptCreate) -> PromptResponse:
     """创建新提示词"""
     prompt_service = PromptService()
     result = await prompt_service.create_prompt(prompt_data.dict())
@@ -511,7 +511,7 @@ async def create_prompt(prompt_data: PromptCreate):
 
 
 @router.put("/prompts/{prompt_id}", response_model=PromptResponse)
-async def update_prompt(prompt_id: int, prompt_data: PromptUpdate):
+async def update_prompt(prompt_id: int, prompt_data: PromptUpdate) -> PromptResponse:
     """更新提示词"""
     prompt_service = PromptService()
     result = await prompt_service.update_prompt(prompt_id, prompt_data.dict(exclude_unset=True))
@@ -576,7 +576,7 @@ async def sync_prompts(request_data: Optional[PromptSyncRequest] = None):
 
 
 @router.patch("/prompts/{prompt_id}/status")
-async def set_prompt_status(prompt_id: int, is_active: bool):
+async def set_prompt_status(prompt_id: int, is_active: bool) -> Dict[str, Any]:
     """设置提示词活跃状态"""
     prompt_service = PromptService()
     result = await prompt_service.set_active_status(prompt_id, is_active)
