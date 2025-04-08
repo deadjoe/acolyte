@@ -94,14 +94,16 @@ async def gather_with_concurrency(
     Args:
         n: 最大并发数，限制同时运行的任务数量
         tasks: 要执行的异步任务列表
-        return_exceptions: 当为True时，异常会作为结果返回而不是抛出；当为False时，第一个异常会终止所有任务
+        return_exceptions: 当为True时，异常会作为结果返回而不是抛出；
+            当为False时，第一个异常会终止所有任务
         timeout: 可选的超时时间（秒），如果指定，则所有任务必须在这个时间内完成，否则抛出超时异常
 
     Returns:
         List[Any]: 任务结果列表，顺序与输入任务相同
 
     Raises:
-        asyncio.TimeoutError: 如果指定了timeout并且任务没有在指定时间内完成（当return_exceptions=False时）
+        asyncio.TimeoutError: 如果指定了timeout并且任务没有在指定时间内完成
+            （当return_exceptions=False时）
         Exception: 如果任一任务抛出异常且return_exceptions=False
 
     Note:
