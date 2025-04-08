@@ -4,7 +4,7 @@ LLM配置加载和保存
 
 from typing import Dict, List, Optional
 
-from acolyte.config.settings import AppConfig, LlmConfigModel, config, save_config
+from acolyte.config.settings import LlmConfigModel, config, save_config
 from acolyte.core.db.database import db
 from acolyte.core.db.models import LlmConfig, LlmRole
 from acolyte.utils.logging import get_logger
@@ -72,7 +72,7 @@ def import_llm_config_from_file(
 
                     # 如果设为默认，取消其他默认设置
                     if llm_config.is_default:
-                        logger.debug(f"清除其他默认LLM状态")
+                        logger.debug("清除其他默认LLM状态")
                         session.query(LlmConfig).filter(LlmConfig.id != existing_llm.id).update(
                             {LlmConfig.is_default: False}
                         )

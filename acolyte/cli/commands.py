@@ -5,7 +5,6 @@ CLI命令定义
 import asyncio
 import os
 import sys
-import traceback  # 用于异常处理中的format_exc()
 from typing import List
 
 import click
@@ -470,7 +469,7 @@ def status():
                     logger.warning(f"获取系统信息失败: {str(e)}")
                     console.print("[yellow]警告:[/] 无法获取系统详细信息")
             else:
-                console.print(f"[bold red]状态:[/] API服务不可用")
+                console.print("[bold red]状态:[/] API服务不可用")
                 console.print(f"[bold red]错误:[/] {error_message}")
                 console.print(
                     "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
@@ -1096,7 +1095,7 @@ def delete_llm(llm_id):
                     llm = response.json()
 
                 # 确认删除
-                console.print(f"将删除以下LLM配置:")
+                console.print("将删除以下LLM配置:")
                 console.print(
                     Panel(
                         f"ID: {llm['id']}\n"

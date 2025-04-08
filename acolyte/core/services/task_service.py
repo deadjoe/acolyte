@@ -8,14 +8,12 @@ import asyncio
 import time
 import traceback
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.database import db
-from acolyte.core.db.models import LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
-from acolyte.core.db.session import SessionManager, extract_model_data, run_in_session
-from acolyte.core.llm.client import get_client_for_llm
+from acolyte.core.db.models import LlmConfig, ProcessingMode, Task, TaskResult, TaskStatus
+from acolyte.core.db.session import extract_model_data, run_in_session
 from acolyte.core.prompt.manager import PromptManager
 from acolyte.core.task.processor import TaskProcessor
 from acolyte.utils.logging import get_logger

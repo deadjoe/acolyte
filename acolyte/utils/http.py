@@ -5,16 +5,10 @@ HTTP客户端工具
 """
 
 import asyncio
-import functools
-import json
-import logging
-import random
-import ssl
-import time
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional
 
 import httpx
-from httpx import AsyncClient, Client, Response
+from httpx import AsyncClient, Response
 
 from acolyte.utils.logging import get_logger
 

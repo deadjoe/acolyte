@@ -103,7 +103,7 @@ class PromptManager:
                     logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
                     prompt_dir = str(root_dir / "prompt")
                 else:
-                    logger.warning(f"未找到prompt目录，将使用默认目录并尝试创建")
+                    logger.warning("未找到prompt目录，将使用默认目录并尝试创建")
                     prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
 
         logger.info(f"最终选择的prompt目录: {prompt_dir}")
@@ -236,7 +236,7 @@ class PromptManager:
                             existing_prompt.content = content
                             existing_prompt.file_path = prompt_info["path"]
                         else:
-                            logger.info(f"创建新prompt记录")
+                            logger.info("创建新prompt记录")
                             # 创建新记录
                             new_prompt = Prompt(
                                 version=prompt_info["version"],

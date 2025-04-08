@@ -2,9 +2,8 @@
 Ollama LLM Client implementation for Acolyte.
 """
 
-import json
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Union
 
 import httpx
 

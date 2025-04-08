@@ -8,7 +8,6 @@ from datetime import date, datetime
 from enum import Enum
 
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 
 from acolyte.api.routes import router
@@ -95,7 +94,6 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
                     logger.debug(f"请求体(原始): 内容太长，长度为 {len(body)} 字节")
 
         # 创建具有相同主体的新请求
-        from starlette.requests import Request
 
         async def receive():
             return {"type": "http.request", "body": body}

@@ -7,7 +7,7 @@ HTTP工具
 import asyncio
 import json
 import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import httpx
 from httpx import Response

@@ -3,7 +3,6 @@
 直接在数据库中创建测试任务
 """
 import sys
-import uuid
 from pathlib import Path
 
 # 添加项目根目录到sys.path

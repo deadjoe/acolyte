@@ -324,6 +324,6 @@ class MultipleLlmProcessor(BaseTaskProcessor):
         # 添加provider属性
         provider = llm_data.get("provider")
         if provider:
-            setattr(reconstructed_llm, "provider", provider)
+            reconstructed_llm.provider = provider
 
         return reconstructed_llm

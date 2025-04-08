@@ -326,15 +326,9 @@ class LlmManager:
                 - error (str, 可选): 失败时包含错误信息
                 - llm_type (str, 可选): 成功时包含LLM类型（如"anthropic"、"openai"等）
         """
-        import asyncio
         import time
 
         from acolyte.core.llm.client import get_client_for_llm
-        from acolyte.core.llm.providers.anthropic import AnthropicClient
-        from acolyte.core.llm.providers.deepseek import DeepSeekClient
-        from acolyte.core.llm.providers.gemini import GeminiClient
-        from acolyte.core.llm.providers.ollama import OllamaClient
-        from acolyte.core.llm.providers.openai import OpenAIClient
 
         try:
             # 记录测试类型

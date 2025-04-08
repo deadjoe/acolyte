@@ -63,7 +63,7 @@ class ResponseParser:
                             如果某个评分无法提取，则对应的值为None。
         """
         logger.info(f"开始从文本中提取评分, 文本长度: {len(text)}字符")
-        logger.info(f"提取评分策略: 优先使用JSON解析，备用正则表达式匹配")
+        logger.info("提取评分策略: 优先使用JSON解析，备用正则表达式匹配")
 
         # 初始化结果字典
         scores = {
@@ -716,7 +716,7 @@ class ErrorHandler:
 
         # 添加API错误特定的处理逻辑
         if hasattr(error, "status_code"):
-            error_info["status_code"] = getattr(error, "status_code")
+            error_info["status_code"] = error.status_code
 
         return error_info
 

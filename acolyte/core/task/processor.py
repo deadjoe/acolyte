@@ -9,7 +9,6 @@ import traceback
 from typing import Dict, Optional
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
-from acolyte.core.task.processors.base import BaseTaskProcessor
 from acolyte.core.task.processors.multiple import MultipleLlmProcessor
 from acolyte.core.task.processors.review import ReviewProcessor
 from acolyte.core.task.processors.single import SingleLlmProcessor

@@ -380,7 +380,6 @@ class BaseTaskProcessor(ABC):
         """
 
         async def _save_result_to_db(session: Session):
-            import json  # 在函数内部导入json模块
 
             # 检查任务是否存在
             task = session.query(Task).filter_by(id=task_id).first()

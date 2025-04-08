@@ -4,14 +4,13 @@ LLM服务
 处理LLM配置管理和使用的业务逻辑，作为API路由和LLM客户端之间的中间层。
 """
 
-import asyncio
 import time
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
 
 from acolyte.core.db.models import LlmConfig, LlmRole
-from acolyte.core.db.session import SessionManager, extract_model_data, run_in_session
+from acolyte.core.db.session import extract_model_data, run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.llm.manager import LlmManager
 from acolyte.utils.logging import get_logger

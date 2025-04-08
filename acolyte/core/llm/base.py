@@ -4,14 +4,11 @@ LLM客户端基类
 定义LLM客户端的基础类和共享功能。
 """
 
-import asyncio
-import json
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 
 import httpx
-from httpx import AsyncClient
 
 from acolyte.core.db.models import LlmConfig
 from acolyte.core.llm.constants import DEFAULT_TIMEOUT, MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_CODES

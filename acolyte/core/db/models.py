@@ -4,7 +4,6 @@
 
 import enum
 from datetime import datetime
-from typing import List, Optional
 
 from sqlalchemy import (
     Boolean,

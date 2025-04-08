@@ -7,7 +7,7 @@
 import functools
 import inspect
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
+from typing import Any, Dict, Optional, TypeVar
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -140,7 +140,7 @@ class SessionManager:
             return {}
 
         # 如果对象有to_dict方法，优先使用
-        if hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+        if hasattr(obj, "to_dict") and callable(obj.to_dict):
             return obj.to_dict()
 
         # 否则手动提取属性
@@ -212,7 +212,7 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
         return {}
 
     # 如果对象有to_dict方法，优先使用
-    if hasattr(model_obj, "to_dict") and callable(getattr(model_obj, "to_dict")):
+    if hasattr(model_obj, "to_dict") and callable(model_obj.to_dict):
         if "include_relationships" in inspect.signature(model_obj.to_dict).parameters:
             return model_obj.to_dict(include_relationships=include_relationships)
         return model_obj.to_dict()

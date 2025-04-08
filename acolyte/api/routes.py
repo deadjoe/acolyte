@@ -4,14 +4,14 @@ API路由定义
 使用FastAPI定义API端点，处理请求和响应，但将业务逻辑委托给服务层。
 """
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, root_validator
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from acolyte.core.db.database import db
-from acolyte.core.db.models import LlmRole, ProcessingMode, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmRole, ProcessingMode, Task, TaskResult
 from acolyte.core.services import LlmService, PromptService, TaskService
 from acolyte.utils.logging import get_logger
 

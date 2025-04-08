@@ -148,7 +148,7 @@ async def main():
 
         # 处理任务
         logger.info(f"开始处理任务: ID={task_id}")
-        print(f"开始处理任务...")
+        print("开始处理任务...")
 
         # 创建LLM客户端
         logger.debug(f"创建LLM客户端: {llm_config.name}, 模型={llm_config.model_name}")

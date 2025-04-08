@@ -2,7 +2,6 @@
 """
 检查任务结果
 """
-import json
 import sys
 from pathlib import Path
 
@@ -33,7 +32,7 @@ def main():
             print(f"错误: 未找到ID为{task_id}的任务")
             return
 
-        print(f"任务信息:")
+        print("任务信息:")
         print(f"  ID: {task.id}")
         print(f"  状态: {task.status.value}")
         print(f"  处理模式: {task.processing_mode.value}")
@@ -68,7 +67,7 @@ def main():
                 print(f"  原始响应长度: {len(result.raw_response)} 字符")
                 print(f"  原始响应片段: {result.raw_response[:100]}...")
             else:
-                print(f"  无原始响应")
+                print("  无原始响应")
 
             print("  " + "-" * 40)
 

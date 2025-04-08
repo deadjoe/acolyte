@@ -11,7 +11,7 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
 from acolyte.core.db.database import db
-from acolyte.core.db.models import Task, TaskStatus
+from acolyte.core.db.models import Task
 from acolyte.core.task.processor import TaskProcessor
 
 

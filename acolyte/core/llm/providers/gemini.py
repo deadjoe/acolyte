@@ -58,7 +58,7 @@ class GeminiClient(LlmClient):
         self.provider = PROVIDER_GEMINI
 
         # 修正模型名称，确保含有gemini
-        if not "gemini" in self.model_name.lower():
+        if "gemini" not in self.model_name.lower():
             self.full_model_name = f"models/gemini-{self.model_name}"
         else:
             self.full_model_name = f"models/{self.model_name}"

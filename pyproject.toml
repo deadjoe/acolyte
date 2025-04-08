@@ -36,5 +36,15 @@ target-version = "py39"
 select = ["E", "F", "B", "I"]
 ignore = []
 
+# 添加以下配置来排除 tools 目录
+exclude = [
+    "tools",
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist"
+]
+
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]

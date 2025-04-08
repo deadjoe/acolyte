@@ -8,16 +8,13 @@
 """
 
 import asyncio
-import json
 import os
 import sys
-from typing import Any, Dict
 
 # 添加项目根目录到PYTHONPATH
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from acolyte.core.db.models import LlmConfig
-from acolyte.core.llm.constants import PROVIDER_DEEPSEEK, PROVIDER_OLLAMA
 from acolyte.core.llm.providers.deepseek import DeepSeekClient
 from acolyte.core.llm.providers.ollama import OllamaClient
 from acolyte.utils.logging import get_logger

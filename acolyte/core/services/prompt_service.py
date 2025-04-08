@@ -5,7 +5,7 @@
 """
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -119,7 +119,7 @@ class PromptService:
                 return None
 
             # 直接使用to_dict方法并传入include_content=True确保包含内容
-            if hasattr(prompt, "to_dict") and callable(getattr(prompt, "to_dict")):
+            if hasattr(prompt, "to_dict") and callable(prompt.to_dict):
                 return prompt.to_dict(include_content=True)
             else:
                 # 回退到extract_model_data

@@ -6,10 +6,9 @@
 
 import asyncio
 import functools
-import logging
 import random
 import time
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, cast
 
 import httpx
 

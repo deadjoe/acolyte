@@ -38,7 +38,7 @@ def main():
     logger.info("=" * 40)
     logger.info("Acolyte内容分析评估系统启动")
     logger.info("-" * 40)
-    logger.info(f"应用版本: 0.1.0")
+    logger.info("应用版本: 0.1.0")
     logger.info(f"Python版本: {sys.version}")
     logger.info(f"系统平台: {sys.platform}")
     logger.info(f"主机名: {socket.gethostname()}")

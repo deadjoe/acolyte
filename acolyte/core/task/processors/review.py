@@ -8,11 +8,10 @@ import asyncio
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.database import db
 from acolyte.core.db.models import LlmConfig, ReviewerVote, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
 from acolyte.core.llm.client import get_client_for_llm
@@ -501,7 +500,7 @@ class ReviewProcessor(BaseTaskProcessor):
         # 添加provider属性
         provider = llm_data.get("provider")
         if provider:
-            setattr(reconstructed_llm, "provider", provider)
+            reconstructed_llm.provider = provider
 
         return reconstructed_llm
 

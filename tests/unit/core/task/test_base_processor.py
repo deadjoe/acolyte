@@ -4,12 +4,11 @@
 测试BaseTaskProcessor的核心功能和业务规则。
 """
 
-from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from acolyte.core.db.models import LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.task.processors.base import BaseTaskProcessor
 
 

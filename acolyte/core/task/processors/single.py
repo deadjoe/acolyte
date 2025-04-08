@@ -137,7 +137,7 @@ class SingleLlmProcessor(BaseTaskProcessor):
                 # 添加provider属性
                 provider = llm_data.get("provider")
                 if provider:
-                    setattr(reconstructed_llm, "provider", provider)
+                    reconstructed_llm.provider = provider
 
                 # 获取客户端
                 client = get_client_for_llm(reconstructed_llm)

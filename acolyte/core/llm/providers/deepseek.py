@@ -6,7 +6,7 @@ DeepSeek API的客户端实现，基于OpenAI兼容的API接口。
 
 import json
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Union
 
 import httpx
 

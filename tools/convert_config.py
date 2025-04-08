@@ -3,7 +3,6 @@
 转换配置文件格式
 """
 import json
-import os
 from pathlib import Path
 from typing import List
 
