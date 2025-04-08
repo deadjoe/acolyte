@@ -3,13 +3,13 @@
 
 测试BaseTaskProcessor的核心功能和业务规则。
 """
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
 
-from acolyte.core.db.models import (
-    LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
-)
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from acolyte.core.db.models import LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
 from acolyte.core.task.processors.base import BaseTaskProcessor
 
 
@@ -19,7 +19,7 @@ class TestBaseTaskProcessor:
     @pytest.fixture
     def mock_session_run(self):
         """模拟run_in_session函数"""
-        with patch('acolyte.core.task.processors.base.run_in_session') as mock:
+        with patch("acolyte.core.task.processors.base.run_in_session") as mock:
             # 配置mock以异步执行传入的函数
             async def side_effect(func):
                 # 创建一个模拟的session
@@ -33,6 +33,7 @@ class TestBaseTaskProcessor:
     @pytest.fixture
     def processor(self):
         """创建BaseTaskProcessor的子类实例"""
+
         class TestProcessor(BaseTaskProcessor):
             async def process(self, task_id):
                 # 实现抽象方法
@@ -48,7 +49,7 @@ class TestBaseTaskProcessor:
             "id": 1,
             "content": "Test content",
             "processing_mode": ProcessingMode.SINGLE,
-            "status": TaskStatus.PENDING
+            "status": TaskStatus.PENDING,
         }
 
         # 配置模拟session的查询行为
@@ -67,7 +68,7 @@ class TestBaseTaskProcessor:
         mock_session.query.return_value = mock_query
 
         # 配置extract_model_data
-        with patch('acolyte.core.task.processors.base.extract_model_data') as mock_extract:
+        with patch("acolyte.core.task.processors.base.extract_model_data") as mock_extract:
             mock_extract.return_value = task_data
 
             # 配置mock_session_run的返回值
@@ -93,7 +94,7 @@ class TestBaseTaskProcessor:
             "bias_index": 7.5,
             "misleading_index": 6.2,
             "hidden_intent_index": 4.8,
-            "credibility_score": 60.5
+            "credibility_score": 60.5,
         }
 
         # 模拟任务和结果
@@ -113,7 +114,7 @@ class TestBaseTaskProcessor:
         mock_session.query.return_value = mock_query
 
         # 配置TaskResult类
-        with patch('acolyte.core.task.processors.base.TaskResult') as MockTaskResult:
+        with patch("acolyte.core.task.processors.base.TaskResult") as MockTaskResult:
             MockTaskResult.return_value = mock_task_result
 
             # 配置mock_session_run的返回值

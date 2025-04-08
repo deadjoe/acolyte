@@ -3,6 +3,7 @@
 
 提供SQLAlchemy会话管理的辅助工具，重点解决异步操作中的会话管理问题。
 """
+
 import functools
 import inspect
 from contextlib import contextmanager
@@ -18,8 +19,8 @@ from acolyte.utils.logging import get_logger
 logger = get_logger(__name__)
 
 # 定义类型变量
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 class SessionManager:
@@ -84,10 +85,12 @@ class SessionManager:
             def get_item(session, item_id):
                 return session.query(Item).get(item_id)
         """
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             with SessionManager.session_scope() as session:
                 return func(session, *args, **kwargs)
+
         return wrapper
 
     @staticmethod
@@ -102,12 +105,14 @@ class SessionManager:
             async def get_item_async(session, item_id):
                 return session.query(Item).get(item_id)
         """
+
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             with SessionManager.session_scope() as session:
                 if inspect.iscoroutinefunction(func):
                     return await func(session, *args, **kwargs)
                 return func(session, *args, **kwargs)
+
         return wrapper
 
     @staticmethod
@@ -135,18 +140,20 @@ class SessionManager:
             return {}
 
         # 如果对象有to_dict方法，优先使用
-        if hasattr(obj, 'to_dict') and callable(getattr(obj, 'to_dict')):
+        if hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
             return obj.to_dict()
 
         # 否则手动提取属性
         result = {}
         for key in obj.__dict__:
-            if not key.startswith('_'):
+            if not key.startswith("_"):
                 result[key] = getattr(obj, key)
         return result
 
     @staticmethod
-    def get_entity_by_id(model_class: Any, entity_id: int, session: Optional[Session] = None) -> Optional[Any]:
+    def get_entity_by_id(
+        model_class: Any, entity_id: int, session: Optional[Session] = None
+    ) -> Optional[Any]:
         """
         根据ID获取实体
 
@@ -205,8 +212,8 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
         return {}
 
     # 如果对象有to_dict方法，优先使用
-    if hasattr(model_obj, 'to_dict') and callable(getattr(model_obj, 'to_dict')):
-        if 'include_relationships' in inspect.signature(model_obj.to_dict).parameters:
+    if hasattr(model_obj, "to_dict") and callable(getattr(model_obj, "to_dict")):
+        if "include_relationships" in inspect.signature(model_obj.to_dict).parameters:
             return model_obj.to_dict(include_relationships=include_relationships)
         return model_obj.to_dict()
 
@@ -216,11 +223,11 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
         # 获取对象的字典副本，避免直接访问可能引发懒加载的属性
         obj_dict = model_obj.__dict__.copy()
         for key in obj_dict:
-            if not key.startswith('_'):
+            if not key.startswith("_"):
                 try:
                     value = obj_dict[key]
                     # 处理日期时间类型
-                    if hasattr(value, 'isoformat'):
+                    if hasattr(value, "isoformat"):
                         result[key] = value.isoformat()
                     else:
                         result[key] = value
@@ -234,7 +241,7 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
     if include_relationships:
         for relationship in inspect.getmembers(
             model_obj.__class__,
-            lambda attr: hasattr(attr, 'prop') if hasattr(attr, 'prop') else False
+            lambda attr: hasattr(attr, "prop") if hasattr(attr, "prop") else False,
         ):
             if hasattr(model_obj, relationship[0]):
                 rel_obj = getattr(model_obj, relationship[0])

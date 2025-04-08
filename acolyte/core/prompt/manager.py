@@ -1,6 +1,7 @@
 """
 Prompt模板管理器
 """
+
 import os
 import re
 from pathlib import Path
@@ -152,22 +153,26 @@ class PromptManager:
                 logger.debug(f"正则匹配成功: {file.name}")
                 version = match.group(1)
                 model_target = match.group(2) or "general"
-                prompt_files.append({
-                    "path": str(file),
-                    "filename": file.name,
-                    "version": version,
-                    "model_target": model_target,
-                })
+                prompt_files.append(
+                    {
+                        "path": str(file),
+                        "filename": file.name,
+                        "version": version,
+                        "model_target": model_target,
+                    }
+                )
                 logger.info(f"解析prompt: {file.name}, 版本: {version}, 目标: {model_target}")
             elif file.name == "bias-detection-prompt_v3.md":
                 logger.debug(f"特殊格式匹配: {file.name}")
                 # Special case for the v3 prompt with different naming format
-                prompt_files.append({
-                    "path": str(file),
-                    "filename": file.name,
-                    "version": "3.0",
-                    "model_target": "claude",
-                })
+                prompt_files.append(
+                    {
+                        "path": str(file),
+                        "filename": file.name,
+                        "version": "3.0",
+                        "model_target": "claude",
+                    }
+                )
                 logger.info(f"解析特殊prompt: {file.name}, 版本: 3.0, 目标: claude")
 
         # 按版本号排序，最新版本优先
@@ -199,14 +204,20 @@ class PromptManager:
         try:
             with db.session_scope() as session:
                 for prompt_info in prompt_files:
-                    logger.info(f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}")
+                    logger.info(
+                        f"处理prompt: {prompt_info['filename']}, 版本: {prompt_info['version']}, 目标: {prompt_info['model_target']}"
+                    )
 
                     try:
                         # 检查是否已存在
-                        existing_prompt = session.query(Prompt).filter_by(
-                            version=prompt_info["version"],
-                            model_target=prompt_info["model_target"]
-                        ).first()
+                        existing_prompt = (
+                            session.query(Prompt)
+                            .filter_by(
+                                version=prompt_info["version"],
+                                model_target=prompt_info["model_target"],
+                            )
+                            .first()
+                        )
 
                         # 读取文件内容
                         try:
@@ -214,7 +225,9 @@ class PromptManager:
                                 content = f.read()
                                 logger.debug(f"读取文件内容: {len(content)} 字符")
                         except Exception as e:
-                            logger.error(f"读取文件 {prompt_info['path']} 失败: {str(e)}", exc_info=True)
+                            logger.error(
+                                f"读取文件 {prompt_info['path']} 失败: {str(e)}", exc_info=True
+                            )
                             continue
 
                         if existing_prompt:
@@ -231,11 +244,14 @@ class PromptManager:
                                 content=content,
                                 file_path=prompt_info["path"],
                                 description=f"Bias detection prompt v{prompt_info['version']} "
-                                           f"for {prompt_info['model_target']}"
+                                f"for {prompt_info['model_target']}",
                             )
                             session.add(new_prompt)
                     except Exception as e:
-                        logger.error(f"处理prompt {prompt_info['filename']} 时发生错误: {str(e)}", exc_info=True)
+                        logger.error(
+                            f"处理prompt {prompt_info['filename']} 时发生错误: {str(e)}",
+                            exc_info=True,
+                        )
 
             logger.info("Prompt同步完成")
             return True
@@ -266,14 +282,20 @@ class PromptManager:
         try:
             with db.session_scope() as session:
                 # 获取所有活跃的prompts
-                logger.info(f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}")
+                logger.info(
+                    f"获取最新活跃的prompt模板{' 用于模型 '+model_target if model_target else ''}"
+                )
                 query = session.query(Prompt).filter(Prompt.is_active == True)
 
                 # 如果指定了模型目标，优先获取针对该模型的prompt
                 if model_target:
-                    model_specific_prompt = query.filter(Prompt.model_target == model_target).first()
+                    model_specific_prompt = query.filter(
+                        Prompt.model_target == model_target
+                    ).first()
                     if model_specific_prompt:
-                        logger.info(f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}")
+                        logger.info(
+                            f"找到针对模型 {model_target} 的prompt: ID={model_specific_prompt.id}, 版本={model_specific_prompt.version}"
+                        )
                         return model_specific_prompt
                     logger.info(f"未找到针对模型 {model_target} 的特定prompt，寻找通用prompt")
 
@@ -281,14 +303,18 @@ class PromptManager:
                 all_prompts = query.all()
                 if all_prompts:
                     for p in all_prompts:
-                        logger.debug(f"数据库中的prompt: ID={p.id}, 版本={p.version}, 目标={p.model_target}")
+                        logger.debug(
+                            f"数据库中的prompt: ID={p.id}, 版本={p.version}, 目标={p.model_target}"
+                        )
                 else:
                     logger.warning("数据库中没有找到任何活跃的prompt模板")
 
                 # 直接获取第一个prompt
                 first_prompt = query.first()
                 if first_prompt:
-                    logger.info(f"找到第一个活跃prompt: ID={first_prompt.id}, 版本={first_prompt.version}, 目标={first_prompt.model_target}")
+                    logger.info(
+                        f"找到第一个活跃prompt: ID={first_prompt.id}, 版本={first_prompt.version}, 目标={first_prompt.model_target}"
+                    )
                     return first_prompt
                 else:
                     logger.warning("无法获取任何prompt模板")
@@ -320,8 +346,7 @@ class PromptManager:
         """
         with db.session_scope() as session:
             query = session.query(Prompt).filter(
-                Prompt.version == version,
-                Prompt.is_active == True
+                Prompt.version == version, Prompt.is_active == True
             )
 
             if model_target:
@@ -346,7 +371,4 @@ class PromptManager:
             List[Prompt]: 所有Prompt对象的列表，按目标模型和版本号降序排序
         """
         with db.session_scope() as session:
-            return session.query(Prompt).order_by(
-                Prompt.model_target,
-                Prompt.version.desc()
-            ).all()
+            return session.query(Prompt).order_by(Prompt.model_target, Prompt.version.desc()).all()

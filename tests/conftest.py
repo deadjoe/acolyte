@@ -1,9 +1,11 @@
 """Pytest配置文件"""
+
 import os
 import sys
+
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, clear_mappers
+from sqlalchemy.orm import clear_mappers, sessionmaker
 
 # 确保可以导入项目模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

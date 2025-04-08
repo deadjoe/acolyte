@@ -1,6 +1,7 @@
 """
 LLM管理模块
 """
+
 from typing import Dict, List, Optional
 
 from acolyte.core.db.database import db
@@ -29,9 +30,16 @@ class LlmManager:
     - 使用LlmClient进行连接测试
     """
 
-    def add_llm(self, name: str, api_key: str, base_url: str, model_name: str,
-                description: str = None, role: LlmRole = LlmRole.NORMAL,
-                is_default: bool = False) -> LlmConfig:
+    def add_llm(
+        self,
+        name: str,
+        api_key: str,
+        base_url: str,
+        model_name: str,
+        description: str = None,
+        role: LlmRole = LlmRole.NORMAL,
+        is_default: bool = False,
+    ) -> LlmConfig:
         """
         添加新的LLM配置
 
@@ -79,7 +87,7 @@ class LlmManager:
                     model_name=model_name,
                     description=description,
                     role=role,
-                    is_default=is_default
+                    is_default=is_default,
                 )
                 session.add(new_llm)
                 session.flush()
@@ -131,7 +139,7 @@ class LlmManager:
                 logger.debug(f"原始配置: 名称={llm.name}, 模型={llm.model_name}")
 
                 # 如果要设置为默认，先取消其他默认设置
-                if kwargs.get('is_default', False):
+                if kwargs.get("is_default", False):
                     logger.debug("清除其他LLM的默认状态")
                     self._clear_default_status(session)
 
@@ -175,15 +183,18 @@ class LlmManager:
                     if count > 1:
                         # 如果删除的是默认LLM，需要设置新的默认LLM
                         logger.info("删除的是默认LLM，需要设置新的默认LLM")
-                        new_default = session.query(LlmConfig).filter(
-                            LlmConfig.id != llm_id
-                        ).first()
+                        new_default = (
+                            session.query(LlmConfig).filter(LlmConfig.id != llm_id).first()
+                        )
                         if new_default:
                             new_default.is_default = True
-                            logger.info(f"新的默认LLM: ID={new_default.id}, 名称={new_default.name}")
+                            logger.info(
+                                f"新的默认LLM: ID={new_default.id}, 名称={new_default.name}"
+                            )
 
                 # 处理与此LLM关联的任务结果
                 from acolyte.core.db.models import TaskResult
+
                 task_results = session.query(TaskResult).filter_by(llm_id=llm_id).count()
                 logger.info(f"删除 {task_results} 个关联的任务结果")
                 session.query(TaskResult).filter_by(llm_id=llm_id).delete()
@@ -283,8 +294,9 @@ class LlmManager:
             llm.role = role
             return True
 
-    async def test_connection(self, llm_id: int = None, api_key: str = None,
-                        base_url: str = None, model_name: str = None) -> Dict:
+    async def test_connection(
+        self, llm_id: int = None, api_key: str = None, base_url: str = None, model_name: str = None
+    ) -> Dict:
         """
         测试LLM连接
 
@@ -316,6 +328,7 @@ class LlmManager:
         """
         import asyncio
         import time
+
         from acolyte.core.llm.client import get_client_for_llm
         from acolyte.core.llm.providers.anthropic import AnthropicClient
         from acolyte.core.llm.providers.deepseek import DeepSeekClient
@@ -336,25 +349,19 @@ class LlmManager:
                 llm_config = self.get_llm(llm_id)
                 if not llm_config:
                     logger.warning(f"LLM配置不存在: ID={llm_id}")
-                    return {
-                        'success': False,
-                        'message': 'LLM配置不存在'
-                    }
-                logger.debug(f"使用现有LLM配置: 名称={llm_config.name}, 模型={llm_config.model_name}")
+                    return {"success": False, "message": "LLM配置不存在"}
+                logger.debug(
+                    f"使用现有LLM配置: 名称={llm_config.name}, 模型={llm_config.model_name}"
+                )
             else:
                 if not all([api_key, base_url, model_name]):
                     logger.error("测试连接参数不完整")
-                    return {
-                        'success': False,
-                        'message': '连接参数不完整'
-                    }
+                    return {"success": False, "message": "连接参数不完整"}
                 # 创建临时配置对象
                 from acolyte.core.db.models import LlmConfig as LlmConfigModel
+
                 llm_config = LlmConfigModel(
-                    name="测试连接",
-                    api_key=api_key,
-                    base_url=base_url,
-                    model_name=model_name
+                    name="测试连接", api_key=api_key, base_url=base_url, model_name=model_name
                 )
 
             # 创建对应的客户端
@@ -372,27 +379,24 @@ class LlmManager:
             response_time = time.time() - start_time
 
             # 处理测试结果
-            if test_result.get('success', False):
+            if test_result.get("success", False):
                 logger.info(f"LLM连接测试成功: 耗时={response_time:.2f}秒")
                 return {
-                    'success': True,
-                    'response_time': response_time,
-                    'message': test_result.get('message', '连接测试成功')
+                    "success": True,
+                    "response_time": response_time,
+                    "message": test_result.get("message", "连接测试成功"),
                 }
             else:
                 logger.warning(f"LLM连接测试失败: {test_result.get('message', '未知错误')}")
                 return {
-                    'success': False,
-                    'response_time': response_time,
-                    'message': test_result.get('message', '连接测试失败')
+                    "success": False,
+                    "response_time": response_time,
+                    "message": test_result.get("message", "连接测试失败"),
                 }
 
         except Exception as e:
             logger.error(f"测试LLM连接失败: {str(e)}", exc_info=True)
-            return {
-                'success': False,
-                'message': f'连接测试失败: {str(e)}'
-            }
+            return {"success": False, "message": f"连接测试失败: {str(e)}"}
 
     def _clear_default_status(self, session):
         """清除所有LLM的默认状态

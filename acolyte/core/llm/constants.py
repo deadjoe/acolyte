@@ -17,7 +17,7 @@ PROVIDER_URL_PATTERNS = {
     PROVIDER_OPENAI: ["openai.com", "azure-openai"],
     PROVIDER_GEMINI: ["googleapis.com", "generativelanguage", "gemini"],
     PROVIDER_DEEPSEEK: ["deepseek.ai", "deepseek-api"],
-    PROVIDER_OLLAMA: ["ollama.ai", "ollama.com", "ollama"]
+    PROVIDER_OLLAMA: ["ollama.ai", "ollama.com", "ollama"],
 }
 
 # 模型名称特征
@@ -26,7 +26,7 @@ MODEL_NAME_PATTERNS = {
     PROVIDER_OPENAI: ["gpt", "davinci", "openai"],
     PROVIDER_GEMINI: ["gemini", "palm", "google"],
     PROVIDER_DEEPSEEK: ["deepseek"],
-    PROVIDER_OLLAMA: ["llama", "mistral", "mixtral", "vicuna", "phi", "yi"]
+    PROVIDER_OLLAMA: ["llama", "mistral", "mixtral", "vicuna", "phi", "yi"],
 }
 
 # 默认API URLs
@@ -35,7 +35,7 @@ DEFAULT_API_URLS = {
     PROVIDER_OPENAI: "https://api.openai.com/v1",
     PROVIDER_GEMINI: "https://generativelanguage.googleapis.com/v1beta",
     PROVIDER_DEEPSEEK: "https://api.deepseek.ai/v1",
-    PROVIDER_OLLAMA: "http://localhost:11434/api"
+    PROVIDER_OLLAMA: "http://localhost:11434/api",
 }
 
 # 最大重试次数
@@ -56,5 +56,5 @@ MODEL_SPECIFIC_RETRY_CODES = {
     PROVIDER_OPENAI: [408, 429, 500, 502, 503, 504],
     PROVIDER_GEMINI: [408, 429, 500, 502, 503, 504],
     PROVIDER_DEEPSEEK: [408, 429, 500, 502, 503, 504],
-    PROVIDER_OLLAMA: [408, 429, 500, 502, 503, 504]
+    PROVIDER_OLLAMA: [408, 429, 500, 502, 503, 504],
 }

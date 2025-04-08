@@ -1,6 +1,7 @@
 """
 LLM配置加载和保存
 """
+
 from typing import Dict, List, Optional
 
 from acolyte.config.settings import AppConfig, LlmConfigModel, config, save_config
@@ -12,7 +13,9 @@ from acolyte.utils.logging import get_logger
 logger = get_logger("acolyte.core.llm.config")
 
 
-def import_llm_config_from_file(llm_name: Optional[str] = None, verbose: bool = False) -> List[Dict]:
+def import_llm_config_from_file(
+    llm_name: Optional[str] = None, verbose: bool = False
+) -> List[Dict]:
     """从配置文件导入LLM配置
 
     Args:
@@ -58,29 +61,31 @@ def import_llm_config_from_file(llm_name: Optional[str] = None, verbose: bool = 
                     logger.info(f"更新已有LLM配置: ID={existing_llm.id}, 名称={existing_llm.name}")
                     # 更新已有配置
                     for attr, value in [
-                        ('api_key', llm_config.api_key),
-                        ('base_url', llm_config.base_url),
-                        ('model_name', llm_config.model_name),
-                        ('description', llm_config.description),
-                        ('role', role),
-                        ('is_default', llm_config.is_default),
+                        ("api_key", llm_config.api_key),
+                        ("base_url", llm_config.base_url),
+                        ("model_name", llm_config.model_name),
+                        ("description", llm_config.description),
+                        ("role", role),
+                        ("is_default", llm_config.is_default),
                     ]:
                         setattr(existing_llm, attr, value)
 
                     # 如果设为默认，取消其他默认设置
                     if llm_config.is_default:
                         logger.debug(f"清除其他默认LLM状态")
-                        session.query(LlmConfig).filter(
-                            LlmConfig.id != existing_llm.id
-                        ).update({LlmConfig.is_default: False})
+                        session.query(LlmConfig).filter(LlmConfig.id != existing_llm.id).update(
+                            {LlmConfig.is_default: False}
+                        )
 
-                    imported_llms.append({
-                        "id": existing_llm.id,
-                        "name": existing_llm.name,
-                        "model_name": existing_llm.model_name,
-                        "role": existing_llm.role.value,
-                        "is_default": existing_llm.is_default
-                    })
+                    imported_llms.append(
+                        {
+                            "id": existing_llm.id,
+                            "name": existing_llm.name,
+                            "model_name": existing_llm.model_name,
+                            "role": existing_llm.role.value,
+                            "is_default": existing_llm.is_default,
+                        }
+                    )
                 else:
                     logger.info(f"创建新的LLM配置: {llm_config.name}")
                     # 如果设为默认，取消其他默认设置
@@ -96,18 +101,20 @@ def import_llm_config_from_file(llm_name: Optional[str] = None, verbose: bool = 
                         model_name=llm_config.model_name,
                         description=llm_config.description,
                         role=role,
-                        is_default=llm_config.is_default
+                        is_default=llm_config.is_default,
                     )
                     session.add(new_llm)
                     session.flush()  # 获取新ID
 
-                    imported_llms.append({
-                        "id": new_llm.id,
-                        "name": new_llm.name,
-                        "model_name": new_llm.model_name,
-                        "role": new_llm.role.value,
-                        "is_default": new_llm.is_default
-                    })
+                    imported_llms.append(
+                        {
+                            "id": new_llm.id,
+                            "name": new_llm.name,
+                            "model_name": new_llm.model_name,
+                            "role": new_llm.role.value,
+                            "is_default": new_llm.is_default,
+                        }
+                    )
 
             # 提交会话中的所有更改
             session.commit()
@@ -136,15 +143,17 @@ def export_llm_config_to_file() -> bool:
             config_models = []
             for llm in llm_configs:
                 logger.debug(f"处理LLM配置: ID={llm.id}, 名称={llm.name}, 模型={llm.model_name}")
-                config_models.append(LlmConfigModel(
-                    name=llm.name,
-                    api_key=llm.api_key,
-                    base_url=llm.base_url,
-                    model_name=llm.model_name,
-                    description=llm.description,
-                    role=llm.role.value,
-                    is_default=llm.is_default
-                ))
+                config_models.append(
+                    LlmConfigModel(
+                        name=llm.name,
+                        api_key=llm.api_key,
+                        base_url=llm.base_url,
+                        model_name=llm.model_name,
+                        description=llm.description,
+                        role=llm.role.value,
+                        is_default=llm.is_default,
+                    )
+                )
 
             # 更新配置
             app_config = config

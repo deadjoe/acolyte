@@ -1,6 +1,7 @@
 """
 LLM客户端实现
 """
+
 from acolyte.core.db.models import LlmConfig
 from acolyte.core.llm.base import LlmClient
 from acolyte.utils.logging import get_logger
@@ -36,19 +37,25 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
         如果无法确定客户端类型，将返回OpenAI客户端作为默认值，并记录警告日志。
         这可能导致在使用非OpenAI模型时出现兼容性问题。
     """
+    from acolyte.core.llm.constants import (
+        MODEL_NAME_PATTERNS,
+        PROVIDER_ANTHROPIC,
+        PROVIDER_DEEPSEEK,
+        PROVIDER_GEMINI,
+        PROVIDER_OLLAMA,
+        PROVIDER_OPENAI,
+        PROVIDER_URL_PATTERNS,
+    )
     from acolyte.core.llm.providers.anthropic import AnthropicClient
-    from acolyte.core.llm.providers.openai import OpenAIClient
-    from acolyte.core.llm.providers.gemini import GeminiClient
     from acolyte.core.llm.providers.deepseek import DeepSeekClient
+    from acolyte.core.llm.providers.gemini import GeminiClient
     from acolyte.core.llm.providers.ollama import OllamaClient
-    from acolyte.core.llm.constants import (MODEL_NAME_PATTERNS,
-                                           PROVIDER_ANTHROPIC,
-                                           PROVIDER_GEMINI, PROVIDER_OLLAMA,
-                                           PROVIDER_OPENAI, PROVIDER_DEEPSEEK,
-                                           PROVIDER_URL_PATTERNS)
+    from acolyte.core.llm.providers.openai import OpenAIClient
 
     # 使用模块级别的日志记录器
-    logger.debug(f"为LLM创建客户端: 名称={llm_config.name}, URL={llm_config.base_url}, 模型={llm_config.model_name}")
+    logger.debug(
+        f"为LLM创建客户端: 名称={llm_config.name}, URL={llm_config.base_url}, 模型={llm_config.model_name}"
+    )
 
     # 基于LLM名称检测提供商
     llm_name = llm_config.name.lower() if llm_config.name else ""
@@ -60,7 +67,10 @@ def get_client_for_llm(llm_config: LlmConfig) -> LlmClient:
         return OpenAIClient(llm_config)
     elif "gemini" in llm_name or "google" in llm_name:
         return GeminiClient(llm_config)
-    elif any(name in llm_name for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi", "ollama"]):
+    elif any(
+        name in llm_name
+        for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi", "ollama"]
+    ):
         return OllamaClient(llm_config)
 
     # 基于URL检测提供商

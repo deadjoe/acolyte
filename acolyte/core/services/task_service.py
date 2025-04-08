@@ -3,6 +3,7 @@
 
 处理任务创建、处理和查询的业务逻辑，作为API路由和任务处理器之间的中间层。
 """
+
 import asyncio
 import time
 import traceback
@@ -12,9 +13,7 @@ from typing import Dict, List, Optional, Union
 from sqlalchemy.orm import Session
 
 from acolyte.core.db.database import db
-from acolyte.core.db.models import (
-    LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
-)
+from acolyte.core.db.models import LlmConfig, ProcessingMode, Prompt, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import SessionManager, extract_model_data, run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.prompt.manager import PromptManager
@@ -92,10 +91,10 @@ class TaskService:
         logger.info(f"创建新任务，处理模式: {task_data.get('processing_mode')}")
 
         # 提取任务数据
-        content = task_data.get('content')
-        processing_mode = task_data.get('processing_mode')
-        prompt_id = task_data.get('prompt_id')
-        llm_ids = task_data.get('llm_ids', [])
+        content = task_data.get("content")
+        processing_mode = task_data.get("processing_mode")
+        prompt_id = task_data.get("prompt_id")
+        llm_ids = task_data.get("llm_ids", [])
 
         if not content:
             logger.error("任务内容不能为空")
@@ -118,10 +117,7 @@ class TaskService:
         # 在会话中创建任务
         try:
             task_id = await self._create_task_in_db(
-                content,
-                processing_mode_enum,
-                prompt_id,
-                llm_ids
+                content, processing_mode_enum, prompt_id, llm_ids
             )
 
             if not task_id:
@@ -145,7 +141,7 @@ class TaskService:
         content: str,
         processing_mode: ProcessingMode,
         prompt_id: Optional[int] = None,
-        llm_ids: Optional[List[int]] = None
+        llm_ids: Optional[List[int]] = None,
     ) -> Optional[int]:
         """
         在数据库中创建任务
@@ -159,6 +155,7 @@ class TaskService:
         Returns:
             创建的任务ID，创建失败则返回None
         """
+
         async def _create_task(session: Session):
             # 创建任务对象
             new_task = Task(
@@ -166,7 +163,7 @@ class TaskService:
                 processing_mode=processing_mode,
                 prompt_id=prompt_id,
                 status=TaskStatus.PENDING,
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             )
             session.add(new_task)
             session.flush()
@@ -202,7 +199,9 @@ class TaskService:
 
                 if len(llms) != len(unique_llm_ids):
                     missing_ids = set(unique_llm_ids) - set(llm.id for llm in llms)
-                    logger.warning(f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配")
+                    logger.warning(
+                        f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配"
+                    )
                     logger.warning(f"未找到的LLM IDs: {missing_ids}")
 
                 # 直接设置llm_configs，而不是使用extend
@@ -258,6 +257,7 @@ class TaskService:
         Returns:
             任务信息字典，如果不存在则返回None
         """
+
         async def _get_task_data(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -303,7 +303,9 @@ class TaskService:
                     missing_metrics.append("credibility_score")
 
                 if missing_metrics:
-                    logger.warning(f"任务结果 #{idx+1} (ID={result.id}) 缺少以下指标: {', '.join(missing_metrics)}")
+                    logger.warning(
+                        f"任务结果 #{idx+1} (ID={result.id}) 缺少以下指标: {', '.join(missing_metrics)}"
+                    )
 
             return [r.to_dict(include_raw_response=include_raw_response) for r in results]
 
@@ -338,14 +340,18 @@ class TaskService:
 
             # 处理完成后记录时间
             elapsed_time = time.time() - start_time
-            logger.info(f"任务处理完成: ID={task_id}, 耗时={elapsed_time:.2f}秒, 结果: {result.get('success', False)}")
+            logger.info(
+                f"任务处理完成: ID={task_id}, 耗时={elapsed_time:.2f}秒, 结果: {result.get('success', False)}"
+            )
 
             return result
         except Exception as e:
             # 处理异常
             elapsed_time = time.time() - start_time
             error_msg = str(e)
-            logger.error(f"任务处理异常: ID={task_id}, 耗时={elapsed_time:.2f}秒, 错误: {error_msg}")
+            logger.error(
+                f"任务处理异常: ID={task_id}, 耗时={elapsed_time:.2f}秒, 错误: {error_msg}"
+            )
             logger.debug(f"异常详情: {traceback.format_exc()}")
 
             # 更新任务状态为失败
@@ -364,6 +370,7 @@ class TaskService:
         Returns:
             更新是否成功
         """
+
         async def _update_status(session: Session):
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
@@ -377,14 +384,13 @@ class TaskService:
         try:
             return await run_in_session(_update_status)
         except Exception as e:
-            logger.error(f"更新任务状态失败: ID={task_id}, 状态={status}, 错误: {str(e)}", exc_info=True)
+            logger.error(
+                f"更新任务状态失败: ID={task_id}, 状态={status}, 错误: {str(e)}", exc_info=True
+            )
             return False
 
     async def get_tasks(
-        self,
-        status: Optional[str] = None,
-        skip: int = 0,
-        limit: int = 100
+        self, status: Optional[str] = None, skip: int = 0, limit: int = 100
     ) -> Dict:
         """
         获取任务列表
@@ -491,12 +497,17 @@ class TaskService:
                 return {"message": "没有找到需要删除的任务", "count": 0}
 
             # 先删除关联的任务结果
-            result_count = session.query(TaskResult).filter(TaskResult.task_id.in_(task_ids)).delete()
+            result_count = (
+                session.query(TaskResult).filter(TaskResult.task_id.in_(task_ids)).delete()
+            )
 
             # 然后删除任务
             task_count = task_query.delete()
 
-            return {"message": f"已清空{task_count}个任务和{result_count}个任务结果", "count": task_count}
+            return {
+                "message": f"已清空{task_count}个任务和{result_count}个任务结果",
+                "count": task_count,
+            }
 
         try:
             result = await run_in_session(_clear_tasks)

@@ -3,6 +3,7 @@ LLM响应处理
 
 提供处理LLM响应的工具类和函数，包括解析、错误处理等。
 """
+
 import json
 import re
 from typing import Any, Dict, List, Optional
@@ -11,6 +12,7 @@ from acolyte.utils.logging import get_logger
 
 # 获取日志记录器
 logger = get_logger(__name__)
+
 
 class ResponseParser:
     """
@@ -68,7 +70,7 @@ class ResponseParser:
             "bias_index": None,
             "misleading_index": None,
             "hidden_intent_index": None,
-            "credibility_score": None
+            "credibility_score": None,
         }
 
         # 1. 首先尝试使用JSON解析方式提取评分
@@ -135,7 +137,9 @@ class ResponseParser:
         logger.info("开始从文本中提取JSON格式的评分数据")
 
         # 1. 找到"6. 量化评分"章节
-        section_pattern = r"(?:6\.|六、|6\.\s*量化评分|量化评分)[\s\S]*?(?:7\.|七、|7\.\s*分析局限|分析局限|$)"
+        section_pattern = (
+            r"(?:6\.|六、|6\.\s*量化评分|量化评分)[\s\S]*?(?:7\.|七、|7\.\s*分析局限|分析局限|$)"
+        )
         section_match = re.search(section_pattern, text, re.DOTALL | re.IGNORECASE)
 
         if not section_match:
@@ -153,7 +157,7 @@ class ResponseParser:
         if code_match:
             code_content = code_match.group(1).strip()
             # 确保内容以{开始，}结束，这是有效JSON的基本要求
-            if code_content.startswith('{') and code_content.endswith('}'):
+            if code_content.startswith("{") and code_content.endswith("}"):
                 json_str = code_content
                 logger.debug("从代码块中提取到JSON")
             else:
@@ -164,7 +168,7 @@ class ResponseParser:
             logger.debug("未从代码块中找到JSON，尝试直接提取JSON对象")
 
             # 找到第一个左花括号
-            open_brace_index = section_text.find('{')
+            open_brace_index = section_text.find("{")
             if open_brace_index == -1:
                 logger.warning("未找到JSON对象的开始标记 '{'")
                 return None
@@ -172,13 +176,13 @@ class ResponseParser:
             # 使用括号匹配算法找到匹配的右花括号
             brace_count = 0
             for i in range(open_brace_index, len(section_text)):
-                if section_text[i] == '{':
+                if section_text[i] == "{":
                     brace_count += 1
-                elif section_text[i] == '}':
+                elif section_text[i] == "}":
                     brace_count -= 1
                     if brace_count == 0:
                         # 找到匹配的右花括号
-                        json_str = section_text[open_brace_index:i+1]
+                        json_str = section_text[open_brace_index : i + 1]
                         logger.debug(f"直接提取到JSON对象，长度: {len(json_str)} 字符")
                         break
 
@@ -198,13 +202,17 @@ class ResponseParser:
                     "偏见指数": "bias_index",
                     "误导性指数": "misleading_index",
                     "隐藏意图指数": "hidden_intent_index",
-                    "综合可信度": "credibility_score"
+                    "综合可信度": "credibility_score",
                 }
 
                 for zh_key, en_key in field_mappings.items():
                     try:
                         # 尝试提取嵌套结构: {"偏见指数": {"分数": 4.0}}
-                        if zh_key in data and isinstance(data[zh_key], dict) and "分数" in data[zh_key]:
+                        if (
+                            zh_key in data
+                            and isinstance(data[zh_key], dict)
+                            and "分数" in data[zh_key]
+                        ):
                             score_value = data[zh_key]["分数"]
                             result[en_key] = float(score_value)
                             logger.debug(f"从嵌套JSON结构提取{en_key}: {result[en_key]}")
@@ -218,7 +226,12 @@ class ResponseParser:
                         logger.warning(f"从JSON格式提取{zh_key}时出错: {str(e)}")
 
                 # 最终验证
-                required_keys = ["bias_index", "misleading_index", "hidden_intent_index", "credibility_score"]
+                required_keys = [
+                    "bias_index",
+                    "misleading_index",
+                    "hidden_intent_index",
+                    "credibility_score",
+                ]
                 missing = [k for k in required_keys if k not in result]
                 if missing:
                     logger.warning(f"JSON数据中缺少必要字段: {', '.join(missing)}")
@@ -270,7 +283,7 @@ class ResponseParser:
             "bias_index": None,
             "misleading_index": None,
             "hidden_intent_index": None,
-            "credibility_score": None
+            "credibility_score": None,
         }
 
         # 偏见指数 (BI): 4.0
@@ -344,11 +357,11 @@ class ResponseParser:
         # 构建动态正则表达式，匹配Markdown章节
         for i, section in enumerate(expected_sections):
             # 构建模式：查找当前章节标题，直到下一个章节标题或文档结束
-            pattern = fr"#+\s*{re.escape(section)}\s*\n+(.+?)"
+            pattern = rf"#+\s*{re.escape(section)}\s*\n+(.+?)"
 
             # 如果不是最后一个章节，查找到下一个章节；否则查找到文档结束
             if i < len(expected_sections) - 1:
-                pattern += fr"(?=#+\s*{re.escape(expected_sections[i+1])})"
+                pattern += rf"(?=#+\s*{re.escape(expected_sections[i+1])})"
             else:
                 pattern += r"(?=#+\s*|$)"
 
@@ -359,7 +372,7 @@ class ResponseParser:
                 sections[section] = content
             else:
                 # 尝试查找没有Markdown标记的章节
-                alt_pattern = fr"{re.escape(section)}[：:]\s*(.+?)(?={re.escape(expected_sections[i+1]) if i < len(expected_sections) - 1 else '$'})"
+                alt_pattern = rf"{re.escape(section)}[：:]\s*(.+?)(?={re.escape(expected_sections[i+1]) if i < len(expected_sections) - 1 else '$'})"
                 match = re.search(alt_pattern, text, re.DOTALL)
                 if match:
                     content = match.group(1).strip()
@@ -412,13 +425,15 @@ class ResponseParser:
         limitations = []
 
         # 尝试匹配Markdown列表项
-        list_items = re.findall(r"(?:[-•*]\s*|\d+\.\s*)(.+?)(?=(?:[-•*]|\d+\.)\s*|$)", section_text, re.DOTALL)
+        list_items = re.findall(
+            r"(?:[-•*]\s*|\d+\.\s*)(.+?)(?=(?:[-•*]|\d+\.)\s*|$)", section_text, re.DOTALL
+        )
 
         if list_items:
             limitations = [item.strip() for item in list_items if item.strip()]
         else:
             # 如果没有找到列表项，尝试按行分割
-            lines = [line.strip() for line in section_text.split('\n') if line.strip()]
+            lines = [line.strip() for line in section_text.split("\n") if line.strip()]
             limitations = lines
 
         logger.debug(f"提取到 {len(limitations)} 个分析局限性")
@@ -459,13 +474,20 @@ class ResponseParser:
 
         # 提取结构化内容
         expected_sections = [
-            "分析前背景总结", "Background Summary",
-            "偏见检测发现", "Bias Detection Findings",
-            "误导性内容检测", "Misleading Content Detection",
-            "隐藏意图检测", "Hidden Intent Detection",
-            "整体评估", "Overall Assessment",
-            "量化评分", "Quantitative Scoring",
-            "分析局限与不确定性", "Analysis Limitations"
+            "分析前背景总结",
+            "Background Summary",
+            "偏见检测发现",
+            "Bias Detection Findings",
+            "误导性内容检测",
+            "Misleading Content Detection",
+            "隐藏意图检测",
+            "Hidden Intent Detection",
+            "整体评估",
+            "Overall Assessment",
+            "量化评分",
+            "Quantitative Scoring",
+            "分析局限与不确定性",
+            "Analysis Limitations",
         ]
 
         sections = ResponseParser.extract_structured_content(text, expected_sections)
@@ -481,7 +503,7 @@ class ResponseParser:
             "credibility_score": scores.get("credibility_score"),
             "raw_response": text,
             "processed_result": sections,
-            "limitations": limitations
+            "limitations": limitations,
         }
 
         logger.info("基础响应解析完成")
@@ -676,7 +698,7 @@ class ErrorHandler:
         return {
             "error_type": type(error).__name__,
             "error_message": str(error),
-            "error_details": getattr(error, "details", None)
+            "error_details": getattr(error, "details", None),
         }
 
     @staticmethod

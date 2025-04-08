@@ -3,6 +3,7 @@
 
 处理使用多个LLM并进行评议的任务。
 """
+
 import asyncio
 import re
 import time
@@ -102,8 +103,7 @@ class ReviewProcessor(BaseTaskProcessor):
             # 检查多LLM处理是否成功
             if not multi_result.get("success", False):
                 return await self._handle_error(
-                    task_id,
-                    f"多LLM处理失败: {multi_result.get('error', '未知错误')}"
+                    task_id, f"多LLM处理失败: {multi_result.get('error', '未知错误')}"
                 )
 
             # 获取处理结果ID列表
@@ -134,7 +134,7 @@ class ReviewProcessor(BaseTaskProcessor):
                     task_id=task_id,
                     task_content=task_content,
                     reviewer=reviewers[0],
-                    result_ids=result_ids
+                    result_ids=result_ids,
                 )
             else:
                 # 多评议者投票模式
@@ -143,7 +143,7 @@ class ReviewProcessor(BaseTaskProcessor):
                     task_id=task_id,
                     task_content=task_content,
                     reviewers=reviewers,
-                    result_ids=result_ids
+                    result_ids=result_ids,
                 )
 
         except Exception as e:
@@ -151,11 +151,7 @@ class ReviewProcessor(BaseTaskProcessor):
             return await self._handle_error(task_id, e)
 
     async def _single_reviewer_mode(
-        self,
-        task_id: int,
-        task_content: str,
-        reviewer: Dict,
-        result_ids: List[int]
+        self, task_id: int, task_content: str, reviewer: Dict, result_ids: List[int]
     ) -> Dict:
         """
         单评议者模式处理
@@ -186,31 +182,31 @@ class ReviewProcessor(BaseTaskProcessor):
             client = get_client_for_llm(reconstructed_reviewer)
 
             # 处理评议
-            logger.info(f"开始评议处理: 任务ID={task_id}, 评议者={reviewer.get('name')} (ID={reviewer_id})")
+            logger.info(
+                f"开始评议处理: 任务ID={task_id}, 评议者={reviewer.get('name')} (ID={reviewer_id})"
+            )
 
             # 运行处理
             loop = asyncio.get_event_loop()
             with ThreadPoolExecutor() as executor:
                 review_result = await loop.run_in_executor(
                     executor,
-                    lambda: client.process_content(content=task_content, prompt=review_prompt)
+                    lambda: client.process_content(content=task_content, prompt=review_prompt),
                 )
 
-            logger.info(f"评议处理完成: 任务ID={task_id}, 成功={review_result.get('success', False)}")
+            logger.info(
+                f"评议处理完成: 任务ID={task_id}, 成功={review_result.get('success', False)}"
+            )
 
             # 检查处理结果
             if not review_result.get("success", False):
                 return await self._handle_error(
-                    task_id,
-                    f"评议处理失败: {review_result.get('error', '未知错误')}"
+                    task_id, f"评议处理失败: {review_result.get('error', '未知错误')}"
                 )
 
             # 保存评议结果
             result_id = await self._save_result(
-                task_id=task_id,
-                llm_id=reviewer_id,
-                result=review_result,
-                is_review_result=True
+                task_id=task_id, llm_id=reviewer_id, result=review_result, is_review_result=True
             )
 
             if not result_id:
@@ -225,18 +221,14 @@ class ReviewProcessor(BaseTaskProcessor):
                 "task_id": task_id,
                 "final_result_id": result_id,
                 "reviewer_id": reviewer_id,
-                "result": review_result.get("result", {})
+                "result": review_result.get("result", {}),
             }
 
         except Exception as e:
             return await self._handle_error(task_id, f"单评议者模式处理失败: {str(e)}")
 
     async def _multiple_reviewer_vote_mode(
-        self,
-        task_id: int,
-        task_content: str,
-        reviewers: List[Dict],
-        result_ids: List[int]
+        self, task_id: int, task_content: str, reviewers: List[Dict], result_ids: List[int]
     ) -> Dict:
         """
         多评议者投票模式处理
@@ -264,9 +256,7 @@ class ReviewProcessor(BaseTaskProcessor):
             for reviewer in reviewers:
                 # 包装处理任务
                 task = self._create_reviewer_task(
-                    reviewer=reviewer,
-                    task_content=task_content,
-                    prompt_content=vote_prompt
+                    reviewer=reviewer, task_content=task_content, prompt_content=vote_prompt
                 )
                 vote_tasks.append(task)
 
@@ -287,7 +277,9 @@ class ReviewProcessor(BaseTaskProcessor):
                     votes.append((reviewer_id, result))
 
             # 过滤出成功的投票
-            valid_votes = [(r_id, result) for r_id, result in votes if result and result.get("success", False)]
+            valid_votes = [
+                (r_id, result) for r_id, result in votes if result and result.get("success", False)
+            ]
 
             if not valid_votes:
                 return await self._handle_error(task_id, "所有评议者处理都失败")
@@ -317,7 +309,7 @@ class ReviewProcessor(BaseTaskProcessor):
                 "task_id": task_id,
                 "final_result_id": final_result_id,
                 "vote_counts": vote_counts,
-                "valid_votes": len(valid_votes)
+                "valid_votes": len(valid_votes),
             }
 
         except Exception as e:
@@ -334,11 +326,13 @@ class ReviewProcessor(BaseTaskProcessor):
         Returns:
             结果字典列表
         """
+
         async def _get_results(session: Session):
-            results = session.query(TaskResult).filter(
-                TaskResult.task_id == task_id,
-                TaskResult.id.in_(result_ids)
-            ).all()
+            results = (
+                session.query(TaskResult)
+                .filter(TaskResult.task_id == task_id, TaskResult.id.in_(result_ids))
+                .all()
+            )
 
             if not results:
                 logger.warning(f"未找到任务结果: 任务ID={task_id}, 结果ID列表={result_ids}")
@@ -356,7 +350,7 @@ class ReviewProcessor(BaseTaskProcessor):
                     "bias_index": r.bias_index,
                     "misleading_index": r.misleading_index,
                     "hidden_intent_index": r.hidden_intent_index,
-                    "credibility_score": r.credibility_score
+                    "credibility_score": r.credibility_score,
                 }
                 for r in sorted_results
             ]
@@ -439,10 +433,7 @@ class ReviewProcessor(BaseTaskProcessor):
         return vote_prompt
 
     async def _create_reviewer_task(
-        self,
-        reviewer: Dict,
-        task_content: str,
-        prompt_content: str
+        self, reviewer: Dict, task_content: str, prompt_content: str
     ) -> asyncio.Task:
         """
         创建评议者处理任务
@@ -473,11 +464,15 @@ class ReviewProcessor(BaseTaskProcessor):
                 # 直接使用异步方式调用process_content方法
                 result = await client.process_content(content=task_content, prompt=prompt_content)
 
-                logger.info(f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), 成功={result.get('success', False)}")
+                logger.info(
+                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), 成功={result.get('success', False)}"
+                )
                 return result
 
             except Exception as e:
-                logger.error(f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), 错误: {str(e)}")
+                logger.error(
+                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), 错误: {str(e)}"
+                )
                 raise
 
         # 创建任务
@@ -500,22 +495,17 @@ class ReviewProcessor(BaseTaskProcessor):
             base_url=llm_data.get("base_url"),
             model_name=llm_data.get("model_name"),
             role=llm_data.get("role", "reviewer"),
-            is_default=llm_data.get("is_default", False)
+            is_default=llm_data.get("is_default", False),
         )
 
         # 添加provider属性
         provider = llm_data.get("provider")
         if provider:
-            setattr(reconstructed_llm, 'provider', provider)
+            setattr(reconstructed_llm, "provider", provider)
 
         return reconstructed_llm
 
-    async def _save_votes(
-        self,
-        task_id: int,
-        results: List[Dict],
-        votes: List[tuple]
-    ) -> None:
+    async def _save_votes(self, task_id: int, results: List[Dict], votes: List[tuple]) -> None:
         """
         保存投票记录
 
@@ -524,6 +514,7 @@ class ReviewProcessor(BaseTaskProcessor):
             results: 结果列表
             votes: 投票列表，每项为(reviewer_id, vote_result)元组
         """
+
         async def _save_vote_records(session: Session):
             for reviewer_id, vote_result in votes:
                 if not vote_result:
@@ -539,10 +530,12 @@ class ReviewProcessor(BaseTaskProcessor):
                         task_id=task_id,
                         reviewer_id=reviewer_id,
                         voted_result_id=voted_result_id,
-                        comment=raw_response
+                        comment=raw_response,
                     )
                     session.add(reviewer_vote)
-                    logger.info(f"已保存投票记录: 评议者ID={reviewer_id}, 投票结果ID={voted_result_id}")
+                    logger.info(
+                        f"已保存投票记录: 评议者ID={reviewer_id}, 投票结果ID={voted_result_id}"
+                    )
 
         try:
             await run_in_session(_save_vote_records)
@@ -608,6 +601,7 @@ class ReviewProcessor(BaseTaskProcessor):
         Returns:
             投票统计字典，键为结果ID，值为票数
         """
+
         async def _count_vote_records(session: Session):
             # 查询所有投票记录
             votes = session.query(ReviewerVote).filter_by(task_id=task_id).all()
@@ -637,6 +631,7 @@ class ReviewProcessor(BaseTaskProcessor):
         Returns:
             设置是否成功
         """
+
         async def _update_final_result(session: Session):
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
@@ -652,5 +647,8 @@ class ReviewProcessor(BaseTaskProcessor):
         try:
             return await run_in_session(_update_final_result)
         except Exception as e:
-            logger.error(f"设置最终结果失败: 任务ID={task_id}, 结果ID={result_id}, 错误: {str(e)}", exc_info=True)
+            logger.error(
+                f"设置最终结果失败: 任务ID={task_id}, 结果ID={result_id}, 错误: {str(e)}",
+                exc_info=True,
+            )
             return False

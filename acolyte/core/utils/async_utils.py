@@ -3,6 +3,7 @@
 
 提供异步操作相关的工具函数和类，简化异步编程。
 """
+
 import asyncio
 import functools
 import inspect
@@ -16,8 +17,8 @@ from acolyte.utils.logging import get_logger
 logger = get_logger(__name__)
 
 # 定义类型变量
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 def run_in_executor(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
@@ -53,9 +54,7 @@ async def run_sync_in_async(func: Callable[..., T], *args: Any, **kwargs: Any) -
         函数执行结果
     """
     loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(
-        None, lambda: func(*args, **kwargs)
-    )
+    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
 
 
 def to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
@@ -70,17 +69,16 @@ def to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     Returns:
         异步函数
     """
+
     @functools.wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> T:
         return await run_sync_in_async(func, *args, **kwargs)
+
     return wrapper
 
 
 async def gather_with_concurrency(
-    n: int,
-    *tasks: Awaitable[Any],
-    return_exceptions: bool = False,
-    timeout: Optional[float] = None
+    n: int, *tasks: Awaitable[Any], return_exceptions: bool = False, timeout: Optional[float] = None
 ) -> List[Any]:
     """
     限制并发数的异步任务收集
@@ -122,16 +120,14 @@ async def gather_with_concurrency(
         # 使用wait_for添加超时控制
         return await asyncio.wait_for(
             asyncio.gather(
-                *(sem_task(task) for task in tasks),
-                return_exceptions=return_exceptions
+                *(sem_task(task) for task in tasks), return_exceptions=return_exceptions
             ),
-            timeout=timeout
+            timeout=timeout,
         )
     else:
         # 无超时控制
         return await asyncio.gather(
-            *(sem_task(task) for task in tasks),
-            return_exceptions=return_exceptions
+            *(sem_task(task) for task in tasks), return_exceptions=return_exceptions
         )
 
 
@@ -152,7 +148,7 @@ class AsyncTaskManager:
         self,
         task_id: str,
         coro: Awaitable[Any],
-        callback: Optional[Callable[[str, Any], None]] = None
+        callback: Optional[Callable[[str, Any], None]] = None,
     ) -> None:
         """
         添加异步任务
@@ -211,7 +207,9 @@ class AsyncTaskManager:
                 try:
                     callback(task_id, {"success": False, "error": str(e)})
                 except Exception as cb_error:
-                    logger.error(f"任务错误回调执行失败: {task_id}, 错误: {str(cb_error)}", exc_info=True)
+                    logger.error(
+                        f"任务错误回调执行失败: {task_id}, 错误: {str(cb_error)}", exc_info=True
+                    )
 
     def cancel_task(self, task_id: str) -> bool:
         """
@@ -280,9 +278,7 @@ class AsyncTaskManager:
 
     def clear_completed_tasks(self) -> None:
         """清除所有已完成的任务"""
-        completed_tasks = [
-            task_id for task_id, task in self.tasks.items() if task.done()
-        ]
+        completed_tasks = [task_id for task_id, task in self.tasks.items() if task.done()]
 
         for task_id in completed_tasks:
             self.clear_task(task_id)

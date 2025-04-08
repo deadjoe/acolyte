@@ -3,6 +3,7 @@ Google Gemini客户端
 
 Google Gemini API的客户端实现。
 """
+
 import json
 from typing import Any, Dict, Union
 
@@ -94,15 +95,14 @@ class GeminiClient(LlmClient):
                 - result (Dict, 可选): 成功时包含解析后的结构化结果
                 - error (str, 可选): 失败时包含错误信息
         """
-        logger.info(f"使用Google Gemini处理内容: 模型={self.model_name}, 内容长度={len(content)}字符")
+        logger.info(
+            f"使用Google Gemini处理内容: 模型={self.model_name}, 内容长度={len(content)}字符"
+        )
 
         # 检查API密钥
         if not self._check_api_key():
             logger.error("Google Gemini API密钥未设置")
-            return {
-                "success": False,
-                "error": "Google Gemini API密钥未设置"
-            }
+            return {"success": False, "error": "Google Gemini API密钥未设置"}
 
         # 准备完整提示词
         system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
@@ -111,7 +111,9 @@ class GeminiClient(LlmClient):
 
         return await self._process_with_gemini_api(system_prompt, user_prompt)
 
-    async def _process_with_gemini_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_gemini_api(
+        self, system_prompt: str, user_prompt: str
+    ) -> Dict[str, Any]:
         """
         使用Gemini API处理内容
 
@@ -128,48 +130,31 @@ class GeminiClient(LlmClient):
         # 根据Gemini官方REST示例更新请求格式
         data = {
             "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": f"{system_prompt}\n\n{user_prompt}"}
-                    ]
-                }
+                {"role": "user", "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}
             ],
             "generationConfig": {
                 "temperature": 0.3,
                 "maxOutputTokens": 8000,
                 "topP": 0.95,
                 "topK": 40,
-                "responseMimeType": "text/plain"
+                "responseMimeType": "text/plain",
             },
             "safetySettings": [
-                {
-                    "category": "HARM_CATEGORY_HARASSMENT",
-                    "threshold": "BLOCK_NONE"
-                },
-                {
-                    "category": "HARM_CATEGORY_HATE_SPEECH",
-                    "threshold": "BLOCK_NONE"
-                },
-                {
-                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    "threshold": "BLOCK_NONE"
-                },
-                {
-                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    "threshold": "BLOCK_NONE"
-                }
-            ]
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ],
         }
 
         logger.debug(f"Gemini API请求数据: {json.dumps(data, ensure_ascii=False)[:500]}...")
 
-        logger.debug(f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, user_prompt长度={len(user_prompt)}字符")
+        logger.debug(
+            f"Gemini API请求参数: system_prompt长度={len(system_prompt)}字符, user_prompt长度={len(user_prompt)}字符"
+        )
 
         # 准备请求头
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
 
         # 根据Gemini官方REST示例更新API端点格式
         # 使用v1beta路径和generateContent操作
@@ -183,23 +168,27 @@ class GeminiClient(LlmClient):
                 endpoint=endpoint,
                 headers=headers,
                 json_data=data,
-                timeout=120.0  # 较长的超时时间
+                timeout=120.0,  # 较长的超时时间
             )
 
             # 解析响应
             try:
                 result = response.json()
                 logger.debug(f"Gemini API响应状态码: {response.status_code}")
-                logger.debug(f"Gemini API响应内容类型: {response.headers.get('Content-Type', '未知')}")
+                logger.debug(
+                    f"Gemini API响应内容类型: {response.headers.get('Content-Type', '未知')}"
+                )
                 logger.debug(f"Gemini API响应内容长度: {len(response.text)}字符")
-                logger.debug(f"Gemini API响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}")
+                logger.debug(
+                    f"Gemini API响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}"
+                )
             except json.JSONDecodeError as e:
                 logger.error(f"Gemini API响应不是有效的JSON: {str(e)}")
                 logger.debug(f"响应内容: {response.text[:500]}...")
                 return {
                     "success": False,
                     "error": f"Gemini响应不是有效的JSON: {str(e)}",
-                    "raw_response": response.text
+                    "raw_response": response.text,
                 }
 
             # 检查响应中是否有错误信息
@@ -211,9 +200,13 @@ class GeminiClient(LlmClient):
                 error_details = error_info.get("details", [])
 
                 # 记录详细错误信息
-                logger.error(f"Gemini API返回错误: 代码={error_code}, 状态={error_status}, 消息={error_message}")
+                logger.error(
+                    f"Gemini API返回错误: 代码={error_code}, 状态={error_status}, 消息={error_message}"
+                )
                 if error_details:
-                    logger.error(f"Gemini API错误详情: {json.dumps(error_details, ensure_ascii=False)}")
+                    logger.error(
+                        f"Gemini API错误详情: {json.dumps(error_details, ensure_ascii=False)}"
+                    )
 
                 # 根据错误类型提供不同的错误信息
                 if "API key not valid" in error_message or "API key expired" in error_message:
@@ -221,28 +214,34 @@ class GeminiClient(LlmClient):
                     return {
                         "success": False,
                         "error": "Gemini API密钥无效或已过期",
-                        "raw_response": json.dumps(result)
+                        "raw_response": json.dumps(result),
                     }
-                elif "quota exceeded" in error_message.lower() or "rate limit" in error_message.lower():
+                elif (
+                    "quota exceeded" in error_message.lower()
+                    or "rate limit" in error_message.lower()
+                ):
                     logger.error("Gemini API配额超限或请求频率过高")
                     return {
                         "success": False,
                         "error": "Gemini API配额超限或请求频率过高",
-                        "raw_response": json.dumps(result)
+                        "raw_response": json.dumps(result),
                     }
-                elif "model not found" in error_message.lower() or "model is not supported" in error_message.lower():
+                elif (
+                    "model not found" in error_message.lower()
+                    or "model is not supported" in error_message.lower()
+                ):
                     logger.error(f"Gemini模型不存在或不支持: {self.full_model_name}")
                     return {
                         "success": False,
                         "error": f"Gemini模型不存在或不支持: {self.full_model_name}",
-                        "raw_response": json.dumps(result)
+                        "raw_response": json.dumps(result),
                     }
                 else:
                     # 其他错误
                     return {
                         "success": False,
                         "error": f"Gemini API错误: {error_message} (代码: {error_code}, 状态: {error_status})",
-                        "raw_response": json.dumps(result)
+                        "raw_response": json.dumps(result),
                     }
 
             # 检查响应中是否有内容
@@ -260,18 +259,24 @@ class GeminiClient(LlmClient):
                     # 跳过后面的响应提取逻辑
                 else:
                     # 检查是否有配额限制或其他隐含错误
-                    if "usageMetadata" in result and "modelVersion" in result and len(result.keys()) == 2:
-                        logger.error("Gemini API可能遇到了配额限制或内容过滤: 响应中只有usageMetadata和modelVersion")
+                    if (
+                        "usageMetadata" in result
+                        and "modelVersion" in result
+                        and len(result.keys()) == 2
+                    ):
+                        logger.error(
+                            "Gemini API可能遇到了配额限制或内容过滤: 响应中只有usageMetadata和modelVersion"
+                        )
                         return {
                             "success": False,
                             "error": "Gemini API可能遇到了配额限制或内容过滤",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
                     else:
                         return {
                             "success": False,
                             "error": "Gemini响应中没有candidates字段",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
 
             # 如果有candidates字段，检查是否为空
@@ -280,7 +285,7 @@ class GeminiClient(LlmClient):
                 return {
                     "success": False,
                     "error": "Gemini响应中candidates列表为空",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             # 初始化变量
@@ -294,11 +299,13 @@ class GeminiClient(LlmClient):
                 # 尝试使用candidates格式提取文本
                 try:
                     if "candidates" not in result:
-                        logger.error(f"Gemini响应中没有candidates字段, 响应键: {list(result.keys())}")
+                        logger.error(
+                            f"Gemini响应中没有candidates字段, 响应键: {list(result.keys())}"
+                        )
                         return {
                             "success": False,
                             "error": "Gemini响应中没有candidates字段",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
 
                     candidates = result["candidates"]
@@ -307,29 +314,35 @@ class GeminiClient(LlmClient):
                         return {
                             "success": False,
                             "error": "Gemini响应中candidates列表为空",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
 
                     candidate = candidates[0]
-                    logger.debug(f"Gemini候选项键: {list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}")
+                    logger.debug(
+                        f"Gemini候选项键: {list(candidate.keys()) if isinstance(candidate, dict) else '非字典'}"
+                    )
 
                     if "content" not in candidate:
-                        logger.error(f"Gemini响应中没有content字段, 候选项键: {list(candidate.keys())}")
+                        logger.error(
+                            f"Gemini响应中没有content字段, 候选项键: {list(candidate.keys())}"
+                        )
                         return {
                             "success": False,
                             "error": "Gemini响应中没有content字段",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
 
                     content = candidate["content"]
-                    logger.debug(f"Gemini内容键: {list(content.keys()) if isinstance(content, dict) else '非字典'}")
+                    logger.debug(
+                        f"Gemini内容键: {list(content.keys()) if isinstance(content, dict) else '非字典'}"
+                    )
 
                     if "parts" not in content:
                         logger.error(f"Gemini响应中没有parts字段, 内容键: {list(content.keys())}")
                         return {
                             "success": False,
                             "error": "Gemini响应中没有parts字段",
-                            "raw_response": json.dumps(result)
+                            "raw_response": json.dumps(result),
                         }
 
                     # 合并所有文本部分
@@ -340,14 +353,18 @@ class GeminiClient(LlmClient):
                         if "text" in part:
                             response_text += part["text"]
                         else:
-                            logger.warning(f"Gemini响应中第{i+1}个part没有text字段, 键: {list(part.keys())}")
+                            logger.warning(
+                                f"Gemini响应中第{i+1}个part没有text字段, 键: {list(part.keys())}"
+                            )
                 except Exception as e:
                     logger.error(f"Gemini响应解析异常: {str(e)}")
-                    logger.debug(f"Gemini响应内容: {json.dumps(result, ensure_ascii=False)[:500]}...")
+                    logger.debug(
+                        f"Gemini响应内容: {json.dumps(result, ensure_ascii=False)[:500]}..."
+                    )
                     return {
                         "success": False,
                         "error": f"Gemini响应解析异常: {str(e)}",
-                        "raw_response": json.dumps(result)
+                        "raw_response": json.dumps(result),
                     }
 
             response_text = response_text.strip()
@@ -357,7 +374,7 @@ class GeminiClient(LlmClient):
                 return {
                     "success": False,
                     "error": "Gemini响应中没有文本内容",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             logger.info(f"成功获取Gemini响应文本, 长度: {len(response_text)}字符")
@@ -375,21 +392,15 @@ class GeminiClient(LlmClient):
                 "success": True,
                 "raw_response": response_text,
                 "processed_result": {},
-                "result": parsed_result
+                "result": parsed_result,
             }
 
         except httpx.RequestError as e:
             logger.error(f"Gemini API请求失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Gemini API请求失败: {str(e)}"
-            }
+            return {"success": False, "error": f"Gemini API请求失败: {str(e)}"}
         except Exception as e:
             logger.error(f"Gemini API处理失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Gemini处理失败: {str(e)}"
-            }
+            return {"success": False, "error": f"Gemini处理失败: {str(e)}"}
 
     @retry_on_error()
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
@@ -417,16 +428,10 @@ class GeminiClient(LlmClient):
         # 检查API密钥
         if not self._check_api_key():
             logger.error("Google Gemini API密钥未设置")
-            return {
-                "success": False,
-                "status": "error",
-                "message": "API密钥未设置"
-            }
+            return {"success": False, "status": "error", "message": "API密钥未设置"}
 
         # 准备请求头
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
 
         # 获取模型信息
         endpoint = f"models?key={self.api_key}"
@@ -435,23 +440,22 @@ class GeminiClient(LlmClient):
             # 使用异步方式发送请求，与OpenAI和Claude保持一致
             # 发送请求
             response = await self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                headers=headers,
-                timeout=30.0
+                method="GET", endpoint=endpoint, headers=headers, timeout=30.0
             )
 
             # 解析响应
             try:
                 result = response.json()
                 logger.debug(f"Gemini API测试连接响应状态码: {response.status_code}")
-                logger.debug(f"Gemini API测试连接响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}")
+                logger.debug(
+                    f"Gemini API测试连接响应JSON键: {list(result.keys()) if isinstance(result, dict) else '非字典'}"
+                )
             except json.JSONDecodeError as e:
                 logger.error(f"Gemini API测试连接响应不是有效的JSON: {str(e)}")
                 return {
                     "success": False,
                     "status": "error",
-                    "message": f"API响应不是有效的JSON: {str(e)}"
+                    "message": f"API响应不是有效的JSON: {str(e)}",
                 }
 
             # 检查响应中是否有错误信息
@@ -463,7 +467,7 @@ class GeminiClient(LlmClient):
                 return {
                     "success": False,
                     "status": "error",
-                    "message": f"API错误: {error_message} (代码: {error_code})"
+                    "message": f"API错误: {error_message} (代码: {error_code})",
                 }
 
             # 检查响应中是否有模型信息
@@ -476,27 +480,17 @@ class GeminiClient(LlmClient):
                     "success": True,
                     "status": "success",
                     "message": f"连接成功，可用模型: {len(model_names)}个",
-                    "models": model_names
+                    "models": model_names,
                 }
             else:
-                logger.warning(f"Google Gemini连接测试成功，但响应中没有models字段, 响应键: {list(result.keys())}")
-                return {
-                    "success": True,
-                    "status": "warning",
-                    "message": "连接成功，但响应格式异常"
-                }
+                logger.warning(
+                    f"Google Gemini连接测试成功，但响应中没有models字段, 响应键: {list(result.keys())}"
+                )
+                return {"success": True, "status": "warning", "message": "连接成功，但响应格式异常"}
 
         except httpx.RequestError as e:
             logger.error(f"Google Gemini连接测试失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "status": "error",
-                "message": f"连接测试失败: {str(e)}"
-            }
+            return {"success": False, "status": "error", "message": f"连接测试失败: {str(e)}"}
         except Exception as e:
             logger.error(f"Google Gemini连接测试未知错误: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "status": "error",
-                "message": f"连接测试未知错误: {str(e)}"
-            }
+            return {"success": False, "status": "error", "message": f"连接测试未知错误: {str(e)}"}

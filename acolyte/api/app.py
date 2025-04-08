@@ -1,14 +1,15 @@
 """
 API服务主应用
 """
+
 import json
 import os
 from datetime import date, datetime
 from enum import Enum
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 
 from acolyte.api.routes import router
 from acolyte.core.db.database import db
@@ -28,8 +29,11 @@ class CustomJSONEncoder(json.JSONEncoder):
             return obj.value
         return super().default(obj)
 
+
 # 重写默认的JSON响应类
 from fastapi.responses import JSONResponse
+
+
 class FastAPICustomJSONResponse(JSONResponse):
     def render(self, content) -> bytes:
         # 使用自定义编码器编码响应内容
@@ -42,12 +46,13 @@ class FastAPICustomJSONResponse(JSONResponse):
             cls=CustomJSONEncoder,
         ).encode("utf-8")
 
+
 # 创建FastAPI应用
 app = FastAPI(
     title="Acolyte API",
     description="内容分析评估系统API",
     version="0.1.0",
-    default_response_class=FastAPICustomJSONResponse
+    default_response_class=FastAPICustomJSONResponse,
 )
 
 # 添加CORS中间件
@@ -61,6 +66,8 @@ app.add_middleware(
 
 # 添加自定义中间件处理响应
 from starlette.middleware.base import BaseHTTPMiddleware
+
+
 class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         # 记录请求信息
@@ -77,7 +84,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
         if body:
             try:
                 # 尝试解析为JSON
-                body_text = body.decode('utf-8')
+                body_text = body.decode("utf-8")
                 json_body = json.loads(body_text)
                 logger.debug(f"请求体(JSON): {json_body}")
             except:
@@ -89,19 +96,26 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
 
         # 创建具有相同主体的新请求
         from starlette.requests import Request
+
         async def receive():
             return {"type": "http.request", "body": body}
+
         request._receive = receive
 
         try:
             # 处理请求
             response = await call_next(request)
             # 记录响应状态
-            logger.debug(f"请求处理完成: {request.method} {request.url.path} - 状态码: {response.status_code}")
+            logger.debug(
+                f"请求处理完成: {request.method} {request.url.path} - 状态码: {response.status_code}"
+            )
             return response
         except Exception as e:
-            logger.error(f"请求处理异常: {request.method} {request.url.path} - {str(e)}", exc_info=True)
+            logger.error(
+                f"请求处理异常: {request.method} {request.url.path} - {str(e)}", exc_info=True
+            )
             raise
+
 
 app.add_middleware(DatetimeHandlerMiddleware)
 
@@ -138,6 +152,7 @@ async def startup_event():
         logger.critical(f"API服务启动失败: {str(e)}", exc_info=True)
         raise
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时执行的操作"""
@@ -156,8 +171,4 @@ async def shutdown_event():
 async def root():
     """API根路径响应"""
     logger.debug("访问API根路径")
-    return {
-        "message": "Acolyte内容分析评估系统API",
-        "version": "0.1.0",
-        "docs_url": "/docs"
-    }
+    return {"message": "Acolyte内容分析评估系统API", "version": "0.1.0", "docs_url": "/docs"}

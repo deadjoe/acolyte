@@ -3,6 +3,7 @@
 
 处理使用单个LLM的任务。
 """
+
 import time
 from typing import Dict
 
@@ -95,7 +96,9 @@ class SingleLlmProcessor(BaseTaskProcessor):
                 return await self._handle_error(task_id, "未找到有效的LLM配置")
 
             # 获取提示词
-            prompt_data = await self._get_prompt(prompt_id=prompt_id, model_name=llm_data.get("model_name"))
+            prompt_data = await self._get_prompt(
+                prompt_id=prompt_id, model_name=llm_data.get("model_name")
+            )
             if not prompt_data:
                 return await self._handle_error(task_id, "未找到有效的提示词")
 
@@ -120,6 +123,7 @@ class SingleLlmProcessor(BaseTaskProcessor):
             try:
                 # 重建LLM配置对象
                 from acolyte.core.db.models import LlmConfig
+
                 reconstructed_llm = LlmConfig(
                     id=llm_data.get("id"),
                     name=llm_data.get("name"),
@@ -127,13 +131,13 @@ class SingleLlmProcessor(BaseTaskProcessor):
                     base_url=llm_data.get("base_url"),
                     model_name=llm_data.get("model_name"),
                     role=llm_data.get("role", "normal"),
-                    is_default=llm_data.get("is_default", False)
+                    is_default=llm_data.get("is_default", False),
                 )
 
                 # 添加provider属性
                 provider = llm_data.get("provider")
                 if provider:
-                    setattr(reconstructed_llm, 'provider', provider)
+                    setattr(reconstructed_llm, "provider", provider)
 
                 # 获取客户端
                 client = get_client_for_llm(reconstructed_llm)
@@ -144,7 +148,9 @@ class SingleLlmProcessor(BaseTaskProcessor):
                 logger.info(f"开始调用LLM API: 任务ID={task_id}, LLM={llm_data.get('name')}")
                 # process_content是异步方法，使用await关键字
                 result = await client.process_content(content=task_content, prompt=prompt_content)
-                logger.info(f"LLM API调用完成: 任务ID={task_id}, 成功={result.get('success', False)}")
+                logger.info(
+                    f"LLM API调用完成: 任务ID={task_id}, 成功={result.get('success', False)}"
+                )
 
             except Exception as e:
                 return await self._handle_error(task_id, f"LLM处理失败: {str(e)}")
@@ -160,8 +166,10 @@ class SingleLlmProcessor(BaseTaskProcessor):
             hidden_intent_index = result.get("result", {}).get("hidden_intent_index")
             credibility_score = result.get("result", {}).get("credibility_score")
 
-            logger.info(f"评分结果: BI={bias_index}, MI={misleading_index}, "
-                      f"HI={hidden_intent_index}, CS={credibility_score}")
+            logger.info(
+                f"评分结果: BI={bias_index}, MI={misleading_index}, "
+                f"HI={hidden_intent_index}, CS={credibility_score}"
+            )
 
             # 保存结果
             # 在单LLM处理模式下，将结果设置为最终结果
@@ -185,7 +193,7 @@ class SingleLlmProcessor(BaseTaskProcessor):
                 "task_id": task_id,
                 "final_result_id": result_id,
                 "llm_id": llm_id,
-                "result": result.get("result", {})
+                "result": result.get("result", {}),
             }
 
         except Exception as e:

@@ -3,19 +3,24 @@
 
 测试数据库模型的关系、约束和基本功能。
 """
-import pytest
+
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 
 # 使用模拟对象而不是实际的模型类
 class MockLlmRole:
     NORMAL = "normal"
     REVIEWER = "reviewer"
 
+
 class MockProcessingMode:
     SINGLE = "single"
     MULTIPLE = "multiple"
     MULTIPLE_WITH_REVIEW = "multiple_with_review"
+
 
 class MockTaskStatus:
     PENDING = "pending"

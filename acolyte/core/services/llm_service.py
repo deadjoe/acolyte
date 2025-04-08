@@ -3,6 +3,7 @@ LLM服务
 
 处理LLM配置管理和使用的业务逻辑，作为API路由和LLM客户端之间的中间层。
 """
+
 import asyncio
 import time
 from typing import Dict, List, Optional
@@ -103,7 +104,7 @@ class LlmService:
                 model_name=model_name,
                 description=description,
                 role=role,
-                is_default=is_default
+                is_default=is_default,
             )
 
             if not new_llm:
@@ -261,13 +262,11 @@ class LlmService:
             llm_config = await run_in_session(_get_llm)
             if not llm_config:
                 logger.warning(f"LLM配置不存在: ID={llm_id}")
-                return {
-                    "success": False,
-                    "message": "LLM配置不存在"
-                }
+                return {"success": False, "message": "LLM配置不存在"}
 
             # 创建LLM客户端
             from acolyte.core.llm.client import get_client_for_llm
+
             client = get_client_for_llm(llm_config)
 
             # 测试连接
@@ -278,10 +277,7 @@ class LlmService:
 
         except Exception as e:
             logger.error(f"LLM连接测试失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "message": f"连接测试失败: {str(e)}"
-            }
+            return {"success": False, "message": f"连接测试失败: {str(e)}"}
 
     async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict:
         """
@@ -344,7 +340,7 @@ class LlmService:
                 "success": False,
                 "error": f"处理内容失败: {str(e)}",
                 "raw_response": None,
-                "result": {}
+                "result": {},
             }
 
     async def set_default_llm(self, llm_id: int) -> Dict:

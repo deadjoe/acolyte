@@ -3,6 +3,7 @@ Anthropic Claude客户端
 
 Anthropic Claude API的客户端实现。
 """
+
 import json
 from typing import Any, Dict, Union
 
@@ -87,10 +88,7 @@ class AnthropicClient(LlmClient):
 
         # 检查API密钥
         if not self._check_api_key():
-            return {
-                "success": False,
-                "error": "Anthropic API密钥未设置"
-            }
+            return {"success": False, "error": "Anthropic API密钥未设置"}
 
         # 准备完整提示词
         system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
@@ -99,7 +97,9 @@ class AnthropicClient(LlmClient):
         # 使用Messages API，因为Completion API已经过时
         return await self._process_with_messages_api(system_prompt, user_prompt)
 
-    async def _process_with_messages_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_messages_api(
+        self, system_prompt: str, user_prompt: str
+    ) -> Dict[str, Any]:
         """
         使用Anthropic Messages API处理内容
 
@@ -131,17 +131,15 @@ class AnthropicClient(LlmClient):
             "model": self.model_name,
             "max_tokens": 4000,
             "system": system_prompt,
-            "messages": [
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": 0.3
+            "messages": [{"role": "user", "content": user_prompt}],
+            "temperature": 0.3,
         }
 
         # 准备请求头
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
+            "content-type": "application/json",
         }
 
         try:
@@ -157,7 +155,7 @@ class AnthropicClient(LlmClient):
                 endpoint=endpoint,
                 headers=headers,
                 json_data=data,
-                timeout=120.0  # 较长的超时时间
+                timeout=120.0,  # 较长的超时时间
             )
 
             # 解析响应
@@ -168,14 +166,13 @@ class AnthropicClient(LlmClient):
                 return {
                     "success": False,
                     "error": "Anthropic响应中没有内容",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             # 提取响应文本
             content_blocks = result["content"]
             response_text = "\n".join(
-                block["text"] for block in content_blocks
-                if block["type"] == "text"
+                block["text"] for block in content_blocks if block["type"] == "text"
             )
 
             # 解析响应
@@ -190,17 +187,16 @@ class AnthropicClient(LlmClient):
                 "success": True,
                 "raw_response": response_text,
                 "processed_result": {},
-                "result": parsed_result
+                "result": parsed_result,
             }
 
         except Exception as e:
             logger.error(f"Anthropic Messages API处理失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Anthropic处理失败: {str(e)}"
-            }
+            return {"success": False, "error": f"Anthropic处理失败: {str(e)}"}
 
-    async def _process_with_completion_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    async def _process_with_completion_api(
+        self, system_prompt: str, user_prompt: str
+    ) -> Dict[str, Any]:
         """
         使用Anthropic Completion API处理内容
 
@@ -233,14 +229,14 @@ class AnthropicClient(LlmClient):
             "model": self.model_name,
             "max_tokens_to_sample": 4000,
             "prompt": f"\n\nHuman: {user_prompt}\n\nAssistant:",
-            "temperature": 0.3
+            "temperature": 0.3,
         }
 
         # 准备请求头
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
+            "content-type": "application/json",
         }
 
         try:
@@ -256,7 +252,7 @@ class AnthropicClient(LlmClient):
                 endpoint=endpoint,
                 headers=headers,
                 json_data=data,
-                timeout=120.0  # 较长的超时时间
+                timeout=120.0,  # 较长的超时时间
             )
 
             # 解析响应
@@ -267,7 +263,7 @@ class AnthropicClient(LlmClient):
                 return {
                     "success": False,
                     "error": "Anthropic响应中没有completion字段",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             # 提取响应文本
@@ -280,15 +276,12 @@ class AnthropicClient(LlmClient):
                 "success": True,
                 "raw_response": response_text,
                 "processed_result": {},
-                "result": parsed_result
+                "result": parsed_result,
             }
 
         except Exception as e:
             logger.error(f"Anthropic Completion API处理失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Anthropic处理失败: {str(e)}"
-            }
+            return {"success": False, "error": f"Anthropic处理失败: {str(e)}"}
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
@@ -313,15 +306,13 @@ class AnthropicClient(LlmClient):
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
+            "content-type": "application/json",
         }
 
         try:
             # 获取模型列表是最轻量的请求
             response = await self._make_request(
-                method="GET",
-                endpoint="/v1/models",
-                headers=headers
+                method="GET", endpoint="/v1/models", headers=headers
             )
 
             # 解析响应
@@ -336,20 +327,12 @@ class AnthropicClient(LlmClient):
                     "success": True,
                     "status": "success",
                     "message": f"连接成功，可用模型: {len(model_names)}个",
-                    "models": model_names
+                    "models": model_names,
                 }
             else:
                 logger.warning("Anthropic连接测试成功，但响应格式异常")
-                return {
-                    "success": True,
-                    "status": "warning",
-                    "message": "连接成功，但响应格式异常"
-                }
+                return {"success": True, "status": "warning", "message": "连接成功，但响应格式异常"}
 
         except Exception as e:
             logger.error(f"Anthropic连接测试失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "status": "error",
-                "message": f"连接测试失败: {str(e)}"
-            }
+            return {"success": False, "status": "error", "message": f"连接测试失败: {str(e)}"}

@@ -3,6 +3,7 @@ API路由定义
 
 使用FastAPI定义API端点，处理请求和响应，但将业务逻辑委托给服务层。
 """
+
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -10,9 +11,7 @@ from pydantic import BaseModel, Field, root_validator
 from sqlalchemy.orm import Session
 
 from acolyte.core.db.database import db
-from acolyte.core.db.models import (
-    LlmRole, ProcessingMode, TaskStatus, Task, TaskResult
-)
+from acolyte.core.db.models import LlmRole, ProcessingMode, Task, TaskResult, TaskStatus
 from acolyte.core.services import LlmService, PromptService, TaskService
 from acolyte.utils.logging import get_logger
 
@@ -21,6 +20,7 @@ logger = get_logger("acolyte.api.routes")
 
 # 创建路由器
 router = APIRouter()
+
 
 # 获取数据库会话依赖
 def get_db():
@@ -149,18 +149,12 @@ async def create_llm(llm_config: LlmConfigCreate):
 
 
 @router.get("/llms", response_model=List[LlmConfigResponse])
-async def get_llms(
-    role: Optional[LlmRole] = None,
-    is_default: Optional[bool] = None
-):
+async def get_llms(role: Optional[LlmRole] = None, is_default: Optional[bool] = None):
     """获取LLM配置列表"""
     logger.info(f"API请求: 获取LLM配置列表, 角色={role}, 是否默认={is_default}")
 
     llm_service = LlmService()
-    result = await llm_service.get_llms(
-        role=role.value if role else None,
-        is_default=is_default
-    )
+    result = await llm_service.get_llms(role=role.value if role else None, is_default=is_default)
 
     if not result.get("success", False):
         error_message = result.get("error", "获取LLM配置列表失败")
@@ -183,7 +177,9 @@ async def get_llm(llm_id: int):
     if not result.get("success", False):
         error_message = result.get("error", "获取LLM配置失败")
         status_code = 404 if "不存在" in error_message else 500
-        logger.error(f"API错误: 获取LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        logger.error(
+            f"API错误: 获取LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}"
+        )
         raise HTTPException(status_code=status_code, detail=error_message)
 
     logger.info(f"API响应: 成功获取LLM配置, ID={result.get('id')}, 名称={result.get('name')}")
@@ -193,7 +189,9 @@ async def get_llm(llm_id: int):
 @router.put("/llms/{llm_id}", response_model=LlmConfigResponse)
 async def update_llm(llm_id: int, llm_config: LlmConfigUpdate):
     """更新LLM配置"""
-    logger.info(f"API请求: 更新LLM配置, ID={llm_id}, 更新字段={list(llm_config.dict(exclude_unset=True).keys())}")
+    logger.info(
+        f"API请求: 更新LLM配置, ID={llm_id}, 更新字段={list(llm_config.dict(exclude_unset=True).keys())}"
+    )
 
     llm_service = LlmService()
     result = await llm_service.update_llm(llm_id, llm_config.dict(exclude_unset=True))
@@ -201,7 +199,9 @@ async def update_llm(llm_id: int, llm_config: LlmConfigUpdate):
     if not result.get("success", False):
         error_message = result.get("error", "更新LLM配置失败")
         status_code = 404 if "不存在" in error_message else 500
-        logger.error(f"API错误: 更新LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        logger.error(
+            f"API错误: 更新LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}"
+        )
         raise HTTPException(status_code=status_code, detail=error_message)
 
     logger.info(f"API响应: LLM配置更新成功, ID={result.get('id')}, 名称={result.get('name')}")
@@ -219,7 +219,9 @@ async def delete_llm(llm_id: int):
     if not result.get("success", False):
         error_message = result.get("error", "删除LLM配置失败")
         status_code = 404 if "不存在" in error_message else 500
-        logger.error(f"API错误: 删除LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        logger.error(
+            f"API错误: 删除LLM配置失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}"
+        )
         raise HTTPException(status_code=status_code, detail=error_message)
 
     logger.info(f"API响应: LLM配置删除成功, ID={llm_id}")
@@ -254,7 +256,9 @@ async def set_default_llm(llm_id: int):
     if not result.get("success", False):
         error_message = result.get("error", "设置默认LLM失败")
         status_code = 404 if "不存在" in error_message else 500
-        logger.error(f"API错误: 设置默认LLM失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}")
+        logger.error(
+            f"API错误: 设置默认LLM失败, ID={llm_id}, 错误={error_message}, 状态码={status_code}"
+        )
         raise HTTPException(status_code=status_code, detail=error_message)
 
     logger.info(f"API响应: 成功设置默认LLM, ID={llm_id}, 名称={result.get('name')}")
@@ -265,7 +269,9 @@ async def set_default_llm(llm_id: int):
 @router.post("/tasks", response_model=TaskResponse)
 async def create_task(task_data: TaskCreate):
     """创建新任务"""
-    logger.info(f"API请求: 创建任务, 处理模式={task_data.processing_mode}, 内容长度={len(task_data.content)}字符")
+    logger.info(
+        f"API请求: 创建任务, 处理模式={task_data.processing_mode}, 内容长度={len(task_data.content)}字符"
+    )
 
     task_service = TaskService()
     result = await task_service.create_task(task_data.dict())
@@ -280,11 +286,7 @@ async def create_task(task_data: TaskCreate):
 
 
 @router.get("/tasks", response_model=List[TaskResponse])
-async def get_tasks(
-    status: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100
-):
+async def get_tasks(status: Optional[str] = None, skip: int = 0, limit: int = 100):
     """获取任务列表"""
     task_service = TaskService()
     result = await task_service.get_tasks(status=status, skip=skip, limit=limit)
@@ -296,10 +298,7 @@ async def get_tasks(
 
 
 @router.delete("/tasks")
-async def clear_tasks(
-    confirm: bool = False,
-    status: Optional[str] = None
-):
+async def clear_tasks(confirm: bool = False, status: Optional[str] = None):
     """清空所有任务及其关联结果
 
     Args:
@@ -318,7 +317,7 @@ async def clear_tasks(
     return {
         "status": "success",
         "message": result.get("message", "已清空任务"),
-        "count": result.get("count", 0)
+        "count": result.get("count", 0),
     }
 
 
@@ -349,10 +348,7 @@ async def delete_task(task_id: int):
 
 
 @router.get("/tasks/{task_id}/results", response_model=List[TaskResultResponse])
-async def get_task_results(
-    task_id: int,
-    include_raw_response: bool = False
-):
+async def get_task_results(task_id: int, include_raw_response: bool = False):
     """获取任务结果"""
     task_service = TaskService()
     result = await task_service.get_task_results(task_id, include_raw_response)
@@ -365,10 +361,7 @@ async def get_task_results(
 
 
 @router.get("/tasks/{task_id}/final-result", response_model=TaskResultResponse)
-async def get_task_final_result(
-    task_id: int,
-    include_raw_response: bool = False
-):
+async def get_task_final_result(task_id: int, include_raw_response: bool = False):
     """获取任务最终结果"""
     logger.info(f"API请求: 获取任务最终结果, ID={task_id}, 包含原始响应={include_raw_response}")
 
@@ -391,6 +384,7 @@ async def get_task_final_result(
 
     try:
         from acolyte.core.db.session import run_in_session
+
         final_result = await run_in_session(_get_final_result)
 
         if not final_result:
@@ -426,18 +420,19 @@ async def import_config(name: Optional[str] = None):
             return {
                 "status": "success",
                 "message": f"未找到可导入的LLM配置{' (' + name + ')' if name else ''}",
-                "llms": []
+                "llms": [],
             }
 
         logger.info(f"成功导入 {len(imported_llms)} 个LLM配置")
         return {
             "status": "success",
             "message": f"成功导入 {len(imported_llms)} 个LLM配置",
-            "llms": imported_llms
+            "llms": imported_llms,
         }
     except Exception as e:
         logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"导入LLM配置失败: {str(e)}")
+
 
 @router.post("/config/export")
 async def export_config():
@@ -459,12 +454,10 @@ async def export_config():
         logger.error(f"导出LLM配置失败: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"导出LLM配置失败: {str(e)}")
 
+
 # 提示词路由
 @router.get("/prompts", response_model=List[PromptResponse])
-async def get_prompts(
-    model_target: Optional[str] = None,
-    version: Optional[str] = None
-):
+async def get_prompts(model_target: Optional[str] = None, version: Optional[str] = None):
     """获取提示词列表"""
     prompt_service = PromptService()
     result = await prompt_service.get_prompts(model_target=model_target, version=version)
@@ -483,7 +476,9 @@ async def get_latest_prompt(model_target: Optional[str] = None):
 
     if not result.get("success", False):
         status_code = 404 if "未找到" in result.get("error", "") else 500
-        raise HTTPException(status_code=status_code, detail=result.get("error", "获取最新提示词失败"))
+        raise HTTPException(
+            status_code=status_code, detail=result.get("error", "获取最新提示词失败")
+        )
 
     return result
 
@@ -536,11 +531,16 @@ async def delete_prompt(prompt_id: int, delete_file: bool = False):
         status_code = 404 if "不存在" in result.get("error", "") else 500
         raise HTTPException(status_code=status_code, detail=result.get("error", "删除提示词失败"))
 
-    return {"status": "success", "message": f"提示词 {prompt_id} 已删除", "file_deleted": result.get("file_deleted", False)}
+    return {
+        "status": "success",
+        "message": f"提示词 {prompt_id} 已删除",
+        "file_deleted": result.get("file_deleted", False),
+    }
 
 
 class PromptSyncRequest(BaseModel):
     prompt_dir: Optional[str] = None
+
 
 @router.post("/prompts/sync")
 async def sync_prompts(request_data: Optional[PromptSyncRequest] = None):
@@ -569,7 +569,7 @@ async def sync_prompts(request_data: Optional[PromptSyncRequest] = None):
     return {
         "status": "success",
         "message": result.get("message", "提示词同步成功"),
-        "count": result.get("count", 0)
+        "count": result.get("count", 0),
     }
 
 
@@ -581,10 +581,12 @@ async def set_prompt_status(prompt_id: int, is_active: bool):
 
     if not result.get("success", False):
         status_code = 404 if "不存在" in result.get("error", "") else 500
-        raise HTTPException(status_code=status_code, detail=result.get("error", "设置提示词状态失败"))
+        raise HTTPException(
+            status_code=status_code, detail=result.get("error", "设置提示词状态失败")
+        )
 
     return {
         "status": "success",
         "message": result.get("message", f"提示词状态已设置为 {'活跃' if is_active else '非活跃'}"),
-        "is_active": is_active
+        "is_active": is_active,
     }

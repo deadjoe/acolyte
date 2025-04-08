@@ -3,6 +3,7 @@
 
 处理使用多个LLM的任务。
 """
+
 import time
 from typing import Dict, List
 
@@ -115,9 +116,7 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             # 并行处理所有LLM
             logger.info(f"开始并行处理 {len(llm_list)} 个LLM: 任务ID={task_id}")
             llm_results = await self._process_with_multiple_llms(
-                task_content=task_content,
-                prompt_content=prompt_content,
-                llm_list=llm_list
+                task_content=task_content, prompt_content=prompt_content, llm_list=llm_list
             )
 
             # 检查结果
@@ -141,7 +140,9 @@ class MultipleLlmProcessor(BaseTaskProcessor):
 
             # 统计处理时间
             elapsed_time = time.time() - start_time
-            logger.info(f"多LLM处理完成: 任务ID={task_id}, 成功结果数={len(result_ids)}, 耗时={elapsed_time:.2f}秒")
+            logger.info(
+                f"多LLM处理完成: 任务ID={task_id}, 成功结果数={len(result_ids)}, 耗时={elapsed_time:.2f}秒"
+            )
 
             # 返回成功结果
             return {
@@ -149,7 +150,9 @@ class MultipleLlmProcessor(BaseTaskProcessor):
                 "task_id": task_id,
                 "result_ids": result_ids,
                 "count": len(result_ids),
-                "results": [r[1].get("result", {}) for r in llm_results if r[1].get("success", False)]
+                "results": [
+                    r[1].get("result", {}) for r in llm_results if r[1].get("success", False)
+                ],
             }
 
         except Exception as e:
@@ -157,10 +160,7 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             return await self._handle_error(task_id, e)
 
     async def _process_with_multiple_llms(
-        self,
-        task_content: str,
-        prompt_content: str,
-        llm_list: List[Dict]
+        self, task_content: str, prompt_content: str, llm_list: List[Dict]
     ) -> List[tuple]:
         """
         并行使用多个LLM处理内容
@@ -198,9 +198,7 @@ class MultipleLlmProcessor(BaseTaskProcessor):
         for llm_data in llm_list:
             # 创建处理任务
             process_task = self._process_with_llm(
-                llm_data=llm_data,
-                task_content=task_content,
-                prompt_content=prompt_content
+                llm_data=llm_data, task_content=task_content, prompt_content=prompt_content
             )
             coroutines.append(process_task)
 
@@ -217,18 +215,25 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             # 处理异常
             if isinstance(result, Exception):
                 logger.error(f"LLM处理异常: LLM ID={llm_id}, 错误: {str(result)}")
-                llm_results.append((llm_id, {
-                    "success": False,
-                    "error": f"处理异常: {str(result)}",
-                    "raw_response": None,
-                    "result": {}
-                }))
+                llm_results.append(
+                    (
+                        llm_id,
+                        {
+                            "success": False,
+                            "error": f"处理异常: {str(result)}",
+                            "raw_response": None,
+                            "result": {},
+                        },
+                    )
+                )
             else:
                 llm_results.append((llm_id, result))
 
         return llm_results
 
-    async def _process_with_llm(self, llm_data: Dict, task_content: str, prompt_content: str) -> Dict:
+    async def _process_with_llm(
+        self, llm_data: Dict, task_content: str, prompt_content: str
+    ) -> Dict:
         """
         使用指定LLM处理内容并返回结果
 
@@ -271,10 +276,14 @@ class MultipleLlmProcessor(BaseTaskProcessor):
         try:
             # 返回处理协程
             result = await client.process_content(content=task_content, prompt=prompt_content)
-            logger.info(f"LLM处理完成: LLM={llm_name} (ID={llm_id}), 成功={result.get('success', False)}")
+            logger.info(
+                f"LLM处理完成: LLM={llm_name} (ID={llm_id}), 成功={result.get('success', False)}"
+            )
             return result
         except Exception as e:
-            logger.error(f"LLM处理失败: LLM={llm_data.get('name')} (ID={llm_data.get('id')}), 错误: {str(e)}")
+            logger.error(
+                f"LLM处理失败: LLM={llm_data.get('name')} (ID={llm_data.get('id')}), 错误: {str(e)}"
+            )
             raise
 
     def _rebuild_llm_config(self, llm_data: Dict) -> LlmConfig:
@@ -309,12 +318,12 @@ class MultipleLlmProcessor(BaseTaskProcessor):
             base_url=llm_data.get("base_url"),
             model_name=llm_data.get("model_name"),
             role=llm_data.get("role", "normal"),
-            is_default=llm_data.get("is_default", False)
+            is_default=llm_data.get("is_default", False),
         )
 
         # 添加provider属性
         provider = llm_data.get("provider")
         if provider:
-            setattr(reconstructed_llm, 'provider', provider)
+            setattr(reconstructed_llm, "provider", provider)
 
         return reconstructed_llm

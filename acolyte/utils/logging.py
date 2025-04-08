@@ -1,9 +1,10 @@
 """
 统一日志系统
 """
+
+import logging
 import os
 import sys
-import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +14,7 @@ LOG_LEVELS = {
     "info": logging.INFO,
     "warning": logging.WARNING,
     "error": logging.ERROR,
-    "critical": logging.CRITICAL
+    "critical": logging.CRITICAL,
 }
 
 # 默认日志级别
@@ -56,24 +57,24 @@ root_logger.addHandler(console_handler)
 if LOG_TO_FILE:
     # 确保日志目录存在
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     # 创建文件处理器
     file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
     file_handler.setLevel(LOG_LEVEL)
     file_formatter = logging.Formatter(FILE_FORMAT)
     file_handler.setFormatter(file_formatter)
     root_logger.addHandler(file_handler)
-    
+
     # 记录日志文件位置
     root_logger.info(f"日志文件位置: {LOG_FILE}")
 
 
 def get_logger(name):
     """获取指定名称的日志记录器
-    
+
     Args:
         name: 日志记录器名称
-        
+
     Returns:
         日志记录器实例
     """

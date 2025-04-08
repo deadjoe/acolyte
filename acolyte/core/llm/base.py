@@ -3,6 +3,7 @@ LLM客户端基类
 
 定义LLM客户端的基础类和共享功能。
 """
+
 import asyncio
 import json
 import time
@@ -13,8 +14,7 @@ import httpx
 from httpx import AsyncClient
 
 from acolyte.core.db.models import LlmConfig
-from acolyte.core.llm.constants import (DEFAULT_TIMEOUT, MAX_RETRIES,
-                                       RETRY_DELAY, RETRY_STATUS_CODES)
+from acolyte.core.llm.constants import DEFAULT_TIMEOUT, MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_CODES
 from acolyte.core.llm.response import ResponseParser
 from acolyte.core.llm.retry import ErrorHandler, RetryConfig, retry_on_error
 from acolyte.utils.http import HttpClientManager
@@ -67,7 +67,7 @@ class LlmClient(ABC):
         self.model_name = llm_config.model_name
 
         # 设置提供商
-        self.provider = getattr(llm_config, 'provider', self._detect_provider())
+        self.provider = getattr(llm_config, "provider", self._detect_provider())
 
         # 设置默认超时
         self.timeout = DEFAULT_TIMEOUT
@@ -82,7 +82,7 @@ class LlmClient(ABC):
         self.retry_config = RetryConfig(
             max_retries=MAX_RETRIES,
             initial_delay=RETRY_DELAY,
-            retry_status_codes=RETRY_STATUS_CODES
+            retry_status_codes=RETRY_STATUS_CODES,
         )
 
         logger.debug(f"初始化{self.provider.capitalize()}客户端: 模型={self.model_name}")
@@ -100,16 +100,17 @@ class LlmClient(ABC):
         if not url:
             # 对于空URL，使用默认值
             from acolyte.core.llm.constants import DEFAULT_API_URLS
+
             url = DEFAULT_API_URLS.get(self.provider, "")
             if not url:
                 logger.warning(f"未提供base_url且无法找到{self.provider}的默认URL")
 
         # 移除URL末尾的斜杠
-        url = url.rstrip('/')
+        url = url.rstrip("/")
 
         # 检查并添加协议
-        if url and not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
+        if url and not url.startswith(("http://", "https://")):
+            url = "https://" + url
 
         return url
 
@@ -122,11 +123,15 @@ class LlmClient(ABC):
         Returns:
             提供商名称
         """
-        from acolyte.core.llm.constants import (MODEL_NAME_PATTERNS,
-                                               PROVIDER_ANTHROPIC,
-                                               PROVIDER_GEMINI, PROVIDER_OLLAMA,
-                                               PROVIDER_OPENAI, PROVIDER_DEEPSEEK,
-                                               PROVIDER_URL_PATTERNS)
+        from acolyte.core.llm.constants import (
+            MODEL_NAME_PATTERNS,
+            PROVIDER_ANTHROPIC,
+            PROVIDER_DEEPSEEK,
+            PROVIDER_GEMINI,
+            PROVIDER_OLLAMA,
+            PROVIDER_OPENAI,
+            PROVIDER_URL_PATTERNS,
+        )
 
         # 基于LLM名称检测提供商
         llm_name_lower = self.name.lower() if self.name else ""
@@ -138,7 +143,10 @@ class LlmClient(ABC):
             return PROVIDER_OPENAI
         elif "gemini" in llm_name_lower or "google" in llm_name_lower:
             return PROVIDER_GEMINI
-        elif any(name in llm_name_lower for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi", "ollama"]):
+        elif any(
+            name in llm_name_lower
+            for name in ["llama", "mistral", "mixtral", "vicuna", "phi", "yi", "ollama"]
+        ):
             return PROVIDER_OLLAMA
 
         # 基于URL检测提供商
@@ -216,7 +224,7 @@ class LlmClient(ABC):
         headers: Optional[Dict[str, str]] = None,
         json_data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> httpx.Response:
         """
         发送异步请求
@@ -243,15 +251,12 @@ class LlmClient(ABC):
         # 记录请求信息（隐藏敏感信息）
         log_headers = None
         if headers:
-            log_headers = {k: "***" if k.lower() in ["authorization", "x-api-key", "api-key"] else v
-                          for k, v in headers.items()}
+            log_headers = {
+                k: "***" if k.lower() in ["authorization", "x-api-key", "api-key"] else v
+                for k, v in headers.items()
+            }
 
-        log_data = {
-            "method": method,
-            "url": url,
-            "headers": log_headers,
-            "timeout": timeout
-        }
+        log_data = {"method": method, "url": url, "headers": log_headers, "timeout": timeout}
 
         if json_data:
             # 隐藏敏感信息
@@ -262,7 +267,9 @@ class LlmClient(ABC):
                 if "messages" in safe_json and isinstance(safe_json["messages"], list):
                     # 记录消息数量和长度，而不是内容
                     log_data["messages_count"] = len(safe_json["messages"])
-                    log_data["messages_total_length"] = sum(len(str(m.get("content", ""))) for m in safe_json["messages"])
+                    log_data["messages_total_length"] = sum(
+                        len(str(m.get("content", ""))) for m in safe_json["messages"]
+                    )
                 else:
                     log_data["json"] = "包含敏感内容，已省略"
 
@@ -280,12 +287,14 @@ class LlmClient(ABC):
                 headers=headers,
                 json=json_data,
                 params=params,
-                timeout=timeout
+                timeout=timeout,
             )
             elapsed_time = time.time() - start_time
 
             # 记录响应信息
-            logger.debug(f"{self.provider.capitalize()}响应: 状态码={response.status_code}, 耗时={elapsed_time:.2f}秒")
+            logger.debug(
+                f"{self.provider.capitalize()}响应: 状态码={response.status_code}, 耗时={elapsed_time:.2f}秒"
+            )
 
             # 检查响应状态
             response.raise_for_status()
@@ -294,7 +303,9 @@ class LlmClient(ABC):
 
         except Exception as e:
             elapsed_time = time.time() - start_time
-            logger.error(f"{self.provider.capitalize()}请求失败: {type(e).__name__}: {str(e)}, 耗时={elapsed_time:.2f}秒")
+            logger.error(
+                f"{self.provider.capitalize()}请求失败: {type(e).__name__}: {str(e)}, 耗时={elapsed_time:.2f}秒"
+            )
             raise
 
     @retry_on_error()
@@ -309,7 +320,4 @@ class LlmClient(ABC):
         """
         # 默认实现，子类应该覆盖
         logger.warning(f"{self.provider.capitalize()}未提供测试连接实现")
-        return {
-            "success": False,
-            "message": f"{self.provider.capitalize()}未提供测试连接实现"
-        }
+        return {"success": False, "message": f"{self.provider.capitalize()}未提供测试连接实现"}

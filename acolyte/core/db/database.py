@@ -1,12 +1,13 @@
 """
 数据库管理工具
 """
+
 import os
 import traceback
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from acolyte.core.db.models import Base
 from acolyte.utils.logging import get_logger
@@ -24,9 +25,7 @@ class Database:
         Args:
             db_url: 数据库连接URL，默认为配置文件中的URL或SQLite本地文件
         """
-        self.db_url = db_url or os.environ.get(
-            "ACOLYTE_DB_URL", "sqlite:///acolyte.db"
-        )
+        self.db_url = db_url or os.environ.get("ACOLYTE_DB_URL", "sqlite:///acolyte.db")
         logger.info(f"初始化数据库连接: {self.db_url}")
         self.engine = create_engine(self.db_url)
         self.session_factory = sessionmaker(bind=self.engine)

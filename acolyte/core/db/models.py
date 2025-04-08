@@ -1,13 +1,23 @@
 """
 数据库模型定义
 """
-from datetime import datetime
+
 import enum
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer,
-    String, Table, Text, create_engine
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    create_engine,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -34,6 +44,7 @@ class LlmRole(enum.Enum):
         NORMAL: 普通评估者角色，用于分析内容并生成评估结果
         REVIEWER: 评议者角色，用于对多个普通评估者的结果进行评估和投票
     """
+
     NORMAL = "normal"  # 普通评估者
     REVIEWER = "reviewer"  # 评议者
 
@@ -50,6 +61,7 @@ class ProcessingMode(enum.Enum):
         MULTIPLE: 多LLM处理模式，使用多个LLM并行处理任务，返回所有结果
         MULTIPLE_WITH_REVIEW: 多LLM带评议模式，使用多个LLM处理任务，然后由评议者LLM进行评估和投票
     """
+
     SINGLE = "single"  # 单LLM处理
     MULTIPLE = "multiple"  # 多LLM处理
     MULTIPLE_WITH_REVIEW = "multiple_with_review"  # 多LLM带评议
@@ -68,6 +80,7 @@ class TaskStatus(enum.Enum):
         COMPLETED: 已完成状态，任务处理成功并有结果
         FAILED: 失败状态，任务处理过程中出现错误
     """
+
     PENDING = "pending"  # 等待处理
     PROCESSING = "processing"  # 处理中
     COMPLETED = "completed"  # 已完成
@@ -97,6 +110,7 @@ class LlmConfig(Base):
         task_results: 与任务结果的一对多关系
         tasks: 与任务的多对多关系，通过task_llm_association表
     """
+
     __tablename__ = "llm_configs"
 
     id = Column(Integer, primary_key=True)
@@ -112,11 +126,7 @@ class LlmConfig(Base):
 
     # 关系
     task_results = relationship("TaskResult", back_populates="llm_config")
-    tasks = relationship(
-        "Task",
-        secondary=task_llm_association,
-        back_populates="llm_configs"
-    )
+    tasks = relationship("Task", secondary=task_llm_association, back_populates="llm_configs")
     reviewer_votes = relationship("ReviewerVote", back_populates="reviewer")
 
     def to_dict(self):
@@ -131,12 +141,13 @@ class LlmConfig(Base):
             "role": self.role.value,
             "is_default": self.is_default,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
 class Prompt(Base):
     """Prompt模板模型"""
+
     __tablename__ = "prompts"
 
     id = Column(Integer, primary_key=True)
@@ -162,7 +173,7 @@ class Prompt(Base):
             "is_active": self.is_active,
             "file_path": self.file_path,  # 总是包含文件路径
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_content:
             result["content"] = self.content
@@ -171,6 +182,7 @@ class Prompt(Base):
 
 class TaskResult(Base):
     """任务结果模型"""
+
     __tablename__ = "task_results"
 
     id = Column(Integer, primary_key=True)
@@ -200,7 +212,7 @@ class TaskResult(Base):
             "hidden_intent_index": self.hidden_intent_index,
             "credibility_score": self.credibility_score,
             "is_review_result": self.is_review_result,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
         if include_raw_response:
             result["raw_response"] = self.raw_response
@@ -209,6 +221,7 @@ class TaskResult(Base):
 
 class Task(Base):
     """任务模型"""
+
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)
@@ -224,11 +237,7 @@ class Task(Base):
     prompt = relationship("Prompt", back_populates="tasks")
     results = relationship("TaskResult", foreign_keys="TaskResult.task_id", back_populates="task")
     final_result = relationship("TaskResult", foreign_keys=[final_result_id])
-    llm_configs = relationship(
-        "LlmConfig",
-        secondary=task_llm_association,
-        back_populates="tasks"
-    )
+    llm_configs = relationship("LlmConfig", secondary=task_llm_association, back_populates="tasks")
     reviewer_votes = relationship("ReviewerVote", back_populates="task")
 
     def to_dict(self, include_content=True):
@@ -240,7 +249,7 @@ class Task(Base):
             "prompt_id": self.prompt_id,
             "final_result_id": self.final_result_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_content:
             result["content"] = self.content
@@ -253,6 +262,7 @@ TaskResult.task = relationship("Task", foreign_keys=[TaskResult.task_id], back_p
 
 class ReviewerVote(Base):
     """评议者投票模型"""
+
     __tablename__ = "reviewer_votes"
 
     id = Column(Integer, primary_key=True)

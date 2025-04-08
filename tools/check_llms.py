@@ -17,9 +17,9 @@ def main():
     """主函数"""
     with db.session_scope() as session:
         llms = session.query(LlmConfig).all()
-        
+
         print(f"数据库中共有 {len(llms)} 条LLM配置记录")
-        
+
         for llm in llms:
             print(f"ID: {llm.id}, 名称: {llm.name}")
             print(f"模型: {llm.model_name}")

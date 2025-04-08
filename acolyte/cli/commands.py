@@ -1,6 +1,7 @@
 """
 CLI命令定义
 """
+
 import asyncio
 import os
 import sys
@@ -8,8 +9,8 @@ import traceback  # 用于异常处理中的format_exc()
 from typing import List
 
 import click
-from click import Group
 import httpx
+from click import Group
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -54,7 +55,7 @@ class AcolyteClient:
             # 尝试访问API根端点
             # 注意：API的根端点在 http://localhost:8000/，而不是 http://localhost:8000/api/
             # 所以我们需要使用绝对URL而不是相对路径
-            base_url_parts = self.base_url.split('/api')
+            base_url_parts = self.base_url.split("/api")
             root_url = base_url_parts[0]  # 获取没有/api的基础URL
             logger.debug(f"访问根端点: {root_url}")
 
@@ -86,7 +87,7 @@ class AcolyteClient:
         logger.debug("获取系统信息")
         try:
             # 尝试从根端点获取基本信息
-            base_url_parts = self.base_url.split('/api')
+            base_url_parts = self.base_url.split("/api")
             root_url = base_url_parts[0]  # 获取没有/api的基础URL
             logger.debug(f"访问根端点获取版本信息: {root_url}")
 
@@ -117,7 +118,7 @@ class AcolyteClient:
                 "database_status": "connected",  # 如果API响应正常，数据库应该是连接的
                 "task_count": task_count,
                 "llm_count": llm_count,
-                "prompt_count": prompt_count
+                "prompt_count": prompt_count,
             }
 
             logger.debug(f"成功获取系统信息: {result}")
@@ -130,10 +131,12 @@ class AcolyteClient:
                 "database_status": "unknown",
                 "task_count": "unknown",
                 "llm_count": "unknown",
-                "prompt_count": "unknown"
+                "prompt_count": "unknown",
             }
 
-    async def analyze(self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None):
+    async def analyze(
+        self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None
+    ):
         """分析内容
 
         Args:
@@ -164,7 +167,10 @@ class AcolyteClient:
             logger.info(f"任务提交成功: ID={result.get('id')}")
             return result
         except httpx.HTTPStatusError as e:
-            logger.error(f"提交任务失败: 状态码={e.response.status_code}, 错误={e.response.text}", exc_info=True)
+            logger.error(
+                f"提交任务失败: 状态码={e.response.status_code}, 错误={e.response.text}",
+                exc_info=True,
+            )
             raise
         except Exception as e:
             logger.error(f"提交任务时发生异常: {str(e)}", exc_info=True)
@@ -194,8 +200,7 @@ class AcolyteClient:
             任务结果列表
         """
         response = await self.client.get(
-            f"/tasks/{task_id}/results",
-            params={"include_raw_response": include_raw_response}
+            f"/tasks/{task_id}/results", params={"include_raw_response": include_raw_response}
         )
         response.raise_for_status()
         return response.json()
@@ -211,8 +216,7 @@ class AcolyteClient:
             任务最终结果
         """
         response = await self.client.get(
-            f"/tasks/{task_id}/final-result",
-            params={"include_raw_response": include_raw_response}
+            f"/tasks/{task_id}/final-result", params={"include_raw_response": include_raw_response}
         )
         response.raise_for_status()
         return response.json()
@@ -237,8 +241,16 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def create_llm(self, name: str, api_key: str, base_url: str, model_name: str,
-                         description: str = None, role: str = "normal", is_default: bool = False):
+    async def create_llm(
+        self,
+        name: str,
+        api_key: str,
+        base_url: str,
+        model_name: str,
+        description: str = None,
+        role: str = "normal",
+        is_default: bool = False,
+    ):
         """创建LLM配置
 
         Args:
@@ -260,7 +272,7 @@ class AcolyteClient:
             "model_name": model_name,
             "description": description,
             "role": role,
-            "is_default": is_default
+            "is_default": is_default,
         }
         response = await self.client.post("/llms", json=data)
         response.raise_for_status()
@@ -394,9 +406,12 @@ class OrderedGroup(Group):
         # 获取所有已注册的命令
         commands = self.commands.keys()
         # 按照预定义的顺序排序
-        return sorted(commands, key=lambda x:
-                     self.command_order.index(x) if x in self.command_order
-                     else len(self.command_order))
+        return sorted(
+            commands,
+            key=lambda x: (
+                self.command_order.index(x) if x in self.command_order else len(self.command_order)
+            ),
+        )
 
     def get_command(self, _, cmd_name):
         """获取命令"""
@@ -409,10 +424,10 @@ def cli():
     """Acolyte CLI - 内容分析评估系统命令行工具"""
     # 设置主命令组中命令的显示顺序
     cli.command_order = [
-        'config',   # 配置管理
-        'analyze',  # 分析命令
-        'history',  # 历史记录
-        'status',   # 状态检查
+        "config",  # 配置管理
+        "analyze",  # 分析命令
+        "history",  # 历史记录
+        "status",  # 状态检查
     ]
 
 
@@ -422,6 +437,7 @@ def status():
 
     检查API服务是否正常运行，并显示系统信息。
     """
+
     async def _check_status():
         client = AcolyteClient()
         try:
@@ -456,7 +472,9 @@ def status():
             else:
                 console.print(f"[bold red]状态:[/] API服务不可用")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
         finally:
             await client.close()
 
@@ -467,8 +485,13 @@ def status():
 @cli.command()
 @click.argument("file", type=click.Path(exists=True, readable=True), required=False)
 @click.option("--text", "-t", help="要分析的文本内容")
-@click.option("--mode", "-m", type=click.Choice(["single", "multiple", "multiple_with_review"]),
-              default="single", help="处理模式")
+@click.option(
+    "--mode",
+    "-m",
+    type=click.Choice(["single", "multiple", "multiple_with_review"]),
+    default="single",
+    help="处理模式",
+)
 @click.option("--llm", "-l", multiple=True, type=int, help="LLM ID，可多次指定")
 @click.option("--llm-config", "-c", help="从配置文件使用的LLM名称")
 @click.option("--prompt", "-p", type=int, help="Prompt ID")
@@ -480,6 +503,7 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
     例如: acolyte analyze content.txt --mode=multiple
     """
+
     async def _analyze():
         logger.info(f"启动内容分析: 模式={mode}, 等待结果={wait}")
         logger.debug(f"参数: file={file}, llm={llm}, llm_config={llm_config}, prompt={prompt}")
@@ -491,7 +515,9 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 console.print("[yellow]日志信息:[/] 查看 logs 目录中的日志文件获取更多信息")
                 return
             # 获取内容
@@ -546,7 +572,9 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                             console.print(f"[bold green]已导入LLM配置: {llm_config}[/]")
                         else:
                             logger.warning(f"未找到名为 {llm_config} 的LLM配置")
-                            console.print(f"[bold yellow]警告:[/] 未找到名为 {llm_config} 的LLM配置")
+                            console.print(
+                                f"[bold yellow]警告:[/] 未找到名为 {llm_config} 的LLM配置"
+                            )
                     except Exception as e:
                         logger.error(f"导入LLM配置失败: {str(e)}", exc_info=True)
                         console.print(f"[bold red]导入LLM配置失败:[/] {str(e)}")
@@ -585,7 +613,9 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                         # 超过最大检查次数则放弃等待
                         if status_check_count > max_checks:
                             logger.warning(f"达到最大检查次数({max_checks})，停止等待")
-                            console.print(f"[bold yellow]警告:[/] 达到最大等待时间，任务 {task_id} 仍在处理中")
+                            console.print(
+                                f"[bold yellow]警告:[/] 达到最大等待时间，任务 {task_id} 仍在处理中"
+                            )
                             break
 
                         try:
@@ -594,17 +624,23 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
                             # 状态变化时重置检查间隔
                             if task_status != last_status:
-                                logger.info(f"任务状态变更: {last_status or '初始'} -> {task_status}")
+                                logger.info(
+                                    f"任务状态变更: {last_status or '初始'} -> {task_status}"
+                                )
                                 last_status = task_status
                                 check_interval = 2  # 重置为初始检查间隔
                             else:
                                 # 状态未变化时，逐渐增加检查间隔，但不超过最大值
                                 check_interval = min(check_interval * 1.5, max_check_interval)
 
-                            logger.debug(f"任务状态检查 #{status_check_count}: {task_status}，下次检查间隔: {check_interval:.1f}秒")
+                            logger.debug(
+                                f"任务状态检查 #{status_check_count}: {task_status}，下次检查间隔: {check_interval:.1f}秒"
+                            )
 
                             # 更新进度条描述
-                            progress.update(task_progress, description=f"[cyan]任务处理中 ({task_status})...")
+                            progress.update(
+                                task_progress, description=f"[cyan]任务处理中 ({task_status})..."
+                            )
                         except Exception as e:
                             logger.error(f"获取任务状态失败: {str(e)}", exc_info=True)
                             console.print(f"[bold red]获取任务状态失败:[/] {str(e)}")
@@ -623,9 +659,13 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                             logger.warning(f"任务 {task_id} 无最终结果，尝试获取所有结果")
                             # 获取所有结果
                             try:
-                                results = await client.get_task_results(task_id, include_raw_response=True)
+                                results = await client.get_task_results(
+                                    task_id, include_raw_response=True
+                                )
                                 logger.info(f"获取到 {len(results)} 个任务结果")
-                                console.print("[bold yellow]任务已完成，但无最终结果，显示所有结果:[/]")
+                                console.print(
+                                    "[bold yellow]任务已完成，但无最终结果，显示所有结果:[/]"
+                                )
                                 for i, result in enumerate(results, 1):
                                     console.print(f"\n[bold]结果 {i}:[/]")
                                     _display_result(result)
@@ -633,7 +673,10 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                                 logger.error(f"获取任务结果失败: {str(e2)}", exc_info=True)
                                 console.print(f"[bold red]获取任务结果失败:[/] {str(e2)}")
                         else:
-                            logger.error(f"获取任务最终结果失败: 状态码={e.response.status_code}, 错误={e.response.text}", exc_info=True)
+                            logger.error(
+                                f"获取任务最终结果失败: 状态码={e.response.status_code}, 错误={e.response.text}",
+                                exc_info=True,
+                            )
                             console.print(f"[bold red]获取任务最终结果失败:[/] {str(e)}")
                 else:
                     logger.error(f"任务 {task_id} 处理失败，最终状态: {task_status}")
@@ -703,14 +746,15 @@ def history():
     """历史任务记录管理"""
     pass
 
+
 # 在所有history命令定义完成后设置显示顺序
 # 这个函数将在模块定义结束时执行
 def _set_history_command_order():
     history.command_order = [
-        'list',    # 列出历史任务
-        'show',    # 显示任务结果
-        'delete',  # 删除任务
-        'clear',   # 清空任务
+        "list",  # 列出历史任务
+        "show",  # 显示任务结果
+        "delete",  # 删除任务
+        "clear",  # 清空任务
     ]
 
 
@@ -722,6 +766,7 @@ def list(status, limit):
 
     例如: acolyte history list --status=completed --limit=5
     """
+
     async def _list():
         client = AcolyteClient()
         try:
@@ -730,7 +775,9 @@ def list(status, limit):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 构建API请求参数
@@ -762,12 +809,11 @@ def list(status, limit):
                 if created_at != "未知":
                     try:
                         # 解析ISO格式的时间字符串
-                        from datetime import datetime
                         import time
-                        from datetime import timezone, timedelta
+                        from datetime import datetime, timedelta, timezone
 
                         # 解析UTC时间
-                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
 
                         # 获取本地时区
                         local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
@@ -783,12 +829,7 @@ def list(status, limit):
                     except Exception as e:
                         logger.warning(f"时间格式化失败: {e}")
 
-                table.add_row(
-                    str(task["id"]),
-                    task["processing_mode"],
-                    task["status"],
-                    created_at
-                )
+                table.add_row(str(task["id"]), task["processing_mode"], task["status"], created_at)
 
             console.print(table)
 
@@ -806,6 +847,7 @@ def delete(task_id):
 
     例如: acolyte history delete 123
     """
+
     async def _delete():
         client = AcolyteClient()
         try:
@@ -814,7 +856,9 @@ def delete(task_id):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 先获取任务信息
@@ -823,13 +867,15 @@ def delete(task_id):
                     task = await client.get_task(task_id)
 
                 # 显示任务信息
-                console.print(Panel(
-                    f"ID: {task['id']}\n"
-                    f"处理模式: {task['processing_mode']}\n"
-                    f"状态: {task['status']}\n"
-                    f"创建时间: {task.get('created_at', '未知')}",
-                    title="将删除以下任务"
-                ))
+                console.print(
+                    Panel(
+                        f"ID: {task['id']}\n"
+                        f"处理模式: {task['processing_mode']}\n"
+                        f"状态: {task['status']}\n"
+                        f"创建时间: {task.get('created_at', '未知')}",
+                        title="将删除以下任务",
+                    )
+                )
 
                 # 确认删除
                 confirm = click.confirm("确认删除?", default=False)
@@ -864,6 +910,7 @@ def clear(status, force):
 
     例如: acolyte history clear --status=failed
     """
+
     async def _clear():
         client = AcolyteClient()
         try:
@@ -872,7 +919,9 @@ def clear(status, force):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 提示确认
@@ -916,20 +965,18 @@ def config():
     # 设置config命令组中命令的显示顺序
     config.command_order = [
         # LLM相关命令
-        'list-llms',
-        'add-llm',
-        'set-default',
-        'delete-llm',
-
+        "list-llms",
+        "add-llm",
+        "set-default",
+        "delete-llm",
         # Prompt相关命令
-        'list-prompts',
-        'show-prompt',
-        'sync-prompts',
-        'delete-prompt',
-
+        "list-prompts",
+        "show-prompt",
+        "sync-prompts",
+        "delete-prompt",
         # 配置导入导出命令
-        'import-config',
-        'export-config',
+        "import-config",
+        "export-config",
     ]
     pass
 
@@ -937,6 +984,7 @@ def config():
 @config.command()
 def list_llms():
     """列出所有LLM配置"""
+
     async def _list_llms():
         client = AcolyteClient()
         try:
@@ -945,7 +993,9 @@ def list_llms():
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status("[bold green]获取LLM配置中...[/]"):
@@ -965,7 +1015,7 @@ def list_llms():
                     llm["name"],
                     llm["model_name"],
                     llm["role"],
-                    "✓" if llm["is_default"] else ""
+                    "✓" if llm["is_default"] else "",
                 )
 
             console.print(table)
@@ -984,6 +1034,7 @@ def set_default(llm_id):
 
     例如: acolyte config set-default 1
     """
+
     async def _set_default():
         client = AcolyteClient()
         try:
@@ -992,13 +1043,17 @@ def set_default(llm_id):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保API服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保API服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status(f"[bold green]设置LLM {llm_id}为默认...[/]"):
                 result = await client.set_default_llm(llm_id)
 
-            console.print(f"[bold green]成功设置LLM为默认[/] - ID: {result['id']}, 名称: {result['name']}")
+            console.print(
+                f"[bold green]成功设置LLM为默认[/] - ID: {result['id']}, 名称: {result['name']}"
+            )
 
         except httpx.HTTPStatusError as e:
             error_message = e.response.json().get("detail", str(e))
@@ -1019,6 +1074,7 @@ def delete_llm(llm_id):
 
     例如: acolyte config delete-llm 3
     """
+
     async def _delete_llm():
         client = AcolyteClient()
         try:
@@ -1027,7 +1083,9 @@ def delete_llm(llm_id):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 先获取LLM信息以显示
@@ -1039,14 +1097,16 @@ def delete_llm(llm_id):
 
                 # 确认删除
                 console.print(f"将删除以下LLM配置:")
-                console.print(Panel(
-                    f"ID: {llm['id']}\n"
-                    f"名称: {llm['name']}\n"
-                    f"模型: {llm['model_name']}\n"
-                    f"角色: {llm['role']}\n"
-                    f"默认: {'是' if llm['is_default'] else '否'}",
-                    title="LLM配置详情"
-                ))
+                console.print(
+                    Panel(
+                        f"ID: {llm['id']}\n"
+                        f"名称: {llm['name']}\n"
+                        f"模型: {llm['model_name']}\n"
+                        f"角色: {llm['role']}\n"
+                        f"默认: {'是' if llm['is_default'] else '否'}",
+                        title="LLM配置详情",
+                    )
+                )
 
                 confirm = click.confirm("确认删除?", default=False)
                 if not confirm:
@@ -1062,7 +1122,9 @@ def delete_llm(llm_id):
                 console.print(f"[bold green]{result['message']}[/]")
 
                 # 提示用户可以手动导出配置
-                console.print("[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]")
+                console.print(
+                    "[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]"
+                )
 
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
@@ -1083,7 +1145,9 @@ def delete_llm(llm_id):
 @click.option("--base-url", "-u", required=True, help="基础URL")
 @click.option("--model", "-m", required=True, help="模型名称")
 @click.option("--description", "-d", help="描述")
-@click.option("--role", "-r", type=click.Choice(["normal", "reviewer"]), default="normal", help="角色")
+@click.option(
+    "--role", "-r", type=click.Choice(["normal", "reviewer"]), default="normal", help="角色"
+)
 @click.option("--default/--no-default", default=False, help="是否设为默认")
 @click.option("--save-to-config/--no-save-to-config", default=True, help="是否保存到配置文件")
 def add_llm(name, api_key, base_url, model, description, role, default, save_to_config):
@@ -1091,6 +1155,7 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
 
     例如: acolyte config add-llm -n "Claude-3" -k "sk-..." -u "https://api.anthropic.com" -m "claude-3-opus-20240229" -r reviewer
     """
+
     async def _add_llm():
         client = AcolyteClient()
         try:
@@ -1099,7 +1164,9 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status("[bold green]添加LLM配置中...[/]"):
@@ -1110,7 +1177,7 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
                     model_name=model,
                     description=description,
                     role=role,
-                    is_default=default
+                    is_default=default,
                 )
 
             console.print(f"[bold green]LLM配置添加成功[/] - ID: {llm['id']}")
@@ -1120,13 +1187,19 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
                 test_result = await client.test_llm(llm["id"])
 
             if test_result["success"]:
-                console.print(f"[bold green]连接测试成功[/] - 响应时间: {test_result['response_time']}秒")
+                console.print(
+                    f"[bold green]连接测试成功[/] - 响应时间: {test_result['response_time']}秒"
+                )
             else:
-                console.print(f"[bold red]连接测试失败[/] - {test_result.get('message', '未知错误')}")
+                console.print(
+                    f"[bold red]连接测试失败[/] - {test_result.get('message', '未知错误')}"
+                )
 
             # 提示用户可以手动导出配置
             if save_to_config:
-                console.print("[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]")
+                console.print(
+                    "[bold yellow]提示: 如需更新配置文件，请手动运行 'config export-config' 命令[/]"
+                )
 
         finally:
             await client.close()
@@ -1138,6 +1211,7 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
 @config.command()
 def export_config():
     """将数据库中的LLM配置导出到配置文件"""
+
     async def _export_config():
         client = AcolyteClient()
         try:
@@ -1146,7 +1220,9 @@ def export_config():
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status("[bold green]导出配置中...[/]"):
@@ -1166,6 +1242,7 @@ def import_config(name):
 
     例如: acolyte config import-config -n "Claude-3"
     """
+
     async def _import_config():
         client = AcolyteClient()
         try:
@@ -1174,7 +1251,9 @@ def import_config(name):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status("[bold green]导入配置中...[/]"):
@@ -1193,12 +1272,7 @@ def import_config(name):
                     table.add_column("角色", style="yellow")
 
                     for llm in imported_llms:
-                        table.add_row(
-                            str(llm["id"]),
-                            llm["name"],
-                            llm["model_name"],
-                            llm["role"]
-                        )
+                        table.add_row(str(llm["id"]), llm["name"], llm["model_name"], llm["role"])
 
                     console.print(table)
             else:
@@ -1216,6 +1290,7 @@ def import_config(name):
 @config.command()
 def list_prompts():
     """列出所有Prompt配置"""
+
     async def _list_prompts():
         client = AcolyteClient()
         try:
@@ -1224,7 +1299,9 @@ def list_prompts():
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             with console.status("[bold green]获取Prompt配置中...[/]"):
@@ -1242,7 +1319,7 @@ def list_prompts():
                     str(prompt["id"]),
                     prompt["version"],
                     prompt["model_target"] or "通用",
-                    "激活" if prompt["is_active"] else "禁用"
+                    "激活" if prompt["is_active"] else "禁用",
                 )
 
             console.print(table)
@@ -1261,6 +1338,7 @@ def sync_prompts(prompt_dir):
 
     例如: acolyte config sync-prompts --prompt-dir=/path/to/prompts
     """
+
     async def _sync_prompts():
         client = AcolyteClient()
         try:
@@ -1269,7 +1347,9 @@ def sync_prompts(prompt_dir):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 使用环境变量获取prompt_dir
@@ -1298,6 +1378,7 @@ def show_prompt(prompt_id):
 
     例如: acolyte config show-prompt 1
     """
+
     async def _show_prompt():
         client = AcolyteClient()
         try:
@@ -1306,7 +1387,9 @@ def show_prompt(prompt_id):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 获取Prompt内容
@@ -1322,13 +1405,10 @@ def show_prompt(prompt_id):
             )
 
             # 如果存在创建时间，显示它
-            if 'created_at' in prompt and prompt['created_at']:
+            if "created_at" in prompt and prompt["created_at"]:
                 panel_content += f"\n创建时间: {prompt['created_at']}"
 
-            console.print(Panel(
-                panel_content,
-                title="Prompt信息"
-            ))
+            console.print(Panel(panel_content, title="Prompt信息"))
 
             # 显示Prompt内容
             if prompt.get("content"):
@@ -1340,7 +1420,7 @@ def show_prompt(prompt_id):
                 if file_path and os.path.exists(file_path):
                     with console.status(f"[bold green]从文件读取Prompt内容: {file_path}[/]"):
                         try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
+                            with open(file_path, "r", encoding="utf-8") as f:
                                 content = f.read()
                             console.print("\n[bold]Prompt内容 (从文件读取):[/]")
                             console.print(Markdown(content))
@@ -1370,6 +1450,7 @@ def delete_prompt(prompt_id, delete_file, force):
 
     例如: acolyte config delete-prompt 1 --delete-file
     """
+
     async def _delete_prompt():
         client = AcolyteClient()
         try:
@@ -1378,7 +1459,9 @@ def delete_prompt(prompt_id, delete_file, force):
             if not connection_ok:
                 logger.error(f"API服务连接失败: {error_message}")
                 console.print(f"[bold red]错误:[/] {error_message}")
-                console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+                console.print(
+                    "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+                )
                 return
 
             # 先获取提示词信息以显示
@@ -1394,13 +1477,10 @@ def delete_prompt(prompt_id, delete_file, force):
                     f"状态: {'激活' if prompt['is_active'] else '禁用'}"
                 )
 
-                if 'file_path' in prompt and prompt['file_path']:
+                if "file_path" in prompt and prompt["file_path"]:
                     panel_content += f"\n文件路径: {prompt['file_path']}"
 
-                console.print(Panel(
-                    panel_content,
-                    title="将删除以下提示词"
-                ))
+                console.print(Panel(panel_content, title="将删除以下提示词"))
 
                 # 确认删除
                 if not force and not click.confirm("确认删除?", default=False):
@@ -1438,14 +1518,16 @@ def delete_prompt(prompt_id, delete_file, force):
 # 设置命令组的显示顺序
 _set_history_command_order()
 
+
 # 设置主命令组的显示顺序
 def _set_cli_command_order():
     cli.command_order = [
-        'config',   # 配置管理
-        'analyze',  # 分析命令
-        'history',  # 历史记录
-        'status',   # 状态检查
+        "config",  # 配置管理
+        "analyze",  # 分析命令
+        "history",  # 历史记录
+        "status",  # 状态检查
     ]
+
 
 _set_cli_command_order()
 

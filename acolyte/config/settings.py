@@ -1,6 +1,7 @@
 """
 应用配置管理
 """
+
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,7 @@ logger = get_logger("acolyte.config")
 
 class LlmConfigModel(BaseModel):
     """LLM配置模型"""
+
     name: str
     api_key: str
     base_url: str
@@ -27,6 +29,7 @@ class LlmConfigModel(BaseModel):
 
 class AppConfig(BaseModel):
     """应用配置模型"""
+
     database_url: str = "sqlite:///acolyte.db"
     default_prompt_version: Optional[str] = None
     # prompt_dir字段已移除，因为它与LLM配置无关，应该由PromptManager自行管理

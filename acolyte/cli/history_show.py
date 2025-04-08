@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import click
 import httpx
@@ -16,12 +16,13 @@ from acolyte.utils.logging import get_logger
 logger = get_logger(__name__)
 console = Console()
 
+
 async def show_task(
     task_id: int,
     all_results: Optional[bool],
     specified_llm_id: Optional[int],
     raw: bool,
-    format_type: str
+    format_type: str,
 ) -> None:
     """
     显示任务结果的异步函数
@@ -40,7 +41,9 @@ async def show_task(
         if not connection_ok:
             logger.error(f"API服务连接失败: {error_message}")
             console.print(f"[bold red]错误:[/] {error_message}")
-            console.print("[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务")
+            console.print(
+                "[yellow]提示:[/] 请确保 API 服务已启动，可以运行 'uv run -m acolyte.main' 启动服务"
+            )
             return
 
         # 获取任务信息
@@ -51,11 +54,11 @@ async def show_task(
             if created_at != "未知":
                 try:
                     # 解析ISO格式的时间字符串
-                    from datetime import datetime, timezone, timedelta
                     import time
+                    from datetime import datetime, timedelta, timezone
 
                     # 解析UTC时间
-                    dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
 
                     # 获取本地时区
                     local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
@@ -69,13 +72,15 @@ async def show_task(
                 except Exception as e:
                     logger.warning(f"时间格式化失败: {str(e)}")
 
-            console.print(Panel(
-                f"任务ID: {task['id']}\n"
-                f"处理模式: {task['processing_mode']}\n"
-                f"状态: {task['status']}\n"
-                f"创建时间: {created_at}",
-                title="任务信息"
-            ))
+            console.print(
+                Panel(
+                    f"任务ID: {task['id']}\n"
+                    f"处理模式: {task['processing_mode']}\n"
+                    f"状态: {task['status']}\n"
+                    f"创建时间: {created_at}",
+                    title="任务信息",
+                )
+            )
 
         # 确定是否显示所有结果
         is_multiple_mode = task["processing_mode"] in ["multiple", "multiple_with_review"]
@@ -100,12 +105,9 @@ async def show_task(
     finally:
         await client.close()
 
+
 async def show_specific_llm_result(
-    client: AcolyteClient,
-    task_id: int,
-    llm_id: int,
-    raw: bool,
-    is_multiple_mode: bool
+    client: AcolyteClient, task_id: int, llm_id: int, raw: bool, is_multiple_mode: bool
 ) -> None:
     """显示特定LLM的结果"""
     # 获取所有结果
@@ -163,11 +165,9 @@ async def show_specific_llm_result(
     if is_multiple_mode:
         console.print("\n[dim]使用 --all 选项查看所有LLM的结果[/]")
 
+
 async def show_all_llm_results(
-    client: AcolyteClient,
-    task_id: int,
-    raw: bool,
-    format_type: str
+    client: AcolyteClient, task_id: int, raw: bool, format_type: str
 ) -> None:
     """显示所有LLM的结果"""
     # 获取所有结果
@@ -195,16 +195,16 @@ async def show_all_llm_results(
             console.print(f"\n[bold cyan]{llm_name} (ID={llm_id}):[/]")
 
             # 安全地格式化指标值
-            bi = result.get('bias_index')
+            bi = result.get("bias_index")
             bi_str = f"{bi:.2f}" if bi is not None else "N/A"
 
-            mi = result.get('misleading_index')
+            mi = result.get("misleading_index")
             mi_str = f"{mi:.2f}" if mi is not None else "N/A"
 
-            hi = result.get('hidden_intent_index')
+            hi = result.get("hidden_intent_index")
             hi_str = f"{hi:.2f}" if hi is not None else "N/A"
 
-            cs = result.get('credibility_score')
+            cs = result.get("credibility_score")
             cs_str = f"{cs:.2f}" if cs is not None else "N/A"
 
             console.print(f"BI: {bi_str}, MI: {mi_str}, HI: {hi_str}, CS: {cs_str}")
@@ -223,25 +223,19 @@ async def show_all_llm_results(
             llm_name = llm_map.get(llm_id, {}).get("name", f"LLM-{llm_id}")
 
             # 安全地格式化指标值
-            bi = result.get('bias_index')
+            bi = result.get("bias_index")
             bi_str = f"{bi:.2f}" if bi is not None else "N/A"
 
-            mi = result.get('misleading_index')
+            mi = result.get("misleading_index")
             mi_str = f"{mi:.2f}" if mi is not None else "N/A"
 
-            hi = result.get('hidden_intent_index')
+            hi = result.get("hidden_intent_index")
             hi_str = f"{hi:.2f}" if hi is not None else "N/A"
 
-            cs = result.get('credibility_score')
+            cs = result.get("credibility_score")
             cs_str = f"{cs:.2f}" if cs is not None else "N/A"
 
-            compare_table.add_row(
-                f"{llm_name} ({llm_id})",
-                bi_str,
-                mi_str,
-                hi_str,
-                cs_str
-            )
+            compare_table.add_row(f"{llm_name} ({llm_id})", bi_str, mi_str, hi_str, cs_str)
 
         console.print(compare_table)
 
@@ -259,11 +253,9 @@ async def show_all_llm_results(
     if not raw and results:
         console.print("\n[dim]使用 --raw 选项查看详细分析内容[/]")
 
+
 async def show_final_result(
-    client: AcolyteClient,
-    task_id: int,
-    raw: bool,
-    is_multiple_mode: bool
+    client: AcolyteClient, task_id: int, raw: bool, is_multiple_mode: bool
 ) -> None:
     """显示最终结果"""
     try:
@@ -323,14 +315,25 @@ async def show_final_result(
         else:
             raise e
 
+
 def register_command(history_group):
     """注册history show命令"""
+
     @history_group.command()
     @click.argument("task_id", type=int)
-    @click.option("--all/--single", default=None, help="显示所有LLM结果或仅显示最终结果 (multiple模式默认--all)")
+    @click.option(
+        "--all/--single",
+        default=None,
+        help="显示所有LLM结果或仅显示最终结果 (multiple模式默认--all)",
+    )
     @click.option("--llm", type=int, help="指定要显示的LLM ID，仅在multiple模式下有效")
     @click.option("--raw/--no-raw", default=False, help="是否显示原始响应")
-    @click.option("--format", type=click.Choice(["table", "summary", "json"]), default="table", help="结果显示格式")
+    @click.option(
+        "--format",
+        type=click.Choice(["table", "summary", "json"]),
+        default="table",
+        help="结果显示格式",
+    )
     def show(task_id, all, llm, raw, format):
         """显示特定任务结果
 

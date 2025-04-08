@@ -2,9 +2,9 @@
 """
 直接处理单个LLM任务，绕过TaskProcessor
 """
+import json
 import os
 import sys
-import json
 import traceback
 from pathlib import Path
 
@@ -17,7 +17,7 @@ os.environ["ACOLYTE_LOG_LEVEL"] = os.environ.get("ACOLYTE_LOG_LEVEL", "debug")
 os.environ["ACOLYTE_LOG_TO_FILE"] = os.environ.get("ACOLYTE_LOG_TO_FILE", "1")
 
 from acolyte.core.db.database import db
-from acolyte.core.db.models import Task, TaskResult, LlmConfig, TaskStatus, Prompt
+from acolyte.core.db.models import LlmConfig, Prompt, Task, TaskResult, TaskStatus
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.prompt.manager import PromptManager
 from acolyte.utils.logging import get_logger
@@ -57,7 +57,9 @@ async def main():
                 print(f"错误: 未找到ID为{task_id}的任务")
                 return
 
-            logger.info(f"找到任务: ID={task.id}, 状态={task.status.value}, 模式={task.processing_mode.value}")
+            logger.info(
+                f"找到任务: ID={task.id}, 状态={task.status.value}, 模式={task.processing_mode.value}"
+            )
             print(f"找到任务: ID={task.id}, 状态={task.status.value}")
 
             # 获取内容
@@ -78,9 +80,11 @@ async def main():
                     base_url=db_llm.base_url,
                     model_name=db_llm.model_name,
                     role=db_llm.role,
-                    is_default=db_llm.is_default
+                    is_default=db_llm.is_default,
                 )
-                logger.info(f"使用LLM: {llm_config.name} (ID={llm_config.id}, 模型={llm_config.model_name})")
+                logger.info(
+                    f"使用LLM: {llm_config.name} (ID={llm_config.id}, 模型={llm_config.model_name})"
+                )
                 print(f"使用LLM: {llm_config.name} (ID={llm_config.id})")
             else:
                 # 获取默认LLM
@@ -95,9 +99,11 @@ async def main():
                         base_url=db_llm.base_url,
                         model_name=db_llm.model_name,
                         role=db_llm.role,
-                        is_default=db_llm.is_default
+                        is_default=db_llm.is_default,
                     )
-                    logger.info(f"使用默认LLM: {llm_config.name} (ID={llm_config.id}, 模型={llm_config.model_name})")
+                    logger.info(
+                        f"使用默认LLM: {llm_config.name} (ID={llm_config.id}, 模型={llm_config.model_name})"
+                    )
                     print(f"使用默认LLM: {llm_config.name} (ID={llm_config.id})")
                 else:
                     logger.error("未找到可用的LLM配置")
@@ -125,7 +131,9 @@ async def main():
                     latest_prompt = prompt_session.query(Prompt).order_by(Prompt.id.desc()).first()
                     if latest_prompt:
                         prompt_content = latest_prompt.content
-                        logger.info(f"使用最新Prompt: ID={latest_prompt.id}, 版本={latest_prompt.version}")
+                        logger.info(
+                            f"使用最新Prompt: ID={latest_prompt.id}, 版本={latest_prompt.version}"
+                        )
                         logger.debug(f"Prompt内容长度: {len(prompt_content)} 字符")
                         print(f"使用最新Prompt, 长度: {len(prompt_content)} 字符")
                     else:
@@ -152,7 +160,7 @@ async def main():
 
         if result["success"]:
             logger.info("API调用成功!")
-            processing_time = result.get('result', {}).get('processing_time', 'N/A')
+            processing_time = result.get("result", {}).get("processing_time", "N/A")
             logger.info(f"处理时间: {processing_time}秒")
             logger.debug(f"原始响应长度: {len(result['raw_response'])} 字符")
 
@@ -166,8 +174,10 @@ async def main():
             hidden_intent_index = result["result"].get("hidden_intent_index")
             credibility_score = result["result"].get("credibility_score")
 
-            logger.info(f"评分结果: BI={bias_index}, MI={misleading_index}, "
-                       f"HI={hidden_intent_index}, CS={credibility_score}")
+            logger.info(
+                f"评分结果: BI={bias_index}, MI={misleading_index}, "
+                f"HI={hidden_intent_index}, CS={credibility_score}"
+            )
 
             # 保存结果
             logger.info("保存结果到数据库...")
@@ -181,7 +191,7 @@ async def main():
                     misleading_index=misleading_index,
                     hidden_intent_index=hidden_intent_index,
                     credibility_score=credibility_score,
-                    is_review_result=False
+                    is_review_result=False,
                 )
                 session.add(task_result)
                 session.flush()
@@ -202,7 +212,7 @@ async def main():
                 print(f"可信度分数: {task_result.credibility_score}")
 
         else:
-            error = result.get('error', 'Unknown error')
+            error = result.get("error", "Unknown error")
             logger.error(f"API调用失败: {error}")
             print(f"API调用失败: {error}")
 
@@ -229,4 +239,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

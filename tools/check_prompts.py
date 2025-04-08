@@ -17,9 +17,9 @@ def main():
     """主函数"""
     with db.session_scope() as session:
         prompts = session.query(Prompt).all()
-        
+
         print(f"数据库中共有 {len(prompts)} 条Prompt记录")
-        
+
         for prompt in prompts:
             print(f"ID: {prompt.id}, 版本: {prompt.version}, 目标: {prompt.model_target}")
             print(f"描述: {prompt.description}")

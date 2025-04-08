@@ -17,14 +17,14 @@ def main():
     """主函数"""
     # 显式设置prompt目录为项目根目录下的prompt目录
     prompt_dir = os.path.join(project_root, "prompt")
-    
+
     print(f"使用prompt目录: {prompt_dir}")
     prompt_manager = PromptManager(prompt_dir=prompt_dir)
-    
+
     # 检查目录中是否有.md文件
     md_files = list(Path(prompt_dir).glob("*.md"))
     print(f"找到 {len(md_files)} 个.md文件: {[f.name for f in md_files]}")
-    
+
     # 同步prompt文件
     prompt_manager.sync_prompt_files_to_db()
     print("Prompt同步完成")

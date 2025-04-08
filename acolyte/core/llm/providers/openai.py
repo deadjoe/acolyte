@@ -3,6 +3,7 @@ OpenAI GPT客户端
 
 OpenAI GPT API的客户端实现。
 """
+
 import json
 from typing import Any, Dict, Union
 
@@ -92,10 +93,7 @@ class OpenAIClient(LlmClient):
 
         # 检查API密钥
         if not self._check_api_key():
-            return {
-                "success": False,
-                "error": "OpenAI API密钥未设置"
-            }
+            return {"success": False, "error": "OpenAI API密钥未设置"}
 
         # 准备完整提示词
         system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
@@ -121,16 +119,14 @@ class OpenAIClient(LlmClient):
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.3,
-            "max_tokens": 4000
+            "max_tokens": 4000,
         }
 
         # 准备请求头
-        headers = {
-            "Content-Type": "application/json"
-        }
+        headers = {"Content-Type": "application/json"}
 
         # 设置认证信息
         if self.is_azure:
@@ -150,7 +146,7 @@ class OpenAIClient(LlmClient):
                 endpoint=endpoint,
                 headers=headers,
                 json_data=data,
-                timeout=120.0  # 较长的超时时间
+                timeout=120.0,  # 较长的超时时间
             )
 
             # 解析响应
@@ -161,7 +157,7 @@ class OpenAIClient(LlmClient):
                 return {
                     "success": False,
                     "error": "OpenAI响应中没有choices字段",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             # 提取响应文本
@@ -171,7 +167,7 @@ class OpenAIClient(LlmClient):
                 return {
                     "success": False,
                     "error": "OpenAI响应中没有内容",
-                    "raw_response": json.dumps(result)
+                    "raw_response": json.dumps(result),
                 }
 
             # 解析响应
@@ -186,15 +182,12 @@ class OpenAIClient(LlmClient):
                 "success": True,
                 "raw_response": response_text,
                 "processed_result": {},
-                "result": parsed_result
+                "result": parsed_result,
             }
 
         except Exception as e:
             logger.error(f"OpenAI Chat API处理失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"OpenAI处理失败: {str(e)}"
-            }
+            return {"success": False, "error": f"OpenAI处理失败: {str(e)}"}
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
@@ -230,11 +223,7 @@ class OpenAIClient(LlmClient):
 
         try:
             # 获取模型列表是最轻量的请求
-            response = await self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                headers=headers
-            )
+            response = await self._make_request(method="GET", endpoint=endpoint, headers=headers)
 
             # 解析响应
             result = response.json()
@@ -248,20 +237,12 @@ class OpenAIClient(LlmClient):
                     "success": True,
                     "status": "success",
                     "message": f"连接成功，可用模型: {len(model_names)}个",
-                    "models": model_names
+                    "models": model_names,
                 }
             else:
                 logger.warning("OpenAI连接测试成功，但响应格式异常")
-                return {
-                    "success": True,
-                    "status": "warning",
-                    "message": "连接成功，但响应格式异常"
-                }
+                return {"success": True, "status": "warning", "message": "连接成功，但响应格式异常"}
 
         except Exception as e:
             logger.error(f"OpenAI连接测试失败: {str(e)}", exc_info=True)
-            return {
-                "success": False,
-                "status": "error",
-                "message": f"连接测试失败: {str(e)}"
-            }
+            return {"success": False, "status": "error", "message": f"连接测试失败: {str(e)}"}
