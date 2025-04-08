@@ -6,6 +6,7 @@ import json
 import os
 from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +24,7 @@ logger = get_logger("acolyte.api")
 
 # 自定义JSON编码器，处理datetime, date等类型
 class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
         if isinstance(obj, Enum):
@@ -35,7 +36,7 @@ class CustomJSONEncoder(json.JSONEncoder):
 
 
 class FastAPICustomJSONResponse(JSONResponse):
-    def render(self, content) -> bytes:
+    def render(self, content: Any) -> bytes:
         # 使用自定义编码器编码响应内容
         return json.dumps(
             content,
@@ -123,7 +124,7 @@ app.include_router(router, prefix="/api")
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """应用启动时执行的操作"""
     logger.info("API服务正在启动...")
 
@@ -153,7 +154,7 @@ async def startup_event():
 
 
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """应用关闭时执行的操作"""
     logger.info("API服务正在关闭...")
     try:
