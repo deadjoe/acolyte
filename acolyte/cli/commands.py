@@ -29,7 +29,7 @@ console = Console()
 class AcolyteClient:
     """Acolyte API客户端"""
 
-    def __init__(self, base_url=None):
+    def __init__(self, base_url=None) -> None:
         """初始化客户端
 
         Args:
@@ -290,7 +290,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def test_llm(self, llm_id: int):
+    async def test_llm(self, llm_id: int) -> Dict[str, Any]:
         """测试LLM连接
 
         Args:
@@ -303,7 +303,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def set_default_llm(self, llm_id: int):
+    async def set_default_llm(self, llm_id: int) -> Dict[str, Any]:
         """设置默认LLM
 
         Args:
@@ -765,7 +765,7 @@ def history() -> None:
 
 # 在所有history命令定义完成后设置显示顺序
 # 这个函数将在模块定义结束时执行
-def _set_history_command_order():
+def _set_history_command_order() -> None:
     history.command_order = [
         "list",  # 列出历史任务
         "show",  # 显示任务结果
@@ -976,7 +976,7 @@ register_show_command(history)
 
 
 @cli.group(cls=OrderedGroup)
-def config():
+def config() -> None:
     """配置管理"""
     # 设置config命令组中命令的显示顺序
     config.command_order = [
@@ -1169,14 +1169,14 @@ def delete_llm(llm_id: int) -> None:
 )
 @click.option("--default/--no-default", default=False, help="是否设为默认")
 @click.option("--save-to-config/--no-save-to-config", default=True, help="是否保存到配置文件")
-def add_llm(name, api_key, base_url, model, description, role, default, save_to_config):
+def add_llm(name, api_key, base_url, model, description, role, default, save_to_config) -> None:
     """添加LLM配置
 
     例如: acolyte config add-llm -n "Claude-3" -k "sk-..." \
         -u "https://api.anthropic.com" -m "claude-3-opus-20240229" -r reviewer
     """
 
-    async def _add_llm():
+    async def _add_llm() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1230,10 +1230,10 @@ def add_llm(name, api_key, base_url, model, description, role, default, save_to_
 
 
 @config.command()
-def export_config():
+def export_config() -> None:
     """将数据库中的LLM配置导出到配置文件"""
 
-    async def _export_config():
+    async def _export_config() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1259,13 +1259,13 @@ def export_config():
 
 @config.command()
 @click.option("--name", "-n", help="指定要导入的LLM名称")
-def import_config(name):
+def import_config(name) -> None:
     """从配置文件导入LLM配置到数据库
 
     例如: acolyte config import-config -n "Claude-3"
     """
 
-    async def _import_config():
+    async def _import_config() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1311,10 +1311,10 @@ def import_config(name):
 
 
 @config.command()
-def list_prompts():
+def list_prompts() -> None:
     """列出所有Prompt配置"""
 
-    async def _list_prompts():
+    async def _list_prompts() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1357,13 +1357,13 @@ def list_prompts():
 
 @config.command()
 @click.option("--prompt-dir", "-d", help="指定prompt目录路径")
-def sync_prompts(prompt_dir):
+def sync_prompts(prompt_dir) -> None:
     """同步Prompt文件到数据库
 
     例如: acolyte config sync-prompts --prompt-dir=/path/to/prompts
     """
 
-    async def _sync_prompts():
+    async def _sync_prompts() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1398,13 +1398,13 @@ def sync_prompts(prompt_dir):
 
 @config.command()
 @click.argument("prompt_id", type=int)
-def show_prompt(prompt_id):
+def show_prompt(prompt_id) -> None:
     """显示特定Prompt内容
 
     例如: acolyte config show-prompt 1
     """
 
-    async def _show_prompt():
+    async def _show_prompt() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1471,13 +1471,13 @@ def show_prompt(prompt_id):
 @click.argument("prompt_id", type=int)
 @click.option("--delete-file", "-f", is_flag=True, help="同时删除提示词文件")
 @click.option("--force", is_flag=True, help="跳过确认直接删除")
-def delete_prompt(prompt_id, delete_file, force):
+def delete_prompt(prompt_id, delete_file, force) -> None:
     """删除特定提示词
 
     例如: acolyte config delete-prompt 1 --delete-file
     """
 
-    async def _delete_prompt():
+    async def _delete_prompt() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1547,7 +1547,7 @@ _set_history_command_order()
 
 
 # 设置主命令组的显示顺序
-def _set_cli_command_order():
+def _set_cli_command_order() -> None:
     cli.command_order = [
         "config",  # 配置管理
         "analyze",  # 分析命令
