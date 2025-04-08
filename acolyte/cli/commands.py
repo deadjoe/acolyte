@@ -29,7 +29,7 @@ console = Console()
 class AcolyteClient:
     """Acolyte API客户端"""
 
-    def __init__(self, base_url=None) -> None:
+    def __init__(self, base_url: Optional[str] = None) -> None:
         """初始化客户端
 
         Args:
@@ -316,7 +316,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def sync_prompts(self, prompt_dir=None) -> Dict[str, Any]:
+    async def sync_prompts(self, prompt_dir: Optional[str] = None) -> Dict[str, Any]:
         """同步Prompt
 
         Args:
@@ -360,7 +360,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def clear_tasks(self, confirm: bool = False, status: str = None) -> Dict[str, Any]:
+    async def clear_tasks(self, confirm: bool = False, status: Optional[str] = None) -> Dict[str, Any]:
         """清空所有任务
 
         Args:
@@ -387,7 +387,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def import_config(self, name: str = None) -> Dict[str, Any]:
+    async def import_config(self, name: Optional[str] = None) -> Dict[str, Any]:
         """从配置文件导入LLM配置
 
         Args:
@@ -408,12 +408,12 @@ class AcolyteClient:
 class OrderedGroup(Group):
     """自定义命令组，用于控制命令的显示顺序"""
 
-    def __init__(self, name=None, commands=None, **attrs) -> None:
+    def __init__(self, name: Optional[str] = None, commands: Optional[Dict[str, Any]] = None, **attrs) -> None:
         super(OrderedGroup, self).__init__(name, commands, **attrs)
         # 定义命令的显示顺序
-        self.command_order = []
+        self.command_order: List[str] = []
 
-    def list_commands(self, _) -> List[str]:
+    def list_commands(self, _: Any) -> List[str]:
         """返回排序后的命令列表"""
         # 获取所有已注册的命令
         commands = self.commands.keys()
@@ -425,7 +425,7 @@ class OrderedGroup(Group):
             ),
         )
 
-    def get_command(self, _, cmd_name) -> Any:
+    def get_command(self, _: Any, cmd_name: str) -> Any:
         """获取命令"""
         return self.commands.get(cmd_name)
 
@@ -1169,7 +1169,7 @@ def delete_llm(llm_id: int) -> None:
 )
 @click.option("--default/--no-default", default=False, help="是否设为默认")
 @click.option("--save-to-config/--no-save-to-config", default=True, help="是否保存到配置文件")
-def add_llm(name, api_key, base_url, model, description, role, default, save_to_config) -> None:
+def add_llm(name: str, api_key: str, base_url: str, model: str, description: str, role: str, default: bool, save_to_config: bool) -> None:
     """添加LLM配置
 
     例如: acolyte config add-llm -n "Claude-3" -k "sk-..." \
@@ -1259,7 +1259,7 @@ def export_config() -> None:
 
 @config.command()
 @click.option("--name", "-n", help="指定要导入的LLM名称")
-def import_config(name) -> None:
+def import_config(name: Optional[str]) -> None:
     """从配置文件导入LLM配置到数据库
 
     例如: acolyte config import-config -n "Claude-3"
@@ -1357,7 +1357,7 @@ def list_prompts() -> None:
 
 @config.command()
 @click.option("--prompt-dir", "-d", help="指定prompt目录路径")
-def sync_prompts(prompt_dir) -> None:
+def sync_prompts(prompt_dir: Optional[str]) -> None:
     """同步Prompt文件到数据库
 
     例如: acolyte config sync-prompts --prompt-dir=/path/to/prompts
@@ -1398,7 +1398,7 @@ def sync_prompts(prompt_dir) -> None:
 
 @config.command()
 @click.argument("prompt_id", type=int)
-def show_prompt(prompt_id) -> None:
+def show_prompt(prompt_id: int) -> None:
     """显示特定Prompt内容
 
     例如: acolyte config show-prompt 1
@@ -1471,7 +1471,7 @@ def show_prompt(prompt_id) -> None:
 @click.argument("prompt_id", type=int)
 @click.option("--delete-file", "-f", is_flag=True, help="同时删除提示词文件")
 @click.option("--force", is_flag=True, help="跳过确认直接删除")
-def delete_prompt(prompt_id, delete_file, force) -> None:
+def delete_prompt(prompt_id: int, delete_file: bool, force: bool) -> None:
     """删除特定提示词
 
     例如: acolyte config delete-prompt 1 --delete-file
