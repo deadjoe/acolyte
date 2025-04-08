@@ -59,7 +59,7 @@ def get_config_path() -> Path:
     return default_path
 
 
-def load_config(verbose=False) -> AppConfig:
+def load_config(verbose: bool = False) -> AppConfig:
     """加载配置
 
     Args:

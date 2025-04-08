@@ -43,7 +43,7 @@ class SessionManager:
 
     @staticmethod
     @contextmanager
-    def session_scope():
+    def session_scope() -> Any:
         """
         会话上下文管理器
 
@@ -73,7 +73,7 @@ class SessionManager:
                 logger.debug("数据库会话已关闭")
 
     @staticmethod
-    def with_session(func):
+    def with_session(func: Any) -> Any:
         """
         会话管理装饰器
 
@@ -87,14 +87,14 @@ class SessionManager:
         """
 
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             with SessionManager.session_scope() as session:
                 return func(session, *args, **kwargs)
 
         return wrapper
 
     @staticmethod
-    def async_with_session(func):
+    def async_with_session(func: Any) -> Any:
         """
         异步会话管理装饰器
 
@@ -107,7 +107,7 @@ class SessionManager:
         """
 
         @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             with SessionManager.session_scope() as session:
                 if inspect.iscoroutinefunction(func):
                     return await func(session, *args, **kwargs)
@@ -256,7 +256,7 @@ def extract_model_data(model_obj: Any, include_relationships: bool = False) -> D
     return result
 
 
-async def run_in_session(func, *args, **kwargs):
+async def run_in_session(func: Any, *args: Any, **kwargs: Any) -> Any:
     """
     在会话中运行函数
 

@@ -57,11 +57,11 @@ class HttpClient:
             base_url=base_url, timeout=timeout, headers=self.headers
         )
 
-    def close(self):
+    def close(self) -> None:
         """关闭客户端"""
         self.client.close()
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         """关闭异步客户端"""
         await self.async_client.aclose()
 
@@ -282,7 +282,7 @@ class HttpClient:
         # 这里不应该到达，但为了类型检查
         raise httpx.HTTPError("所有异步HTTP请求重试都失败")
 
-    def get(self, url: str, **kwargs) -> Response:
+    def get(self, url: str, **kwargs: Any) -> Response:
         """
         发送GET请求
 
@@ -295,7 +295,7 @@ class HttpClient:
         """
         return self.request("GET", url, **kwargs)
 
-    async def aget(self, url: str, **kwargs) -> Response:
+    async def aget(self, url: str, **kwargs: Any) -> Response:
         """
         发送异步GET请求
 
@@ -308,7 +308,7 @@ class HttpClient:
         """
         return await self.arequest("GET", url, **kwargs)
 
-    def post(self, url: str, **kwargs) -> Response:
+    def post(self, url: str, **kwargs: Any) -> Response:
         """
         发送POST请求
 
@@ -321,7 +321,7 @@ class HttpClient:
         """
         return self.request("POST", url, **kwargs)
 
-    async def apost(self, url: str, **kwargs) -> Response:
+    async def apost(self, url: str, **kwargs: Any) -> Response:
         """
         发送异步POST请求
 
@@ -334,7 +334,7 @@ class HttpClient:
         """
         return await self.arequest("POST", url, **kwargs)
 
-    def put(self, url: str, **kwargs) -> Response:
+    def put(self, url: str, **kwargs: Any) -> Response:
         """
         发送PUT请求
 
@@ -347,7 +347,7 @@ class HttpClient:
         """
         return self.request("PUT", url, **kwargs)
 
-    async def aput(self, url: str, **kwargs) -> Response:
+    async def aput(self, url: str, **kwargs: Any) -> Response:
         """
         发送异步PUT请求
 
@@ -360,7 +360,7 @@ class HttpClient:
         """
         return await self.arequest("PUT", url, **kwargs)
 
-    def delete(self, url: str, **kwargs) -> Response:
+    def delete(self, url: str, **kwargs: Any) -> Response:
         """
         发送DELETE请求
 
@@ -373,7 +373,7 @@ class HttpClient:
         """
         return self.request("DELETE", url, **kwargs)
 
-    async def adelete(self, url: str, **kwargs) -> Response:
+    async def adelete(self, url: str, **kwargs: Any) -> Response:
         """
         发送异步DELETE请求
 

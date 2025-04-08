@@ -69,7 +69,7 @@ if LOG_TO_FILE:
     root_logger.info(f"日志文件位置: {LOG_FILE}")
 
 
-def get_logger(name):
+def get_logger(name: str) -> logging.Logger:
     """获取指定名称的日志记录器
 
     Args:

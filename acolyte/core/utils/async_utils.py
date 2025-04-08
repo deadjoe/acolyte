@@ -112,7 +112,7 @@ async def gather_with_concurrency(
     """
     semaphore = asyncio.Semaphore(n)
 
-    async def sem_task(task):
+    async def sem_task(task: Awaitable[T]) -> T:
         async with semaphore:
             return await task
 
@@ -138,7 +138,7 @@ class AsyncTaskManager:
     管理和监控异步任务的执行。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化异步任务管理器"""
         self.tasks = {}
         self.results = {}
@@ -163,7 +163,7 @@ class AsyncTaskManager:
             return
 
         # 创建任务
-        task = asyncio.create_task(coro)
+        task: asyncio.Task[Any] = asyncio.create_task(coro)
         self.tasks[task_id] = task
         self.callbacks[task_id] = callback
 

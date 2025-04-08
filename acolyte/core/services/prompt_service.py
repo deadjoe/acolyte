@@ -5,7 +5,7 @@
 """
 
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -284,7 +284,7 @@ class PromptService:
         if "is_active" not in prompt_data:
             prompt_data["is_active"] = True
 
-        async def _create_prompt(session: Session):
+        async def _create_prompt(session: Session) -> Dict[str, Any]:
             # 检查是否已存在
             existing = (
                 session.query(Prompt)
@@ -338,7 +338,7 @@ class PromptService:
         """
         logger.info(f"更新提示词: ID={prompt_id}")
 
-        async def _update_prompt(session: Session):
+        async def _update_prompt(session: Session) -> Optional[Dict[str, Any]]:
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None
@@ -399,7 +399,7 @@ class PromptService:
         """
         logger.info(f"删除提示词: ID={prompt_id}, 删除文件={delete_file}")
 
-        async def _delete_prompt(session: Session):
+        async def _delete_prompt(session: Session) -> Optional[Dict[str, Any]]:
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None
@@ -447,7 +447,7 @@ class PromptService:
         """
         logger.info(f"设置提示词活跃状态: ID={prompt_id}, 状态={is_active}")
 
-        async def _set_active(session: Session):
+        async def _set_active(session: Session) -> Optional[Dict[str, Any]]:
             prompt = session.query(Prompt).filter_by(id=prompt_id).first()
             if not prompt:
                 return None

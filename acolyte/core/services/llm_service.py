@@ -5,7 +5,7 @@ LLM服务
 """
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -38,7 +38,7 @@ class LlmService:
     - 使用get_client_for_llm获取适合的LLM客户端
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         初始化LLM服务
 
@@ -128,7 +128,7 @@ class LlmService:
         """
         logger.info(f"获取LLM配置列表: 角色={role}, 是否默认={is_default}")
 
-        async def _get_llms(session: Session):
+        async def _get_llms(session: Session) -> List[Dict[str, Any]]:
             query = session.query(LlmConfig)
 
             # 应用筛选条件
@@ -167,7 +167,7 @@ class LlmService:
         """
         logger.info(f"获取LLM配置: ID={llm_id}")
 
-        async def _get_llm(session: Session):
+        async def _get_llm(session: Session) -> Optional[Dict[str, Any]]:
             llm = session.query(LlmConfig).filter(LlmConfig.id == llm_id).first()
             if not llm:
                 return None
@@ -255,7 +255,7 @@ class LlmService:
 
         try:
             # 获取LLM配置
-            async def _get_llm(session: Session):
+            async def _get_llm(session: Session) -> Optional[LlmConfig]:
                 return session.query(LlmConfig).filter_by(id=llm_id).first()
 
             llm_config = await run_in_session(_get_llm)
@@ -292,7 +292,7 @@ class LlmService:
         """
         logger.info(f"使用LLM处理内容: LLM ID={llm_id}, 内容长度={len(content)}字符")
 
-        async def _get_llm(session: Session):
+        async def _get_llm(session: Session) -> Optional[LlmConfig]:
             return session.query(LlmConfig).filter(LlmConfig.id == llm_id).first()
 
         try:
