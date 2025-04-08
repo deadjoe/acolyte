@@ -14,7 +14,7 @@ logger = get_logger("acolyte.core.llm.config")
 
 
 def import_llm_config_from_file(
-    llm_name: Optional[str] = None, verbose: bool = False
+    llm_name: Optional[str] = None
 ) -> List[Dict]:
     """从配置文件导入LLM配置
 
@@ -28,9 +28,7 @@ def import_llm_config_from_file(
     logger.info(f"从配置文件导入LLM配置{' (' + llm_name + ')' if llm_name else ''}")
 
     try:
-        from acolyte.core.llm.manager import LlmManager
-
-        llm_manager = LlmManager()
+        # 初始化导入结果列表
         imported_llms = []
 
         # 筛选配置

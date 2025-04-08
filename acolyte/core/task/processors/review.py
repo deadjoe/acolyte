@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, ReviewerVote, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, ReviewerVote, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.task.processors.base import BaseTaskProcessor
@@ -88,7 +88,6 @@ class ReviewProcessor(BaseTaskProcessor):
                 - error (str, 可选): 失败时包含错误信息
         """
         logger.info(f"开始多LLM评议处理: 任务ID={task_id}")
-        start_time = time.time()
 
         try:
             # 更新任务状态为处理中
