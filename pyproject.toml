@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "acolyte"
 # 注意: 此版本号应与 acolyte/__init__.py 中的 __version__ 保持一致
-version = "0.1.0"
+version = "0.2.0"
 description = "内容分析评估系统"
 authors = [
     {name = "Acolyte Team"}
