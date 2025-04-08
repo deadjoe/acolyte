@@ -5,7 +5,7 @@ LLM服务
 """
 
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -47,7 +47,7 @@ class LlmService:
         """
         self.llm_manager = LlmManager()
 
-    async def add_llm(self, llm_data: Dict) -> Dict:
+    async def add_llm(self, llm_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         添加LLM配置
 
@@ -115,7 +115,7 @@ class LlmService:
             logger.error(f"添加LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"添加LLM配置失败: {str(e)}", "success": False}
 
-    async def get_llms(self, role: Optional[str] = None, is_default: Optional[bool] = None) -> Dict:
+    async def get_llms(self, role: Optional[str] = None, is_default: Optional[bool] = None) -> Dict[str, Any]:
         """
         获取LLM配置列表
 
@@ -155,7 +155,7 @@ class LlmService:
             logger.error(f"获取LLM配置列表失败: {str(e)}", exc_info=True)
             return {"error": f"获取LLM配置列表失败: {str(e)}", "success": False}
 
-    async def get_llm(self, llm_id: int) -> Dict:
+    async def get_llm(self, llm_id: int) -> Dict[str, Any]:
         """
         获取特定LLM配置
 
@@ -182,7 +182,7 @@ class LlmService:
             logger.error(f"获取LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"获取LLM配置失败: {str(e)}", "success": False}
 
-    async def update_llm(self, llm_id: int, update_data: Dict) -> Dict:
+    async def update_llm(self, llm_id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         更新LLM配置
 
@@ -241,7 +241,7 @@ class LlmService:
             logger.error(f"删除LLM配置失败: {str(e)}", exc_info=True)
             return {"error": f"删除LLM配置失败: {str(e)}", "success": False}
 
-    async def test_connection(self, llm_id: int) -> Dict:
+    async def test_connection(self, llm_id: int) -> Dict[str, Any]:
         """
         测试LLM连接
 
@@ -278,7 +278,7 @@ class LlmService:
             logger.error(f"LLM连接测试失败: {str(e)}", exc_info=True)
             return {"success": False, "message": f"连接测试失败: {str(e)}"}
 
-    async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict:
+    async def process_content(self, llm_id: int, content: str, prompt: str) -> Dict[str, Any]:
         """
         使用特定LLM处理内容
 
