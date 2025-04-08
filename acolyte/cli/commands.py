@@ -5,7 +5,7 @@ CLI命令定义
 import asyncio
 import os
 import sys
-from typing import List
+from typing import List, Optional, Dict, Any, Tuple
 
 import click
 import httpx
@@ -39,12 +39,12 @@ class AcolyteClient:
         logger.info(f"初始化API客户端: {self.base_url}")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=60.0)
 
-    async def close(self):
+    async def close(self) -> None:
         """关闭客户端连接"""
         logger.debug("关闭API客户端连接")
         await self.client.aclose()
 
-    async def check_connection(self):
+    async def check_connection(self) -> Tuple[bool, str]:
         """检查API服务连接状态
 
         Returns:
@@ -78,7 +78,7 @@ class AcolyteClient:
             logger.error(f"检查API服务连接时发生未知错误: {str(e)}")
             return False, f"检查API服务连接时发生错误: {str(e)}"
 
-    async def get_system_info(self):
+    async def get_system_info(self) -> Dict[str, Any]:
         """获取系统信息
 
         Returns:
@@ -135,8 +135,8 @@ class AcolyteClient:
             }
 
     async def analyze(
-        self, content: str, mode: str, llm_ids: List[int] = None, prompt_id: int = None
-    ):
+        self, content: str, mode: str, llm_ids: Optional[List[int]] = None, prompt_id: Optional[int] = None
+    ) -> Dict[str, Any]:
         """分析内容
 
         Args:
@@ -176,7 +176,7 @@ class AcolyteClient:
             logger.error(f"提交任务时发生异常: {str(e)}", exc_info=True)
             raise
 
-    async def get_task(self, task_id: int):
+    async def get_task(self, task_id: int) -> Dict[str, Any]:
         """获取任务
 
         Args:
@@ -189,7 +189,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_task_results(self, task_id: int, include_raw_response: bool = False):
+    async def get_task_results(self, task_id: int, include_raw_response: bool = False) -> List[Dict[str, Any]]:
         """获取任务结果
 
         Args:
@@ -205,7 +205,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_task_final_result(self, task_id: int, include_raw_response: bool = True):
+    async def get_task_final_result(self, task_id: int, include_raw_response: bool = True) -> Optional[Dict[str, Any]]:
         """获取任务最终结果
 
         Args:
@@ -221,7 +221,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_llms(self):
+    async def get_llms(self) -> List[Dict[str, Any]]:
         """获取LLM列表
 
         Returns:
@@ -231,7 +231,7 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_prompts(self):
+    async def get_prompts(self) -> List[Dict[str, Any]]:
         """获取Prompt列表
 
         Returns:
@@ -247,10 +247,10 @@ class AcolyteClient:
         api_key: str,
         base_url: str,
         model_name: str,
-        description: str = None,
+        description: Optional[str] = None,
         role: str = "normal",
         is_default: bool = False,
-    ):
+    ) -> Dict[str, Any]:
         """创建LLM配置
 
         Args:
@@ -420,7 +420,7 @@ class OrderedGroup(Group):
 
 # CLI命令组
 @click.group(cls=OrderedGroup)
-def cli():
+def cli() -> None:
     """Acolyte CLI - 内容分析评估系统命令行工具"""
     # 设置主命令组中命令的显示顺序
     cli.command_order = [
@@ -432,13 +432,13 @@ def cli():
 
 
 @cli.command()
-def status():
+def status() -> None:
     """检查API服务状态
 
     检查API服务是否正常运行，并显示系统信息。
     """
 
-    async def _check_status():
+    async def _check_status() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -497,7 +497,7 @@ def status():
 @click.option("--llm-config", "-c", help="从配置文件使用的LLM名称")
 @click.option("--prompt", "-p", type=int, help="Prompt ID")
 @click.option("--wait/--no-wait", default=True, help="是否等待处理完成")
-def analyze(file, text, mode, llm, llm_config, prompt, wait):
+def analyze(file, text, mode, llm, llm_config, prompt, wait) -> None:
     """分析内容
 
     可以通过文件或直接提供文本内容进行分析。
@@ -505,7 +505,7 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
     例如: acolyte analyze content.txt --mode=multiple
     """
 
-    async def _analyze():
+    async def _analyze() -> None:
         logger.info(f"启动内容分析: 模式={mode}, 等待结果={wait}")
         logger.debug(f"参数: file={file}, llm={llm}, llm_config={llm_config}, prompt={prompt}")
 
@@ -691,7 +691,7 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
         finally:
             await client.close()
 
-    def _display_result(result):
+    def _display_result(result: Dict[str, Any]) -> None:
         """显示任务结果"""
         logger.debug(f"显示任务结果: ID={result.get('id', 'unknown')}")
 
@@ -746,7 +746,7 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
 
 @cli.group(cls=OrderedGroup)
-def history():
+def history() -> None:
     """历史任务记录管理"""
     pass
 
@@ -765,13 +765,13 @@ def _set_history_command_order():
 @history.command()
 @click.option("--status", "-s", help="按状态筛选")
 @click.option("--limit", "-l", type=int, default=10, help="显示数量限制")
-def list(status, limit):
+def list(status: Optional[str], limit: int) -> None:
     """查看历史任务记录
 
     例如: acolyte history list --status=completed --limit=5
     """
 
-    async def _list():
+    async def _list() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -847,13 +847,13 @@ def list(status, limit):
 
 @history.command()
 @click.argument("task_id", type=int)
-def delete(task_id):
+def delete(task_id: int) -> None:
     """删除特定任务
 
     例如: acolyte history delete 123
     """
 
-    async def _delete():
+    async def _delete() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -911,13 +911,13 @@ def delete(task_id):
 @history.command()
 @click.option("--status", "-s", help="可选，只清空特定状态的任务")
 @click.option("--force", "-f", is_flag=True, help="跳过确认直接执行")
-def clear(status, force):
+def clear(status: Optional[str], force: bool) -> None:
     """清空所有任务历史
 
     例如: acolyte history clear --status=failed
     """
 
-    async def _clear():
+    async def _clear() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -986,10 +986,10 @@ def config():
 
 
 @config.command()
-def list_llms():
+def list_llms() -> None:
     """列出所有LLM配置"""
 
-    async def _list_llms():
+    async def _list_llms() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1034,13 +1034,13 @@ def list_llms():
 
 @config.command()
 @click.argument("llm_id", type=int)
-def set_default(llm_id):
+def set_default(llm_id: int) -> None:
     """设置指定ID的LLM为默认
 
     例如: acolyte config set-default 1
     """
 
-    async def _set_default():
+    async def _set_default() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
@@ -1075,13 +1075,13 @@ def set_default(llm_id):
 
 @config.command()
 @click.argument("llm_id", type=int)
-def delete_llm(llm_id):
+def delete_llm(llm_id: int) -> None:
     """删除指定ID的LLM配置
 
     例如: acolyte config delete-llm 3
     """
 
-    async def _delete_llm():
+    async def _delete_llm() -> None:
         client = AcolyteClient()
         try:
             # 检查API服务连接
