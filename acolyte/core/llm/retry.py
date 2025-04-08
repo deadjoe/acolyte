@@ -412,7 +412,8 @@ def retry_on_error(config: Optional[RetryConfig] = None) -> Callable[[F], F]:
                         delay = calculate_delay(attempt - 1, config)
 
                     logger.info(
-                        f"函数 {func_name} 调用失败，将在 {delay:.2f} 秒后进行第 {attempt}/{config.max_retries} 次重试: "
+                        f"函数 {func_name} 调用失败，将在 {delay:.2f} 秒后进行第 "
+                        f"{attempt}/{config.max_retries} 次重试: "
                         f"{type(e).__name__}: {str(e)}"
                     )
 
@@ -485,7 +486,8 @@ def retry_on_error(config: Optional[RetryConfig] = None) -> Callable[[F], F]:
                         delay = calculate_delay(attempt - 1, config)
 
                     logger.info(
-                        f"函数 {func_name} 调用失败，将在 {delay:.2f} 秒后进行第 {attempt}/{config.max_retries} 次重试: "
+                        f"函数 {func_name} 调用失败，将在 {delay:.2f} 秒后进行第 "
+                        f"{attempt}/{config.max_retries} 次重试: "
                         f"{type(e).__name__}: {str(e)}"
                     )
 
