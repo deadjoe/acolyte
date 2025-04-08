@@ -5,7 +5,7 @@ CLI命令定义
 import asyncio
 import os
 import sys
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 import httpx
@@ -135,7 +135,11 @@ class AcolyteClient:
             }
 
     async def analyze(
-        self, content: str, mode: str, llm_ids: Optional[List[int]] = None, prompt_id: Optional[int] = None
+        self,
+        content: str,
+        mode: str,
+        llm_ids: Optional[List[int]] = None,
+        prompt_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """分析内容
 
@@ -189,7 +193,11 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_task_results(self, task_id: int, include_raw_response: bool = False) -> List[Dict[str, Any]]:
+    async def get_task_results(
+        self,
+        task_id: int,
+        include_raw_response: bool = False
+    ) -> List[Dict[str, Any]]:
         """获取任务结果
 
         Args:
@@ -205,7 +213,11 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_task_final_result(self, task_id: int, include_raw_response: bool = True) -> Optional[Dict[str, Any]]:
+    async def get_task_final_result(
+        self,
+        task_id: int,
+        include_raw_response: bool = True
+    ) -> Optional[Dict[str, Any]]:
         """获取任务最终结果
 
         Args:
