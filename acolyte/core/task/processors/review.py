@@ -8,7 +8,7 @@ import asyncio
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -44,7 +44,7 @@ class ReviewProcessor(BaseTaskProcessor):
     - 资源消耗更大，处理时间更长
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化评议处理器"""
         super().__init__()
         self.multiple_processor = MultipleLlmProcessor()
@@ -325,7 +325,7 @@ class ReviewProcessor(BaseTaskProcessor):
             结果字典列表
         """
 
-        async def _get_results(session: Session):
+        async def _get_results(session: Session) -> List[TaskResult]:
             results = (
                 session.query(TaskResult)
                 .filter(TaskResult.task_id == task_id, TaskResult.id.in_(result_ids))
@@ -448,7 +448,7 @@ class ReviewProcessor(BaseTaskProcessor):
         reconstructed_reviewer = self._rebuild_llm_config(reviewer)
 
         # 创建处理函数
-        async def process_with_reviewer():
+        async def process_with_reviewer() -> Dict[str, Any]:
             try:
                 # 获取客户端
                 client = get_client_for_llm(reconstructed_reviewer)
@@ -602,7 +602,7 @@ class ReviewProcessor(BaseTaskProcessor):
             投票统计字典，键为结果ID，值为票数
         """
 
-        async def _count_vote_records(session: Session):
+        async def _count_vote_records(session: Session) -> Dict[int, int]:
             # 查询所有投票记录
             votes = session.query(ReviewerVote).filter_by(task_id=task_id).all()
 
@@ -632,7 +632,7 @@ class ReviewProcessor(BaseTaskProcessor):
             设置是否成功
         """
 
-        async def _update_final_result(session: Session):
+        async def _update_final_result(session: Session) -> bool:
             # 获取任务
             task = session.query(Task).filter_by(id=task_id).first()
             if not task:
