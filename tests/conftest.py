@@ -32,7 +32,7 @@ def in_memory_db() -> Generator[sessionmaker, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_session(in_memory_db) -> Generator[Session, None, None]:
+def db_session(in_memory_db: Generator[sessionmaker, None, None]) -> Generator[Session, None, None]:
     """创建数据库会话"""
     session = in_memory_db()
 
