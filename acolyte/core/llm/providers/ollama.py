@@ -117,7 +117,7 @@ class OllamaClient(LlmClient):
         start_time = time.time()
         try:
             # Prepare API URL for Ollama
-            api_url = f"{self.base_url}/api/generate"
+            api_url = f"{self.base_url}/generate"
 
             # Prepare headers
             headers = {"Content-Type": "application/json"}
@@ -190,7 +190,7 @@ class OllamaClient(LlmClient):
             logger.error(
                 f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
-            return self.error_handler.handle_request_error(e, "Ollama")
+            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"}
 
         except httpx.RequestError as e:
             error_msg = f"Ollama API网络错误: {str(e)}"
