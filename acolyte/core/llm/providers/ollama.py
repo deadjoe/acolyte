@@ -8,12 +8,12 @@ from typing import Any, Dict, Union
 
 import httpx
 
+from acolyte.core.db.models import LlmConfig
+from acolyte.core.llm.base import LlmClient
+from acolyte.core.llm.constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
+from acolyte.core.llm.response import ResponseParser
+from acolyte.core.llm.retry import ErrorHandler
 from acolyte.utils.logging import get_logger
-
-from ...db.models import LlmConfig
-from ..base import LlmClient
-from ..constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
-from ..response import ErrorHandler, ResponseParser
 
 # 获取日志记录器
 logger = get_logger(__name__)
@@ -29,7 +29,7 @@ class OllamaClient(LlmClient):
         self.provider = PROVIDER_OLLAMA
         self.base_url = self._normalize_base_url(self.base_url)
         # Local models might need more time to respond
-        self.timeout = DEFAULT_TIMEOUT * 2
+        self.timeout = DEFAULT_TIMEOUT * 5  # 增加超时时间到5倍，以处理大型模型
         self.response_parser = ResponseParser()
         self.error_handler = ErrorHandler()
         logger.debug(f"初始化Ollama客户端: 模型={self.model_name}, URL={self.base_url}")
@@ -83,7 +83,13 @@ class OllamaClient(LlmClient):
             # 记录处理时间和结果
             elapsed_time = time.time() - start_time
             if response.get("success", False):
-                scores = response.get("scores", {})
+                result = response.get("result", {})
+                scores = {
+                    "bias_index": result.get("bias_index"),
+                    "misleading_index": result.get("misleading_index"),
+                    "hidden_intent_index": result.get("hidden_intent_index"),
+                    "credibility_score": result.get("credibility_score")
+                }
                 logger.info(
                     f"Ollama处理成功: 耗时={elapsed_time:.2f}秒, "
                     f"BI={scores.get('bias_index')}, "
@@ -167,11 +173,9 @@ class OllamaClient(LlmClient):
             if "response" in response_json:
                 response_text = response_json["response"]
 
-                # Parse scores and structured content
-                scores = self.response_parser.extract_scores(response_text)
-                structured_content = self.response_parser.extract_structured_content(
-                    response_text
-                )
+                # 使用统一的解析方法处理响应
+                # 这与其他LLM客户端（如OpenAI、Claude、DeepSeek）使用相同的调用路径
+                parsed_result = ResponseParser.parse_ollama_response(response_text)
 
                 # 记录响应解析
                 parse_time = time.time() - start_time - request_time
@@ -181,10 +185,9 @@ class OllamaClient(LlmClient):
 
                 return {
                     "success": True,
-                    "response": response_text,
-                    "scores": scores,
-                    "structured_content": structured_content,
                     "raw_response": response_text,
+                    "processed_result": {},
+                    "result": parsed_result,
                 }
             else:
                 logger.warning(f"Ollama响应格式无效: {response_json}")
