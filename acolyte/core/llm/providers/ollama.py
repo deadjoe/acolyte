@@ -175,7 +175,7 @@ class OllamaClient(LlmClient):
                         "success": True,
                         "response": response_text,
                         "scores": scores,
-                        "structured_content": structured_content,
+                        "processed_result": json.dumps(structured_content),
                         "raw_response": response_text,
                     }
                 else:
@@ -184,23 +184,24 @@ class OllamaClient(LlmClient):
                         "success": False,
                         "error": "Ollama API响应格式无效",
                         "raw_response": json.dumps(response_json),
+                        "processed_result": "",
                     }
 
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
-            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}", "raw_response": ""}
+            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}", "raw_response": "", "processed_result": ""}
 
         except httpx.RequestError as e:
             error_msg = f"Ollama API网络错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg, "raw_response": ""}
+            return {"success": False, "error": error_msg, "raw_response": "", "processed_result": ""}
 
         except Exception as e:
             error_msg = f"Ollama API未知错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg, "raw_response": ""}
+            return {"success": False, "error": error_msg, "raw_response": "", "processed_result": ""}
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
