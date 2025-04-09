@@ -136,6 +136,7 @@ class GeminiClient(LlmClient):
                 "temperature": 0.1,
                 "topP": 0.2,
                 "topK": 30,
+                "maxOutputTokens": 8000,
                 "responseMimeType": "text/plain",
             },
             "safetySettings": [
