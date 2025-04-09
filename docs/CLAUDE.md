@@ -545,6 +545,23 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 解决方案：修改`_create_task_in_db`方法，在关联指定的LLM之前，先清空`new_task.llm_configs`，然后直接设置为指定的LLM
   - 验证结果：修复后，multiple模式下系统只使用用户指定的LLM，而不是所有"normal"角色的LLM
 
+### 17. 改进Ollama客户端实现 [2025-04-10]
+- **优化Ollama客户端文档**
+  - 更新OllamaClient类的文档字符串，提供更详细的功能描述和使用说明
+  - 添加对Chat API支持的计划说明，这是Ollama推荐的API
+  - 改进__init__方法的文档字符串，详细说明参数和初始化过程
+  - 更新_normalize_base_url方法的文档字符串，说明URL标准化流程
+  - 更新_check_api_key方法的文档字符串，解释Ollama不需要API密钥的原因
+  - 更新process_content方法的文档字符串，详细说明处理流程和返回值
+  - 更新_process_with_api方法的文档字符串，说明API请求流程
+  - 更新_test_connection方法的文档字符串，说明连接测试流程
+
+- **代码优化与错误修复**
+  - 添加@retry_on_error()装饰器到process_content方法，增强错误恢复能力
+  - 修复导入问题，确保正确导入ErrorHandler类
+  - 统一注释风格，将英文注释替换为中文注释，保持一致性
+  - 优化代码结构，提高可读性和可维护性
+
 - **增强日志系统用于问题诊断**
   - 设计并实现了全面的日志记录系统，用于跟踪任务创建和处理的完整流程
   - 在`_create_task_in_db`方法中添加详细日志，记录任务创建过程中的关键步骤和状态变化
