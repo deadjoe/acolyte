@@ -105,7 +105,7 @@ class GeminiClient(LlmClient):
             return {"success": False, "error": "Google Gemini API密钥未设置"}
 
         # 准备完整提示词
-        system_prompt = "你是一个专业的内容分析员，专注于检测文本中的偏见、误导性信息和隐藏意图。"
+        system_prompt = "你是一名内容分析专家。你必须严格按照用户提供的分析框架执行，不得跳过任何步骤或修改框架结构。分析必须完全遵循框架中规定的格式、评分标准和输出要求。特别注意：(1)必须按框架提供的结构化分析；(2)必须使用框架规定的评分标准；(3)最终必须以框架指定的JSON格式输出量化结果。不要添加框架以外的分析方法或评分维度。"
         user_prompt = self._prepare_prompt(content, prompt)
         logger.debug(f"最终提示词长度: {len(user_prompt)}字符")
 
@@ -133,10 +133,9 @@ class GeminiClient(LlmClient):
                 {"role": "user", "parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}
             ],
             "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 8000,
-                "topP": 0.95,
-                "topK": 40,
+                "temperature": 0.1,
+                "topP": 0.2,
+                "topK": 30,
                 "responseMimeType": "text/plain",
             },
             "safetySettings": [

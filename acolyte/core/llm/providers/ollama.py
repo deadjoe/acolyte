@@ -134,7 +134,7 @@ class OllamaClient(LlmClient):
 
         try:
             # Prepare prompt
-            system_prompt = "You are a content analyst specializing in detecting bias, misleading information, and hidden intent."
+            system_prompt = "你是一名内容分析专家。你必须严格按照用户提供的分析框架执行，不得跳过任何步骤或修改框架结构。分析必须完全遵循框架中规定的格式、评分标准和输出要求。特别注意：(1)必须按框架提供的结构化分析；(2)必须使用框架规定的评分标准；(3)最终必须以框架指定的JSON格式输出量化结果。不要添加框架以外的分析方法或评分维度。"
             user_prompt = self._prepare_prompt(content, prompt)
 
             # Call API
@@ -207,12 +207,9 @@ class OllamaClient(LlmClient):
                 "stream": False,
                 "format": "json",  # 请求JSON格式的响应，提高解析成功率
                 "options": {
-                    "temperature": 0.1,  # Low temperature for analytical tasks
-                    "top_p": 0.95,      # 累积概率阈值
-                    "top_k": 40,        # 考虑的最高概率词汇数量
-                    "num_predict": 4096, # 生成的最大词元数
-                    "repeat_penalty": 1.1, # 重复惩罚
-                    "seed": 42,          # 固定随机种子，提高结果的可重复性
+                    "temperature": 0.1,  # 温度参数
+                    "top_p": 0.2,       # 累积概率阈值
+                    "top_k": 30,        # 考虑的最高概率词汇数量
                 },
             }
 
