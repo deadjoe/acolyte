@@ -352,7 +352,7 @@ class OllamaClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             elapsed_time = time.time() - start_time
-            error_details = self.error_handler.format_error_message(e, "Ollama")
+            error_details = f"HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"
             logger.error(
                 f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, 耗时={elapsed_time:.2f}秒, 错误={error_details}"
             )
