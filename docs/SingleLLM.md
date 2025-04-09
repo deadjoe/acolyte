@@ -615,9 +615,9 @@ def parse_gemini_response(text: str) -> Dict[str, Any]:
     """
     logger.info("开始解析Google Gemini响应")
     result = ResponseParser.parse_base_response(text)
-    
+
     # 这里可以添加Gemini特定的解析逻辑
-    
+
     logger.info("Google Gemini响应解析完成")
     return result
 ```
@@ -640,10 +640,10 @@ def parse_base_response(text: str) -> Dict[str, Any]:
         解析后的结果字典
     """
     logger.info(f"开始基础响应解析, 文本长度: {len(text)}字符")
-    
+
     # 提取评分
     scores = ResponseParser.extract_scores(text)
-    
+
     # 提取结构化内容
     expected_sections = [
         "分析前背景总结", "Background Summary",
@@ -654,12 +654,12 @@ def parse_base_response(text: str) -> Dict[str, Any]:
         "量化评分", "Quantitative Scoring",
         "分析局限与不确定性", "Analysis Limitations"
     ]
-    
+
     sections = ResponseParser.extract_structured_content(text, expected_sections)
-    
+
     # 提取分析局限性
     limitations = ResponseParser.extract_limitations(text)
-    
+
     # 合并结果
     result = {
         "bias_index": scores.get("bias_index"),
@@ -670,7 +670,7 @@ def parse_base_response(text: str) -> Dict[str, Any]:
         "processed_result": sections,
         "limitations": limitations
     }
-    
+
     logger.info("基础响应解析完成")
     return result
 ```
@@ -728,7 +728,7 @@ def extract_scores(text: str) -> Dict[str, float]:
     # 3. 记录最终结果
     extracted_keys = [k for k, v in scores.items() if v is not None]
     missing_keys = [k for k, v in scores.items() if v is None]
-    
+
     if extracted_keys:
         logger.info(f"成功提取的评分: {', '.join(extracted_keys)}")
     if missing_keys:
@@ -918,21 +918,21 @@ if wait:
         task_progress = progress.add_task("[cyan]处理中...", total=None)
         status_check_count = 0
         last_status = None
-        
+
         while task_status not in ["completed", "failed"] and status_check_count < max_checks:
             await asyncio.sleep(check_interval)
-            
+
             try:
                 task = await client.get_task(task_id)
                 task_status = task["status"]
-                
+
                 if task_status != last_status:
                     logger.info(f"任务状态更新: {task_status}")
                     last_status = task_status
-                
+
                 # 更新进度条描述
                 progress.update(task_progress, description=f"[cyan]处理中... 状态: {task_status}[/]")
-                
+
                 # 增加检查间隔，但不超过最大值
                 check_interval = min(check_interval * 1.5, max_check_interval)
                 status_check_count += 1
@@ -940,7 +940,7 @@ if wait:
                 logger.error(f"检查任务状态失败: {str(e)}")
                 console.print(f"[bold red]检查任务状态失败:[/] {str(e)}")
                 break
-        
+
         # 检查最终状态
         if task_status == "completed":
             logger.info("任务处理完成，获取结果")
@@ -956,7 +956,7 @@ if wait:
             console.print(f"[bold yellow]任务未完成，当前状态: {task_status}[/]")
             console.print("可以稍后使用 'history show' 命令查看结果")
             return
-    
+
     # 获取最终结果
     try:
         with console.status("[bold green]获取分析结果...[/]"):
@@ -966,38 +966,38 @@ if wait:
         logger.error(f"获取任务结果失败: {str(e)}")
         console.print(f"[bold red]获取任务结果失败:[/] {str(e)}")
         return
-    
+
     # 显示结果
     console.print("\n[bold]分析结果:[/]")
-    
+
     # 显示评分
     table = Table()
     table.add_column("指标", style="cyan")
     table.add_column("分数", style="green")
-    
+
     bias_index = result.get("bias_index")
     misleading_index = result.get("misleading_index")
     hidden_intent_index = result.get("hidden_intent_index")
     credibility_score = result.get("credibility_score")
-    
+
     if bias_index is not None:
         logger.info(f"偏见指数 (BI): {bias_index}")
         table.add_row("偏见指数 (BI)", f"{bias_index:.2f}")
-    
+
     if misleading_index is not None:
         logger.info(f"误导性指数 (MI): {misleading_index}")
         table.add_row("误导性指数 (MI)", f"{misleading_index:.2f}")
-    
+
     if hidden_intent_index is not None:
         logger.info(f"隐藏意图指数 (HI): {hidden_intent_index}")
         table.add_row("隐藏意图指数 (HI)", f"{hidden_intent_index:.2f}")
-    
+
     if credibility_score is not None:
         logger.info(f"综合可信度 (CS): {credibility_score:.2f}")
         table.add_row("综合可信度 (CS)", f"{credibility_score:.2f}")
-    
+
     console.print(table)
-    
+
     # 显示原始响应
     if result.get("raw_response"):
         logger.debug("结果包含原始响应")
@@ -1051,3 +1051,27 @@ if wait:
    - CLI显示评分和详细分析
 
 这就是完整的代码流转过程。在这个过程中，Gemini LLM被用于处理内容，但是从代码中可以看出，可能存在一些问题导致Gemini LLM的功能没有正确实现。在下一步中，我们可以分析可能的问题并提出解决方案。
+
+## 支持的LLM提供商
+
+当前系统支持以下LLM提供商，所有这些都可以在single模式下使用：
+
+1. **Anthropic Claude** - 使用Claude 3系列模型
+2. **OpenAI** - 使用GPT-4系列模型
+3. **Google Gemini** - 使用Gemini Pro模型
+4. **DeepSeek** - 使用DeepSeek-V3模型
+5. **Ollama** - 支持本地部署的开源模型（如Llama 3、Mistral等）
+
+### Ollama LLM的使用
+
+使用Ollama LLM的流程与上述Gemini LLM的流程类似，主要区别在于：
+
+1. **客户端实现**：使用OllamaClient而非GeminiClient
+2. **API调用**：调用本地Ollama服务（默认为http://localhost:11434/api）
+3. **响应解析**：使用ResponseParser.parse_ollama_response方法解析响应
+
+在使用Ollama LLM时，需要注意以下几点：
+
+1. 确保Ollama服务已经启动并可访问
+2. 确保所需的模型（如llama3.3:latest）已经安装
+3. 大型模型可能需要更长的超时时间，系统已经调整了超时设置以适应这一点

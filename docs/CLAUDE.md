@@ -556,6 +556,17 @@ Acolyte CLI 支持以下环境变量来配置系统行为：
   - 更新_process_with_api方法的文档字符串，说明API请求流程
   - 更新_test_connection方法的文档字符串，说明连接测试流程
 
+- **重构Ollama客户端代码**
+  - 统一响应解析路径，使用ResponseParser.parse_ollama_response方法处理响应
+  - 与其他LLM提供商（如OpenAI、Claude、DeepSeek）保持一致的调用路径
+  - 统一导入风格，从相对导入改为绝对导入
+  - 分开导入ResponseParser和ErrorHandler类，并从正确的模块导入
+
+- **测试与验证**
+  - 测试不同模型（llama3.3:latest、deepseek-r1:32b）的兼容性
+  - 验证超时设置对大型模型的影响
+  - 解决了响应解析路径的问题，使其与其他LLM提供商保持一致
+
 - **代码优化与错误修复**
   - 添加@retry_on_error()装饰器到process_content方法，增强错误恢复能力
   - 修复导入问题，确保正确导入ErrorHandler类

@@ -167,6 +167,7 @@ acolyte/
 
 ### Phase 3: LLM Functionality Enhancement (Completed)
 - Added support for DeepSeek and Ollama LLM providers
+- Refactored Ollama client to standardize response parsing path and import style
 - Fixed issues with existing LLM integrations
 - Improved LLM configuration handling and management
 - Enhanced response parsing for different LLM output formats
