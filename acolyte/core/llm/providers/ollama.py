@@ -1,8 +1,5 @@
 """
-Ollama客户端
-
-Ollama API的客户端实现，用于与本地或远程部署的Ollama服务进行交互。
-支持通过Ollama部署的各种开源模型（如Llama、Mistral、Mixtral等）。
+Ollama LLM Client implementation for Acolyte.
 """
 
 import time
@@ -10,11 +7,12 @@ from typing import Any, Dict, Union
 
 import httpx
 
-from acolyte.core.db.models import LlmConfig
-from acolyte.core.llm.base import LlmClient, retry_on_error
-from acolyte.core.llm.constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
-from acolyte.core.llm.response import ResponseParser, ErrorHandler
 from acolyte.utils.logging import get_logger
+
+from ...db.models import LlmConfig
+from ..base import LlmClient
+from ..constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
+from ..response import ErrorHandler, ResponseParser
 
 # 获取日志记录器
 logger = get_logger(__name__)
@@ -22,41 +20,14 @@ logger = get_logger(__name__)
 
 class OllamaClient(LlmClient):
     """
-    Ollama客户端
-
-    该类是LlmClient的实现，专门用于与Ollama API进行交互。
-    它支持通过Ollama部署的各种开源模型（如Llama、Mistral、Mixtral等），
-    并实现了使用Generate API的方法。
-
-    主要功能：
-    - 处理内容：使用Ollama模型分析文本内容
-    - 连接测试：测试与Ollama API的连通性
-    - 错误处理：处理API调用过程中的各种错误
-    - 自动重试：对临时错误进行自动重试
-
-    支持的API：
-    - Generate API：用于生成文本，支持系统提示词和用户提示词
-    - Chat API：（计划中）用于发送聊天消息并获取响应，是Ollama推荐的API
+    Client for Ollama API, which provides local model hosting.
     """
 
     def __init__(self, llm_config: LlmConfig):
-        """
-        初始化Ollama客户端
-
-        该方法初始化OllamaClient实例，设置必要的属性和配置。
-        它首先调用父类的__init__方法初始化基本属性，然后设置提供商信息。
-
-        Args:
-            llm_config: LLM配置对象，包含名称、API密钥、基础URL、模型名称等信息
-
-        Note:
-            Ollama通常不需要API密钥，但如果部署在远程服务器上可能需要配置认证。
-            默认情况下，Ollama服务运行在本地的11434端口。
-        """
         super().__init__(llm_config)
         self.provider = PROVIDER_OLLAMA
         self.base_url = self._normalize_base_url(self.base_url)
-        # 本地模型可能需要更多时间响应
+        # Local models might need more time to respond
         self.timeout = DEFAULT_TIMEOUT * 2
         self.response_parser = ResponseParser()
         self.error_handler = ErrorHandler()
@@ -64,33 +35,15 @@ class OllamaClient(LlmClient):
 
     def _check_api_key(self) -> bool:
         """
-        检查API密钥是否有效
-
-        该方法实现了LlmClient的_check_api_key方法，用于检查API密钥是否有效。
-        由于Ollama通常不需要API密钥，因此始终返回True。
-
-        Returns:
-            bool: 始终返回True，因为Ollama不需要API密钥
+        Check if API key is set.
+        Ollama doesn't typically use API keys, so we return True.
         """
         return True
 
     def _normalize_base_url(self, base_url: str) -> str:
         """
-        标准化Ollama API基础URL
-
-        该方法将输入的URL标准化，确保其格式正确。
-        如果未提供URL，则使用默认的本地地址。
-
-        处理流程：
-        1. 如果URL为空，返回默认的本地地址
-        2. 移除URL末尾的斜杠
-        3. 确保URL包含http://或https://前缀
-
-        Args:
-            base_url: 原始URL字符串
-
-        Returns:
-            标准化后的URL字符串
+        Normalize the Ollama API base URL.
+        Default to http://localhost:11434 if not set.
         """
         if not base_url:
             return "http://localhost:11434"
@@ -104,37 +57,23 @@ class OllamaClient(LlmClient):
 
         return base_url
 
-    @retry_on_error()
     async def process_content(self, content: str, prompt: str) -> Dict[str, Any]:
         """
-        使用Ollama处理内容
-
-        该方法实现了LlmClient的抽象方法，用于使用Ollama模型处理文本内容。
-        它准备系统提示词和用户提示词，然后调用Generate API发送请求。
-        如果将来需要，可以添加对Chat API的支持。
-
-        处理流程：
-        1. 准备系统提示词和用户提示词
-        2. 调用_process_with_api方法发送请求
-        3. 返回处理结果
+        Process content with Ollama API.
 
         Args:
-            content: 要处理的文本内容，通常是需要分析的文章或新闻
-            prompt: 提示词模板，包含分析指导和输出格式要求
+            content: The content to be analyzed
+            prompt: The prompt template to use
 
         Returns:
-            Dict[str, Any]: 处理结果字典，包含以下字段：
-                - success (bool): 处理是否成功
-                - raw_response (str, 可选): 成功时包含Ollama的原始响应文本
-                - result (Dict, 可选): 成功时包含解析后的结构化结果
-                - error (str, 可选): 失败时包含错误信息
+            Dict with response data or error information
         """
         logger.info(f"使用Ollama处理内容: 模型={self.model_name}, 内容长度={len(content)}字符")
         start_time = time.time()
 
         try:
             # Prepare prompt
-            system_prompt = "你是一名内容分析专家。你必须严格按照用户提供的分析框架执行，不得跳过任何步骤或修改框架结构。分析必须完全遵循框架中规定的格式、评分标准和输出要求。特别注意：(1)必须按框架提供的结构化分析；(2)必须使用框架规定的评分标准；(3)最终必须以框架指定的JSON格式输出量化结果。不要添加框架以外的分析方法或评分维度。"
+            system_prompt = "You are a content analyst specializing in detecting bias, misleading information, and hidden intent."
             user_prompt = self._prepare_prompt(content, prompt)
 
             # Call API
@@ -166,50 +105,35 @@ class OllamaClient(LlmClient):
 
     async def _process_with_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """
-        使用Ollama API发送请求
-
-        该方法使用Ollama的Generate API发送请求并处理响应。
-        Generate API支持系统提示词和用户提示词的分离。
-
-        请求流程：
-        1. 准备请求参数（模型、提示词、温度等）
-        2. 发送HTTP POST请求到Ollama API
-        3. 处理响应并解析结果
-        4. 使用ResponseParser解析响应内容
+        Make a request to the Ollama API.
 
         Args:
-            system_prompt: 系统提示词，用于设置模型的行为和角色
-            user_prompt: 用户提示词，包含具体的分析内容和指令
+            system_prompt: The system prompt
+            user_prompt: The user prompt
 
         Returns:
-            Dict[str, Any]: 处理结果字典，包含以下字段：
-                - success (bool): 处理是否成功
-                - raw_response (str, 可选): 成功时包含Ollama的原始响应文本
-                - result (Dict, 可选): 成功时包含解析后的结构化结果
-                - error (str, 可选): 失败时包含错误信息
+            Dict with response data or error information
         """
         start_time = time.time()
         try:
             # Prepare API URL for Ollama
-            # 根据Ollama API文档，正确的端点是/generate
-            api_url = f"{self.base_url}/generate"
+            api_url = f"{self.base_url}/api/generate"
 
             # Prepare headers
             headers = {"Content-Type": "application/json"}
 
             # Prepare request data
-            # 根据Ollama API文档准备请求参数
-            # https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-completion
+            # Ollama has a different API format
             data = {
                 "model": self.model_name,
                 "prompt": user_prompt,
                 "system": system_prompt,
                 "stream": False,
-                "format": "json",  # 请求JSON格式的响应，提高解析成功率
                 "options": {
-                    "temperature": 0.1,  # 温度参数
-                    "top_p": 0.2,       # 累积概率阈值
-                    "top_k": 30,        # 考虑的最高概率词汇数量
+                    "temperature": 0.1,  # Low temperature for analytical tasks
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "num_predict": 4096,
                 },
             }
 
@@ -235,12 +159,11 @@ class OllamaClient(LlmClient):
                 if "response" in response_json:
                     response_text = response_json["response"]
 
-                    # 解析响应
-                    parsed_result = ResponseParser.parse_ollama_response(response_text)
-
-                    # 确保即使解析失败也能返回有效的结果
-                    if parsed_result is None:
-                        parsed_result = {}
+                    # Parse scores and structured content
+                    scores = self.response_parser.extract_scores(response_text)
+                    structured_content = self.response_parser.extract_structured_content(
+                        response_text
+                    )
 
                     # 记录响应解析
                     parse_time = time.time() - start_time - request_time
@@ -250,9 +173,10 @@ class OllamaClient(LlmClient):
 
                     return {
                         "success": True,
-                        "raw_response": response_text,
-                        "processed_result": {},
-                        "result": parsed_result,
+                        "response": response_text,
+                        "scores": scores,
+                        "structured_content": structured_content,
+                        "raw_response": response_json,
                     }
                 else:
                     logger.warning(f"Ollama响应格式无效: {response_json}")
@@ -266,7 +190,7 @@ class OllamaClient(LlmClient):
             logger.error(
                 f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
-            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"}
+            return self.error_handler.handle_request_error(e, "Ollama")
 
         except httpx.RequestError as e:
             error_msg = f"Ollama API网络错误: {str(e)}"
@@ -280,21 +204,10 @@ class OllamaClient(LlmClient):
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
-        测试与Ollama API的连接
-
-        该方法实现了LlmClient的抽象方法，用于测试与Ollama API的连接是否正常。
-        它发送一个轻量级的请求（获取模型列表），以验证连接是否有效。
-
-        测试流程：
-        1. 发送HTTP GET请求到Ollama API的模型列表端点
-        2. 如果请求成功，检查指定的模型是否存在
-        3. 返回测试结果
+        Test connection to Ollama API.
 
         Returns:
-            Dict[str, Union[bool, str]]: 测试结果字典，包含以下字段：
-                - success (bool): 测试是否成功
-                - message (str): 成功或失败的消息
-                - status (str): 状态标识（success、warning或error）
+            Dict with success status and message
         """
         logger.info(f"测试Ollama连接: 模型={self.model_name}, URL={self.base_url}")
         start_time = time.time()
@@ -349,7 +262,7 @@ class OllamaClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             elapsed_time = time.time() - start_time
-            error_details = f"HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"
+            error_details = self.error_handler.format_error_message(e, "Ollama")
             logger.error(
                 f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, 耗时={elapsed_time:.2f}秒, 错误={error_details}"
             )
