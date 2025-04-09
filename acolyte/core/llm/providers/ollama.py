@@ -88,7 +88,7 @@ class OllamaClient(LlmClient):
                     "bias_index": result.get("bias_index"),
                     "misleading_index": result.get("misleading_index"),
                     "hidden_intent_index": result.get("hidden_intent_index"),
-                    "credibility_score": result.get("credibility_score")
+                    "credibility_score": result.get("credibility_score"),
                 }
                 logger.info(
                     f"Ollama处理成功: 耗时={elapsed_time:.2f}秒, "
@@ -154,7 +154,7 @@ class OllamaClient(LlmClient):
                 endpoint=endpoint,
                 headers=headers,
                 json_data=data,
-                timeout=self.timeout
+                timeout=self.timeout,
             )
 
             # 记录请求时间
@@ -234,9 +234,7 @@ class OllamaClient(LlmClient):
 
             # Make the request
             response = await self._make_request(
-                method="GET",
-                endpoint=endpoint,
-                timeout=self.timeout
+                method="GET", endpoint=endpoint, timeout=self.timeout
             )
 
             # Record response time
