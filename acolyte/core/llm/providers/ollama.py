@@ -28,7 +28,7 @@ class OllamaClient(LlmClient):
         self.provider = PROVIDER_OLLAMA
         self.base_url = self._normalize_base_url(self.base_url)
         # Local models might need more time to respond
-        self.timeout = DEFAULT_TIMEOUT * 5  # 增加超时时间到300秒
+        self.timeout = DEFAULT_TIMEOUT * 2
         self.response_parser = ResponseParser()
         self.error_handler = ErrorHandler()
         logger.debug(f"初始化Ollama客户端: 模型={self.model_name}, URL={self.base_url}")
@@ -73,7 +73,7 @@ class OllamaClient(LlmClient):
 
         try:
             # Prepare prompt
-            system_prompt = "你是一名内容分析专家。你必须严格按照用户提供的分析框架执行，不得跳过任何步骤或修改框架结构。分析必须完全遵循框架中规定的格式、评分标准和输出要求。特别注意：(1)必须按框架提供的结构化分析；(2)必须使用框架规定的评分标准；(3)最终必须以框架指定的JSON格式输出量化结果。不要添加框架以外的分析方法或评分维度。"
+            system_prompt = "You are a content analyst specializing in detecting bias, misleading information, and hidden intent."
             user_prompt = self._prepare_prompt(content, prompt)
 
             # Call API
@@ -117,7 +117,7 @@ class OllamaClient(LlmClient):
         start_time = time.time()
         try:
             # Prepare API URL for Ollama
-            api_url = f"{self.base_url}/generate"
+            api_url = f"{self.base_url}/api/generate"
 
             # Prepare headers
             headers = {"Content-Type": "application/json"}
@@ -130,10 +130,10 @@ class OllamaClient(LlmClient):
                 "system": system_prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.1,
-                    "top_p": 0.2,
-                    "top_k": 30,
-                    "num_predict": 8000,
+                    "temperature": 0.1,  # Low temperature for analytical tasks
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "num_predict": 4096,
                 },
             }
 
@@ -161,25 +161,8 @@ class OllamaClient(LlmClient):
 
                     # Parse scores and structured content
                     scores = self.response_parser.extract_scores(response_text)
-                    # 定义预期的章节
-                    expected_sections = [
-                        "分析前背景总结",
-                        "Background Summary",
-                        "偏见检测发现",
-                        "Bias Detection Findings",
-                        "误导性内容检测",
-                        "Misleading Content Detection",
-                        "隐藏意图检测",
-                        "Hidden Intent Detection",
-                        "整体评估",
-                        "Overall Assessment",
-                        "量化评分",
-                        "Quantitative Scoring",
-                        "分析局限与不确定性",
-                        "Analysis Limitations",
-                    ]
                     structured_content = self.response_parser.extract_structured_content(
-                        response_text, expected_sections
+                        response_text
                     )
 
                     # 记录响应解析
@@ -193,31 +176,31 @@ class OllamaClient(LlmClient):
                         "response": response_text,
                         "scores": scores,
                         "structured_content": structured_content,
-                        "raw_response": response_json,
+                        "raw_response": response_text,
                     }
                 else:
                     logger.warning(f"Ollama响应格式无效: {response_json}")
                     return {
                         "success": False,
                         "error": "Ollama API响应格式无效",
-                        "raw_response": response_json,
+                        "raw_response": json.dumps(response_json),
                     }
 
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
-            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"}
+            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}", "raw_response": ""}
 
         except httpx.RequestError as e:
             error_msg = f"Ollama API网络错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg}
+            return {"success": False, "error": error_msg, "raw_response": ""}
 
         except Exception as e:
             error_msg = f"Ollama API未知错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg}
+            return {"success": False, "error": error_msg, "raw_response": ""}
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
@@ -279,7 +262,7 @@ class OllamaClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             elapsed_time = time.time() - start_time
-            error_details = f"HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"
+            error_details = self.error_handler.format_error_message(e, "Ollama")
             logger.error(
                 f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, 耗时={elapsed_time:.2f}秒, 错误={error_details}"
             )
