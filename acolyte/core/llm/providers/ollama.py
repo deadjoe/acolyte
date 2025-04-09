@@ -161,8 +161,25 @@ class OllamaClient(LlmClient):
 
                     # Parse scores and structured content
                     scores = self.response_parser.extract_scores(response_text)
+                    # 定义预期的章节
+                    expected_sections = [
+                        "分析前背景总结",
+                        "Background Summary",
+                        "偏见检测发现",
+                        "Bias Detection Findings",
+                        "误导性内容检测",
+                        "Misleading Content Detection",
+                        "隐藏意图检测",
+                        "Hidden Intent Detection",
+                        "整体评估",
+                        "Overall Assessment",
+                        "量化评分",
+                        "Quantitative Scoring",
+                        "分析局限与不确定性",
+                        "Analysis Limitations",
+                    ]
                     structured_content = self.response_parser.extract_structured_content(
-                        response_text
+                        response_text, expected_sections
                     )
 
                     # 记录响应解析
