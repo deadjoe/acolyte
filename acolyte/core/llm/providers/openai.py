@@ -124,6 +124,7 @@ class OpenAIClient(LlmClient):
             "temperature": 0.1,
             "top_p": 0.2,
             "top_k": 30,
+            "max_tokens": 4000,
         }
 
         # 准备请求头

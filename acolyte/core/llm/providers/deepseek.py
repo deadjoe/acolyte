@@ -140,6 +140,7 @@ class DeepSeekClient(LlmClient):
             "temperature": 0.1,
             "top_p": 0.2,
             "top_k": 30,
+            "max_tokens": 4000,
         }
 
         # 记录请求参数（排除敏感信息）
