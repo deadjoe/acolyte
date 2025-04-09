@@ -117,7 +117,7 @@ class OllamaClient(LlmClient):
         start_time = time.time()
         try:
             # Prepare API URL for Ollama
-            api_url = f"{self.base_url}/api/generate"
+            api_url = f"{self.base_url}/generate"
 
             # Prepare headers
             headers = {"Content-Type": "application/json"}
@@ -175,33 +175,32 @@ class OllamaClient(LlmClient):
                         "success": True,
                         "response": response_text,
                         "scores": scores,
-                        "processed_result": json.dumps(structured_content),
-                        "raw_response": response_text,
+                        "structured_content": structured_content,
+                        "raw_response": response_json,
                     }
                 else:
                     logger.warning(f"Ollama响应格式无效: {response_json}")
                     return {
                         "success": False,
                         "error": "Ollama API响应格式无效",
-                        "raw_response": json.dumps(response_json),
-                        "processed_result": "",
+                        "raw_response": response_json,
                     }
 
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}, 耗时={(time.time()-start_time):.2f}秒"
             )
-            return {"success": False, "error": f"Ollama HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}", "raw_response": "", "processed_result": ""}
+            return self.error_handler.handle_request_error(e, "Ollama")
 
         except httpx.RequestError as e:
             error_msg = f"Ollama API网络错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg, "raw_response": "", "processed_result": ""}
+            return {"success": False, "error": error_msg}
 
         except Exception as e:
             error_msg = f"Ollama API未知错误: {str(e)}"
             logger.error(f"{error_msg}, 耗时={(time.time()-start_time):.2f}秒", exc_info=True)
-            return {"success": False, "error": error_msg, "raw_response": "", "processed_result": ""}
+            return {"success": False, "error": error_msg}
 
     async def _test_connection(self) -> Dict[str, Union[bool, str]]:
         """
@@ -215,7 +214,7 @@ class OllamaClient(LlmClient):
 
         try:
             # Use Ollama's models endpoint to check connectivity
-            api_url = f"{self.base_url}/api/tags"
+            api_url = f"{self.base_url}/tags"
 
             logger.debug(f"Ollama连接测试请求: URL={api_url}")
 
