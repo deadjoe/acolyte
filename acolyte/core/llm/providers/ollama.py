@@ -238,11 +238,12 @@ class OllamaClient(LlmClient):
                 if "response" in response_json:
                     response_text = response_json["response"]
 
-                    # Parse scores and structured content
-                    scores = self.response_parser.extract_scores(response_text)
-                    structured_content = self.response_parser.extract_structured_content(
-                        response_text
-                    )
+                    # 解析响应
+                    parsed_result = ResponseParser.parse_ollama_response(response_text)
+
+                    # 确保即使解析失败也能返回有效的结果
+                    if parsed_result is None:
+                        parsed_result = {}
 
                     # 记录响应解析
                     parse_time = time.time() - start_time - request_time
@@ -252,10 +253,9 @@ class OllamaClient(LlmClient):
 
                     return {
                         "success": True,
-                        "response": response_text,
-                        "scores": scores,
-                        "structured_content": structured_content,
-                        "raw_response": response_json,
+                        "raw_response": response_text,
+                        "processed_result": {},
+                        "result": parsed_result,
                     }
                 else:
                     logger.warning(f"Ollama响应格式无效: {response_json}")
