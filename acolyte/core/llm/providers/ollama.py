@@ -2,17 +2,18 @@
 Ollama LLM Client implementation for Acolyte.
 """
 
+import json
 import time
 from typing import Any, Dict, Union
 
 import httpx
 
+from acolyte.core.db.models import LlmConfig
+from acolyte.core.llm.base import LlmClient
+from acolyte.core.llm.constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
+from acolyte.core.llm.response import ResponseParser
+from acolyte.core.llm.retry import ErrorHandler
 from acolyte.utils.logging import get_logger
-
-from ...db.models import LlmConfig
-from ..base import LlmClient
-from ..constants import DEFAULT_TIMEOUT, PROVIDER_OLLAMA
-from ..response import ErrorHandler, ResponseParser
 
 # 获取日志记录器
 logger = get_logger(__name__)
@@ -28,7 +29,7 @@ class OllamaClient(LlmClient):
         self.provider = PROVIDER_OLLAMA
         self.base_url = self._normalize_base_url(self.base_url)
         # Local models might need more time to respond
-        self.timeout = DEFAULT_TIMEOUT * 2
+        self.timeout = DEFAULT_TIMEOUT * 5  # 增加超时时间到5倍，以处理大型模型
         self.response_parser = ResponseParser()
         self.error_handler = ErrorHandler()
         logger.debug(f"初始化Ollama客户端: 模型={self.model_name}, URL={self.base_url}")
@@ -82,7 +83,13 @@ class OllamaClient(LlmClient):
             # 记录处理时间和结果
             elapsed_time = time.time() - start_time
             if response.get("success", False):
-                scores = response.get("scores", {})
+                result = response.get("result", {})
+                scores = {
+                    "bias_index": result.get("bias_index"),
+                    "misleading_index": result.get("misleading_index"),
+                    "hidden_intent_index": result.get("hidden_intent_index"),
+                    "credibility_score": result.get("credibility_score"),
+                }
                 logger.info(
                     f"Ollama处理成功: 耗时={elapsed_time:.2f}秒, "
                     f"BI={scores.get('bias_index')}, "
@@ -116,75 +123,79 @@ class OllamaClient(LlmClient):
         """
         start_time = time.time()
         try:
-            # Prepare API URL for Ollama
-            api_url = f"{self.base_url}/api/generate"
-
             # Prepare headers
             headers = {"Content-Type": "application/json"}
 
             # Prepare request data
-            # Ollama has a different API format
             data = {
                 "model": self.model_name,
                 "prompt": user_prompt,
                 "system": system_prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.1,  # Low temperature for analytical tasks
-                    "top_p": 0.95,
-                    "top_k": 40,
-                    "num_predict": 4096,
+                    "temperature": 0.1,
+                    "top_p": 0.2,
+                    "top_k": 30,
+                    "num_predict": 8000,
                 },
             }
 
-            logger.debug(f"Ollama请求: URL={api_url}, 模型={self.model_name}")
+            # 根据base_url是否已包含/api来决定端点
+            if self.base_url.endswith("/api"):
+                endpoint = "/generate"
+            else:
+                endpoint = "/api/generate"
 
-            # Make the request
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(api_url, headers=headers, json=data)
+            logger.debug(f"Ollama请求: 端点={endpoint}, 模型={self.model_name}")
 
-                # 记录请求时间
-                request_time = time.time() - start_time
+            # Send request
+            response = await self._make_request(
+                method="POST",
+                endpoint=endpoint,
+                headers=headers,
+                json_data=data,
+                timeout=self.timeout,
+            )
+
+            # 记录请求时间
+            request_time = time.time() - start_time
+            logger.debug(
+                f"Ollama请求完成: 状态码={response.status_code}, 耗时={request_time:.2f}秒"
+            )
+
+            # Check for HTTP errors
+            response.raise_for_status()
+
+            # Parse response
+            response_json = response.json()
+
+            # Extract the response text from Ollama-specific format
+            if "response" in response_json:
+                response_text = response_json["response"]
+
+                # 使用统一的解析方法处理响应
+                # 这与其他LLM客户端（如OpenAI、Claude、DeepSeek）使用相同的调用路径
+                parsed_result = ResponseParser.parse_ollama_response(response_text)
+
+                # 记录响应解析
+                parse_time = time.time() - start_time - request_time
                 logger.debug(
-                    f"Ollama请求完成: 状态码={response.status_code}, 耗时={request_time:.2f}秒"
+                    f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, 总耗时={(time.time()-start_time):.2f}秒"
                 )
 
-                # Check for HTTP errors
-                response.raise_for_status()
-
-                # Parse response
-                response_json = response.json()
-
-                # Extract the response text from Ollama-specific format
-                if "response" in response_json:
-                    response_text = response_json["response"]
-
-                    # Parse scores and structured content
-                    scores = self.response_parser.extract_scores(response_text)
-                    structured_content = self.response_parser.extract_structured_content(
-                        response_text
-                    )
-
-                    # 记录响应解析
-                    parse_time = time.time() - start_time - request_time
-                    logger.debug(
-                        f"Ollama响应解析完成: 解析耗时={parse_time:.2f}秒, 总耗时={(time.time()-start_time):.2f}秒"
-                    )
-
-                    return {
-                        "success": True,
-                        "response": response_text,
-                        "scores": scores,
-                        "structured_content": structured_content,
-                        "raw_response": response_json,
-                    }
-                else:
-                    logger.warning(f"Ollama响应格式无效: {response_json}")
-                    return {
-                        "success": False,
-                        "error": "Ollama API响应格式无效",
-                        "raw_response": response_json,
-                    }
+                return {
+                    "success": True,
+                    "raw_response": response_text,
+                    "processed_result": {},
+                    "result": parsed_result,
+                }
+            else:
+                logger.warning(f"Ollama响应格式无效: {response_json}")
+                return {
+                    "success": False,
+                    "error": "Ollama API响应格式无效",
+                    "raw_response": json.dumps(response_json),
+                }
 
         except httpx.HTTPStatusError as e:
             logger.error(
@@ -213,56 +224,57 @@ class OllamaClient(LlmClient):
         start_time = time.time()
 
         try:
-            # Use Ollama's models endpoint to check connectivity
-            api_url = f"{self.base_url}/api/tags"
+            # 根据base_url是否已包含/api来决定端点
+            if self.base_url.endswith("/api"):
+                endpoint = "/tags"
+            else:
+                endpoint = "/api/tags"
 
-            logger.debug(f"Ollama连接测试请求: URL={api_url}")
+            logger.debug(f"Ollama连接测试请求: 端点={endpoint}")
 
             # Make the request
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(api_url)
+            response = await self._make_request(
+                method="GET", endpoint=endpoint, timeout=self.timeout
+            )
 
-                # Record response time
-                request_time = time.time() - start_time
-                logger.debug(
-                    f"Ollama连接测试响应: 状态码={response.status_code}, 耗时={request_time:.2f}秒"
-                )
+            # Record response time
+            request_time = time.time() - start_time
+            logger.debug(
+                f"Ollama连接测试响应: 状态码={response.status_code}, 耗时={request_time:.2f}秒"
+            )
 
-                # Check response status
-                response.raise_for_status()
+            # Check if the model exists
+            models_response = response.json()
+            if "models" in models_response:
+                # Check if our model is in the list
+                model_names = [model.get("name") for model in models_response.get("models", [])]
+                if self.model_name in model_names:
+                    logger.info(
+                        f"Ollama连接测试成功: 找到模型={self.model_name}, 耗时={time.time()-start_time:.2f}秒"
+                    )
+                    return {
+                        "success": True,
+                        "message": f"成功连接到Ollama API并找到模型 {self.model_name}",
+                        "status": "success",
+                    }
+                else:
+                    available_models = ", ".join(model_names[:5])
+                    logger.warning(
+                        f"Ollama连接测试部分成功: 未找到模型={self.model_name}, 可用模型={available_models}, 耗时={time.time()-start_time:.2f}秒"
+                    )
+                    return {
+                        "success": False,
+                        "message": f"已连接到Ollama API但未找到模型 {self.model_name}。可用模型: {available_models}...",
+                        "status": "warning",
+                    }
 
-                # Check if the model exists
-                models_response = response.json()
-                if "models" in models_response:
-                    # Check if our model is in the list
-                    model_names = [model.get("name") for model in models_response.get("models", [])]
-                    if self.model_name in model_names:
-                        logger.info(
-                            f"Ollama连接测试成功: 找到模型={self.model_name}, 耗时={time.time()-start_time:.2f}秒"
-                        )
-                        return {
-                            "success": True,
-                            "message": f"成功连接到Ollama API并找到模型 {self.model_name}",
-                            "status": "success",
-                        }
-                    else:
-                        available_models = ", ".join(model_names[:5])
-                        logger.warning(
-                            f"Ollama连接测试部分成功: 未找到模型={self.model_name}, 可用模型={available_models}, 耗时={time.time()-start_time:.2f}秒"
-                        )
-                        return {
-                            "success": False,
-                            "message": f"已连接到Ollama API但未找到模型 {self.model_name}。可用模型: {available_models}...",
-                            "status": "warning",
-                        }
-
-                # If we get here but can't verify the model, the connection is still successful
-                logger.info(f"Ollama连接测试成功: 耗时={time.time()-start_time:.2f}秒")
-                return {"success": True, "message": "成功连接到Ollama API", "status": "success"}
+            # If we get here but can't verify the model, the connection is still successful
+            logger.info(f"Ollama连接测试成功: 耗时={time.time()-start_time:.2f}秒")
+            return {"success": True, "message": "成功连接到Ollama API", "status": "success"}
 
         except httpx.HTTPStatusError as e:
             elapsed_time = time.time() - start_time
-            error_details = self.error_handler.format_error_message(e, "Ollama")
+            error_details = f"HTTP错误: 状态码={e.response.status_code}, URL={e.request.url}"
             logger.error(
                 f"Ollama连接测试HTTP错误: 状态码={e.response.status_code}, 耗时={elapsed_time:.2f}秒, 错误={error_details}"
             )
