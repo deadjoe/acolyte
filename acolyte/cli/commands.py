@@ -766,9 +766,10 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
             # 确保投票信息是一个列表
             try:
-                if not isinstance(votes, list):
+                # 使用type检查而不是isinstance
+                if type(votes) is not list:
                     # 如果不是列表，尝试从字典中提取votes字段
-                    if isinstance(votes, dict) and "votes" in votes:
+                    if type(votes) is dict and "votes" in votes:
                         votes = votes.get("votes", [])
                     else:
                         votes = []
