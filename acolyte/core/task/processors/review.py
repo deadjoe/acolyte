@@ -656,6 +656,7 @@ class ReviewProcessor(BaseTaskProcessor):
                         "llm_id": result.llm_id,
                         "llm_name": llm_name,
                         "result": processed_result,
+                        "raw_response": result.raw_response,  # 添加raw_response字段
                         "created_at": result.created_at,
                     })
 
