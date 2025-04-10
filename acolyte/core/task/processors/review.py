@@ -121,25 +121,33 @@ class ReviewProcessor(BaseTaskProcessor):
             if not reviewers:
                 logger.warning("未找到评议者LLM，返回多LLM处理结果")
                 # 如果没有评议者，直接返回多LLM处理结果
+                elapsed_time = time.time() - start_time
+                logger.info(f"多LLM评议处理完成(无评议者): 任务ID={task_id}, 耗时={elapsed_time:.2f}秒")
                 return multi_result
             elif len(reviewers) == 1:
                 # 单评议者模式
                 logger.info(f"使用单评议者模式: 评议者={reviewers[0].get('name')}")
-                return await self._single_reviewer_mode(
+                result = await self._single_reviewer_mode(
                     task_id=task_id,
                     task_content=task_content,
                     reviewer=reviewers[0],
                     result_ids=result_ids,
                 )
+                elapsed_time = time.time() - start_time
+                logger.info(f"多LLM评议处理完成(单评议者模式): 任务ID={task_id}, 耗时={elapsed_time:.2f}秒")
+                return result
             else:
                 # 多评议者投票模式
                 logger.info(f"使用多评议者投票模式: 评议者数量={len(reviewers)}")
-                return await self._multiple_reviewer_vote_mode(
+                result = await self._multiple_reviewer_vote_mode(
                     task_id=task_id,
                     task_content=task_content,
                     reviewers=reviewers,
                     result_ids=result_ids,
                 )
+                elapsed_time = time.time() - start_time
+                logger.info(f"多LLM评议处理完成(多评议者投票模式): 任务ID={task_id}, 耗时={elapsed_time:.2f}秒")
+                return result
 
         except Exception as e:
             # 处理所有未捕获的异常
@@ -203,6 +211,9 @@ class ReviewProcessor(BaseTaskProcessor):
 
             if not result_id:
                 return await self._handle_error(task_id, "保存评议结果失败")
+
+            # 将此结果设为最终结果
+            await self._set_final_result(task_id, result_id)
 
             # 更新任务状态为已完成
             await self._update_task_status(task_id, TaskStatus.COMPLETED)
@@ -631,23 +642,27 @@ class ReviewProcessor(BaseTaskProcessor):
             logger.error(f"获取评议者异常: 任务ID={task_id}, 错误: {str(e)}")
             return []
 
-    def _rebuild_llm_config(self, llm_config: Dict) -> Dict:
+    def _rebuild_llm_config(self, llm_data: Dict) -> LlmConfig:
         """
-        重建完整的LLM配置
+        从字典数据重建 LlmConfig 对象
 
         Args:
-            llm_config: 原始LLM配置字典
+            llm_data: 包含LLM配置数据的字典，通常来自数据库查询结果
 
         Returns:
-            重建后的LLM配置字典
+            LlmConfig: 重建的LLM配置对象，可用于创建LLM客户端
         """
-        # 创建一个新的字典，包含必要的字段
-        return {
-            "provider": llm_config.get("provider"),
-            "model": llm_config.get("model"),
-            "parameters": llm_config.get("parameters", {}),
-            "system_prompt": llm_config.get("system_prompt", ""),
-        }
+        reconstructed_llm = LlmConfig(
+            id=llm_data.get("id"),
+            name=llm_data.get("name"),
+            provider=llm_data.get("provider"),
+            model=llm_data.get("model"),
+            role=llm_data.get("role", "reviewer"),
+            parameters=llm_data.get("parameters", {}),
+            system_prompt=llm_data.get("system_prompt", ""),
+        )
+
+        return reconstructed_llm
 
     async def _save_result(
         self, task_id: int, llm_id: int, result: Dict, is_review_result: bool = False
@@ -667,17 +682,65 @@ class ReviewProcessor(BaseTaskProcessor):
         try:
             # 使用run_in_session在数据库会话中执行操作
             async def _save(session):
+                # 获取任务
+                task = session.query(Task).filter(Task.id == task_id).first()
+                if not task:
+                    logger.warning(f"保存结果失败: 任务不存在, ID={task_id}")
+                    return None
+
+                # 提取评分
+                result_data = result.get("result", {})
+
+                # 尝试从结果中提取评分
+                bias_index = result_data.get("bias_index")
+                misleading_index = result_data.get("misleading_index")
+                hidden_intent_index = result_data.get("hidden_intent_index")
+                credibility_score = result_data.get("credibility_score")
+
+                # 如果从 result_data 中提取失败，尝试直接从 result 中提取
+                if (
+                    bias_index is None
+                    and misleading_index is None
+                    and hidden_intent_index is None
+                    and credibility_score is None
+                ):
+                    bias_index = result.get("bias_index")
+                    misleading_index = result.get("misleading_index")
+                    hidden_intent_index = result.get("hidden_intent_index")
+                    credibility_score = result.get("credibility_score")
+
+                # 记录提取到的评分
+                logger.debug(
+                    f"从结果中提取评分: 任务ID={task_id}, BI={bias_index}, MI={misleading_index}, HI={hidden_intent_index}, CS={credibility_score}"
+                )
+
                 # 创建新的结果记录
                 task_result = TaskResult(
                     task_id=task_id,
                     llm_id=llm_id,
-                    result=result.get("result", {}),
+                    result=result_data,
                     raw_response=result.get("raw_response", ""),
+                    bias_index=bias_index,
+                    misleading_index=misleading_index,
+                    hidden_intent_index=hidden_intent_index,
+                    credibility_score=credibility_score,
                     is_review_result=is_review_result,
                 )
 
                 session.add(task_result)
                 session.flush()
+
+                # 如果是评议结果或单LLM结果，更新任务的最终结果
+                if is_review_result or not task.final_result_id:
+                    old_final_result_id = task.final_result_id
+                    task.final_result_id = task_result.id
+
+                    if old_final_result_id:
+                        logger.info(
+                            f"更新任务最终结果: 任务ID={task_id}, 旧结果ID={old_final_result_id}, 新结果ID={task_result.id}"
+                        )
+                    else:
+                        logger.info(f"设置任务最终结果: 任务ID={task_id}, 结果ID={task_result.id}")
 
                 return task_result.id
 
