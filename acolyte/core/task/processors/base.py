@@ -275,7 +275,7 @@ class BaseTaskProcessor(ABC):
 
             # 只获取normal角色的LLM
             llms = []
-            normal_llms = [llm for llm in task_llm_configs if llm.role.lower() == "normal"]
+            normal_llms = [llm for llm in task_llm_configs if llm.role.value == "normal"]
             logger.debug(f"任务 {task_id} 关联的normal角色LLM数量: {len(normal_llms)}")
 
             for llm_assoc in normal_llms:
