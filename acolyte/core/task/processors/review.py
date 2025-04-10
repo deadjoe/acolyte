@@ -509,12 +509,19 @@ class ReviewProcessor(BaseTaskProcessor):
         """
         try:
             # 尝试使用正则表达式匹配“我选择结果 [X]”或“结果 [X]”模式
-            pattern = r"我选择结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?"|r"结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?"
+            pattern = r"我选择结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?|结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?"
             match = re.search(pattern, raw_response)
 
             if match:
                 # 获取结果编号
-                result_number = int(match.group(1))
+                # 检查哪个捕获组匹配了
+                if match.group(1):
+                    result_number = int(match.group(1))
+                elif match.group(2):
+                    result_number = int(match.group(2))
+                else:
+                    logger.warning(f"正则表达式匹配成功但没有捕获到结果编号")
+                    return None
 
                 # 结果编号是从1开始的，需要转换为索引
                 if 1 <= result_number <= len(results):
