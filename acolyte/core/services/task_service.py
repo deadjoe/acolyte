@@ -516,7 +516,17 @@ class TaskService:
             if not task:
                 return False
 
-            # 先删除关联的任务结果
+            # 先清除任务与LLM的关联
+            if task.llm_configs:
+                logger.debug(f"清除任务与LLM的关联, 数量: {len(task.llm_configs)}")
+                task.llm_configs = []
+
+            # 删除关联的评审投票
+            from acolyte.core.db.models import ReviewerVote
+            vote_count = session.query(ReviewerVote).filter_by(task_id=task_id).delete()
+            logger.debug(f"已删除 {vote_count} 个关联评审投票")
+
+            # 删除关联的任务结果
             result_count = session.query(TaskResult).filter_by(task_id=task_id).delete()
             logger.debug(f"已删除 {result_count} 个关联结果")
 
