@@ -4,15 +4,11 @@
 处理使用多个LLM并进行评议的任务。
 """
 
-import asyncio
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
-from sqlalchemy.orm import Session
-
-from acolyte.core.db.models import LlmConfig, ReviewerVote, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, ReviewerVote, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.task.processors.base import BaseTaskProcessor
@@ -147,6 +143,8 @@ class ReviewProcessor(BaseTaskProcessor):
 
         except Exception as e:
             # 处理所有未捕获的异常
+            elapsed_time = time.time() - start_time
+            logger.error(f"评议处理异常: ID={task_id}, 耗时={elapsed_time:.2f}秒, 错误: {str(e)}")
             return await self._handle_error(task_id, e)
 
     async def _single_reviewer_mode(
@@ -186,12 +184,7 @@ class ReviewProcessor(BaseTaskProcessor):
             )
 
             # 运行处理
-            loop = asyncio.get_event_loop()
-            with ThreadPoolExecutor() as executor:
-                review_result = await loop.run_in_executor(
-                    executor,
-                    lambda: client.process_content(content=task_content, prompt=review_prompt),
-                )
+            review_result = await client.process_content(content=task_content, prompt=review_prompt)
 
             logger.info(
                 f"评议处理完成: 任务ID={task_id}, 成功={review_result.get('success', False)}"
@@ -250,48 +243,64 @@ class ReviewProcessor(BaseTaskProcessor):
             # 创建投票提示词
             vote_prompt = self._create_vote_prompt(results)
 
-            # 创建处理任务
-            vote_tasks = []
+            # 创建处理协程
+            vote_coroutines = []
             for reviewer in reviewers:
-                # 包装处理任务
-                task = self._create_reviewer_task(
-                    reviewer=reviewer, task_content=task_content, prompt_content=vote_prompt
-                )
-                vote_tasks.append(task)
+                # 重建评议者LLM配置
+                reconstructed_reviewer = self._rebuild_llm_config(reviewer)
+                reviewer_id = reviewer.get("id")
 
-            # 并行执行所有任务，最多3个并发
-            vote_results = await gather_with_concurrency(3, *vote_tasks, return_exceptions=True)
+                # 获取客户端
+                client = get_client_for_llm(reconstructed_reviewer)
+
+                # 创建处理协程
+                logger.info(f"创建评议者处理协程: 评议者={reviewer.get('name')} (ID={reviewer_id})")
+                coroutine = client.process_content(content=task_content, prompt=vote_prompt)
+                vote_coroutines.append((reviewer_id, coroutine))
+
+            # 并行执行所有协程，最多3个并发
+            logger.info(f"开始并行执行 {len(vote_coroutines)} 个评议者处理协程")
+
+            # 使用gather_with_concurrency并行执行协程
+            reviewer_ids = [r_id for r_id, _ in vote_coroutines]
+            coroutines = [coro for _, coro in vote_coroutines]
+            results_with_exceptions = await gather_with_concurrency(3, *coroutines, return_exceptions=True)
 
             # 处理投票结果
             votes = []
-            for i, result in enumerate(vote_results):
-                reviewer = reviewers[i]
-                reviewer_id = reviewer.get("id")
+            for i, result in enumerate(results_with_exceptions):
+                reviewer_id = reviewer_ids[i]
+                reviewer_name = next((r.get("name") for r in reviewers if r.get("id") == reviewer_id), f"ID={reviewer_id}")
 
                 # 处理异常
                 if isinstance(result, Exception):
-                    logger.error(f"评议者处理异常: 评议者ID={reviewer_id}, 错误: {str(result)}")
-                    votes.append((reviewer_id, None))
+                    logger.error(f"评议者处理异常: 评议者={reviewer_name}, 错误: {str(result)}")
+                    continue
+
+                # 检查处理成功
+                if not result.get("success", False):
+                    logger.error(f"评议者处理失败: 评议者={reviewer_name}, 错误: {result.get('error', '未知错误')}")
+                    continue
+
+                # 解析投票结果
+                raw_response = result.get("raw_response", "")
+                voted_result_id = self._parse_vote_result(raw_response, results)
+
+                if voted_result_id:
+                    logger.info(f"评议者投票成功: 评议者={reviewer_name}, 投票结果ID={voted_result_id}")
+                    votes.append((reviewer_id, voted_result_id, raw_response))
                 else:
-                    votes.append((reviewer_id, result))
+                    logger.warning(f"评议者投票解析失败: 评议者={reviewer_name}")
 
-            # 过滤出成功的投票
-            valid_votes = [
-                (r_id, result) for r_id, result in votes if result and result.get("success", False)
-            ]
-
-            if not valid_votes:
-                return await self._handle_error(task_id, "所有评议者处理都失败")
+            # 检查是否有有效投票
+            if not votes:
+                return await self._handle_error(task_id, "所有评议者投票都失败")
 
             # 保存投票记录
-            await self._save_votes(task_id, results, valid_votes)
+            await self._save_votes(task_id, votes)
 
             # 统计投票结果
-            vote_counts = await self._count_votes(task_id, result_ids)
-
-            # 如果没有有效投票，返回错误
-            if not vote_counts:
-                return await self._handle_error(task_id, "未能收集到有效投票")
+            vote_counts = self._count_votes(votes)
 
             # 找出得票最多的结果
             final_result_id = max(vote_counts.items(), key=lambda x: x[1])[0]
@@ -308,11 +317,240 @@ class ReviewProcessor(BaseTaskProcessor):
                 "task_id": task_id,
                 "final_result_id": final_result_id,
                 "vote_counts": vote_counts,
-                "valid_votes": len(valid_votes),
+                "valid_votes": len(votes),
             }
 
         except Exception as e:
             return await self._handle_error(task_id, f"多评议者投票模式处理失败: {str(e)}")
+
+    def _create_review_prompt(self, results: List[Dict]) -> str:
+        """
+        创建评议提示词
+
+        Args:
+            results: 多LLM处理结果列表
+
+        Returns:
+            评议提示词
+        """
+        prompt = """你是一个客观公正的评议者，负责评估多个LLM对同一内容的分析结果。
+
+下面是多个LLM对同一内容的分析结果，请你仔细阅读并进行全面评估，然后给出你的分析意见。
+
+要求：
+1. 客观评估每个LLM的分析结果
+2. 比较不同结果的强项和弱项
+3. 指出哪个结果最全面、最准确
+4. 给出你的综合分析和建议
+
+请按照以下格式输出你的评估：
+
+## 各结果评估
+
+[对每个结果的评估]
+
+## 比较分析
+
+[各结果的比较分析]
+
+## 最佳结果
+
+[指出最佳结果及原因]
+
+## 综合建议
+
+[你的综合建议]
+
+现在，请开始评估以下结果：
+
+"""
+
+        # 添加每个LLM的处理结果
+        for i, result in enumerate(results, 1):
+            llm_name = result.get("llm_name", f"LLM {i}")
+            result_content = result.get("result", {})
+
+            # 提取关键字段
+            bias = result_content.get("bias", "")
+            misleading = result_content.get("misleading", "")
+            hidden_intent = result_content.get("hidden_intent", "")
+            analysis = result_content.get("analysis", "")
+
+            prompt += f"""
+
+### 结果 {i} - {llm_name}
+
+**偏见分析**：
+{bias}
+
+**误导性分析**：
+{misleading}
+
+**隐藏意图分析**：
+{hidden_intent}
+
+**总体分析**：
+{analysis}
+"""
+
+        return prompt
+
+    def _create_vote_prompt(self, results: List[Dict]) -> str:
+        """
+        创建投票提示词
+
+        Args:
+            results: 多LLM处理结果列表
+
+        Returns:
+            投票提示词
+        """
+        prompt = """你是一个客观公正的评议者，负责评估多个LLM对同一内容的分析结果，并选出最佳结果。
+
+下面是多个LLM对同一内容的分析结果，请你仔细阅读并选出最全面、最准确的结果。
+
+要求：
+1. 客观评估每个LLM的分析结果
+2. 选出你认为最佳的结果
+3. 给出选择的理由
+
+请按照以下格式输出你的选择：
+
+## 最佳结果
+
+我选择结果 [X] 作为最佳结果。
+
+## 选择理由
+
+[你的选择理由]
+
+现在，请开始评估以下结果：
+
+"""
+
+        # 添加每个LLM的处理结果
+        for i, result in enumerate(results, 1):
+            llm_name = result.get("llm_name", f"LLM {i}")
+            result_id = result.get("id")
+            result_content = result.get("result", {})
+
+            # 提取关键字段
+            bias = result_content.get("bias", "")
+            misleading = result_content.get("misleading", "")
+            hidden_intent = result_content.get("hidden_intent", "")
+            analysis = result_content.get("analysis", "")
+
+            prompt += f"""
+
+### 结果 {i} - {llm_name} (ID: {result_id})
+
+**偏见分析**：
+{bias}
+
+**误导性分析**：
+{misleading}
+
+**隐藏意图分析**：
+{hidden_intent}
+
+**总体分析**：
+{analysis}
+"""
+
+        return prompt
+
+    def _parse_vote_result(self, raw_response: str, results: List[Dict]) -> Optional[int]:
+        """
+        解析投票结果
+
+        Args:
+            raw_response: LLM原始响应
+            results: 多LLM处理结果列表
+
+        Returns:
+            投票结果ID，如果解析失败则返回None
+        """
+        try:
+            # 尝试使用正则表达式匹配“我选择结果 [X]”或“结果 [X]”模式
+            pattern = r"我选择结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?"|r"结果\s*[\[\(]?\s*(\d+)\s*[\]\)]?"
+            match = re.search(pattern, raw_response)
+
+            if match:
+                # 获取结果编号
+                result_number = int(match.group(1))
+
+                # 结果编号是从1开始的，需要转换为索引
+                if 1 <= result_number <= len(results):
+                    # 返回对应的结果ID
+                    return results[result_number - 1].get("id")
+
+            # 如果上面的方法失败，尝试直接匹配ID
+            id_pattern = r"ID:\s*(\d+)"
+            id_matches = re.findall(id_pattern, raw_response)
+
+            if id_matches:
+                # 检查每个匹配到的ID是否在结果列表中
+                for id_str in id_matches:
+                    result_id = int(id_str)
+                    # 检查这个ID是否在结果列表中
+                    if any(result.get("id") == result_id for result in results):
+                        return result_id
+
+            # 如果上述方法都失败，返回None
+            logger.warning(f"无法解析投票结果: {raw_response[:100]}...")
+            return None
+
+        except Exception as e:
+            logger.error(f"解析投票结果异常: {str(e)}")
+            return None
+
+    def _count_votes(self, votes: List[tuple]) -> Dict[int, int]:
+        """
+        统计投票结果
+
+        Args:
+            votes: 投票列表，每项为 (reviewer_id, voted_result_id, raw_response) 的元组
+
+        Returns:
+            投票统计结果，键为结果ID，值为得票数
+        """
+        vote_counts = {}
+
+        for _, voted_result_id, _ in votes:
+            if voted_result_id in vote_counts:
+                vote_counts[voted_result_id] += 1
+            else:
+                vote_counts[voted_result_id] = 1
+
+        return vote_counts
+
+    async def _get_task_with_content(self, task_id: int) -> Optional[Dict]:
+        """
+        获取任务及其内容
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            任务信息字典，如果任务不存在则返回None
+        """
+        try:
+            # 使用run_in_session在数据库会话中执行查询
+            async def _get_task(session):
+                task = session.query(Task).filter(Task.id == task_id).first()
+                if not task:
+                    return None
+                return {
+                    "id": task.id,
+                    "content": task.content,
+                    "status": task.status,
+                    "created_at": task.created_at,
+                }
+
+            return await run_in_session(_get_task)
+        except Exception as e:
+            logger.error(f"获取任务异常: ID={task_id}, 错误: {str(e)}")
+            return None
 
     async def _get_task_results(self, task_id: int, result_ids: List[int]) -> List[Dict]:
         """
@@ -323,301 +561,162 @@ class ReviewProcessor(BaseTaskProcessor):
             result_ids: 结果ID列表
 
         Returns:
-            结果字典列表
+            结果列表
         """
-
-        async def _get_results(session: Session):
-            results = (
-                session.query(TaskResult)
-                .filter(TaskResult.task_id == task_id, TaskResult.id.in_(result_ids))
-                .all()
-            )
-
-            if not results:
-                logger.warning(f"未找到任务结果: 任务ID={task_id}, 结果ID列表={result_ids}")
-                return []
-
-            # 按照传入的结果ID顺序排序
-            sorted_results = sorted(results, key=lambda r: result_ids.index(r.id))
-
-            # 转换为字典列表
-            return [
-                {
-                    "id": r.id,
-                    "llm_id": r.llm_id,
-                    "raw_response": r.raw_response,
-                    "bias_index": r.bias_index,
-                    "misleading_index": r.misleading_index,
-                    "hidden_intent_index": r.hidden_intent_index,
-                    "credibility_score": r.credibility_score,
-                }
-                for r in sorted_results
-            ]
-
         try:
+            # 使用run_in_session在数据库会话中执行查询
+            async def _get_results(session):
+                results = (
+                    session.query(TaskResult)
+                    .filter(TaskResult.task_id == task_id)
+                    .filter(TaskResult.id.in_(result_ids))
+                    .all()
+                )
+
+                # 将结果转换为字典列表
+                result_list = []
+                for result in results:
+                    # 获取LLM名称
+                    llm = session.query(LlmConfig).filter(LlmConfig.id == result.llm_id).first()
+                    llm_name = llm.name if llm else f"LLM {result.llm_id}"
+
+                    result_list.append({
+                        "id": result.id,
+                        "llm_id": result.llm_id,
+                        "llm_name": llm_name,
+                        "result": result.result,
+                        "created_at": result.created_at,
+                    })
+
+                return result_list
+
             return await run_in_session(_get_results)
         except Exception as e:
-            logger.error(f"获取任务结果失败: ID={task_id}, 错误: {str(e)}", exc_info=True)
+            logger.error(f"获取任务结果异常: ID={task_id}, 错误: {str(e)}")
             return []
 
-    def _create_review_prompt(self, results: List[Dict]) -> str:
+    async def _get_reviewers_for_task(self, task_id: int) -> List[Dict]:
         """
-        创建评议提示词
+        获取任务的评议者LLM配置
 
         Args:
-            results: 结果列表
+            task_id: 任务ID
 
         Returns:
-            评议提示词
+            评议者LLM配置列表
         """
-        # 创建包含所有结果的评议提示
-        review_prompt = (
-            "# 多LLM评估结果评议\n\n"
-            "你的任务是评议多个LLM对同一篇文章的分析结果，综合它们的分析，给出最终的评估结果。\n\n"
-            "## LLM评估结果\n\n"
-        )
+        try:
+            # 使用run_in_session在数据库会话中执行查询
+            async def _get_reviewers(session):
+                # 获取所有reviewer角色的LLM配置
+                reviewers = session.query(LlmConfig).filter(LlmConfig.role == "reviewer").all()
 
-        # 添加每个LLM的评估结果
-        for i, result in enumerate(results, 1):
-            review_prompt += f"### LLM {i} 的评估结果\n\n"
-            review_prompt += f"```\n{result.get('raw_response', '未提供原始响应')}\n```\n\n"
+                # 将结果转换为字典列表
+                reviewer_list = []
+                for reviewer in reviewers:
+                    reviewer_list.append({
+                        "id": reviewer.id,
+                        "name": reviewer.name,
+                        "provider": reviewer.provider,
+                        "model": reviewer.model,
+                        "role": reviewer.role,
+                        "parameters": reviewer.parameters,
+                        "system_prompt": reviewer.system_prompt,
+                    })
 
-        # 添加评议要求
-        review_prompt += (
-            "## 评议要求\n\n"
-            "1. 分析比较上述LLM的评估结果，找出它们的共同点和差异\n"
-            "2. 对于分歧点，评估哪些观点更有说服力，并说明理由\n"
-            "3. 综合所有LLM的评分，给出最终的偏见指数、误导性指数、隐藏意图指数和综合可信度分数\n"
-            "4. 按照与原始评估相同的格式给出完整的评估报告\n\n"
-            "## 输出格式\n\n"
-            "请严格按照原始评估报告的格式给出评议结果，必须包含完整的量化评分。"
-        )
+                return reviewer_list
 
-        return review_prompt
+            return await run_in_session(_get_reviewers)
+        except Exception as e:
+            logger.error(f"获取评议者异常: 任务ID={task_id}, 错误: {str(e)}")
+            return []
 
-    def _create_vote_prompt(self, results: List[Dict]) -> str:
+    def _rebuild_llm_config(self, llm_config: Dict) -> Dict:
         """
-        创建投票提示词
+        重建完整的LLM配置
 
         Args:
-            results: 结果列表
+            llm_config: 原始LLM配置字典
 
         Returns:
-            投票提示词
+            重建后的LLM配置字典
         """
-        # 创建包含所有结果的投票提示
-        vote_prompt = (
-            "# 多LLM评估结果投票\n\n"
-            "你的任务是评估多个LLM对同一篇文章的分析结果，并投票选择最准确、最全面的分析结果。\n\n"
-            "## LLM评估结果\n\n"
-        )
+        # 创建一个新的字典，包含必要的字段
+        return {
+            "provider": llm_config.get("provider"),
+            "model": llm_config.get("model"),
+            "parameters": llm_config.get("parameters", {}),
+            "system_prompt": llm_config.get("system_prompt", ""),
+        }
 
-        # 添加每个LLM的评估结果
-        for i, result in enumerate(results, 1):
-            vote_prompt += f"### LLM {i} (ID: {result.get('id')}) 的评估结果\n\n"
-            vote_prompt += f"```\n{result.get('raw_response', '未提供原始响应')}\n```\n\n"
-
-        # 添加投票要求
-        vote_prompt += (
-            "## 投票要求\n\n"
-            "1. 分析比较上述LLM的评估结果，找出它们的共同点和差异\n"
-            "2. 评估每个结果的全面性、准确性和深度\n"
-            "3. 投票选择一个你认为最好的结果\n\n"
-            "## 输出格式\n\n"
-            "你必须明确指出你的投票，格式如下：\n\n"
-            "```\n我投票给 LLM X (ID: Y)，因为...\n```\n\n"
-            "其中X是LLM序号，Y是对应的ID。请确保正确引用ID，这对投票统计至关重要。"
-        )
-
-        return vote_prompt
-
-    async def _create_reviewer_task(
-        self, reviewer: Dict, task_content: str, prompt_content: str
-    ) -> asyncio.Task:
+    async def _save_result(
+        self, task_id: int, llm_id: int, result: Dict, is_review_result: bool = False
+    ) -> Optional[int]:
         """
-        创建评议者处理任务
+        保存处理结果
 
         Args:
-            reviewer: 评议者LLM配置
-            task_content: 任务内容
-            prompt_content: 提示词内容
+            task_id: 任务ID
+            llm_id: LLM ID
+            result: 处理结果
+            is_review_result: 是否为评议结果
 
         Returns:
-            异步任务对象
+            结果ID，如果保存失败则返回None
         """
-        # 重建LLM配置对象
-        reconstructed_reviewer = self._rebuild_llm_config(reviewer)
-
-        # 创建处理函数
-        async def process_with_reviewer():
-            try:
-                # 获取客户端
-                client = get_client_for_llm(reconstructed_reviewer)
-
-                # 处理内容
-                reviewer_id = reviewer.get("id")
-                reviewer_name = reviewer.get("name")
-                logger.info(f"开始评议者处理: 评议者={reviewer_name} (ID={reviewer_id})")
-
-                # 运行处理
-                # 直接使用异步方式调用process_content方法
-                result = await client.process_content(content=task_content, prompt=prompt_content)
-
-                logger.info(
-                    f"评议者处理完成: 评议者={reviewer_name} (ID={reviewer_id}), 成功={result.get('success', False)}"
+        try:
+            # 使用run_in_session在数据库会话中执行操作
+            async def _save(session):
+                # 创建新的结果记录
+                task_result = TaskResult(
+                    task_id=task_id,
+                    llm_id=llm_id,
+                    result=result.get("result", {}),
+                    raw_response=result.get("raw_response", ""),
+                    is_review_result=is_review_result,
                 )
-                return result
 
-            except Exception as e:
-                logger.error(
-                    f"评议者处理失败: 评议者={reviewer.get('name')} (ID={reviewer.get('id')}), 错误: {str(e)}"
-                )
-                raise
+                session.add(task_result)
+                session.flush()
 
-        # 创建任务
-        return asyncio.create_task(process_with_reviewer())
+                return task_result.id
 
-    def _rebuild_llm_config(self, llm_data: Dict) -> LlmConfig:
-        """
-        重建LLM配置对象
+            return await run_in_session(_save)
+        except Exception as e:
+            logger.error(f"保存结果异常: 任务ID={task_id}, LLM ID={llm_id}, 错误: {str(e)}")
+            return None
 
-        Args:
-            llm_data: LLM配置数据
-
-        Returns:
-            LLM配置对象
-        """
-        reconstructed_llm = LlmConfig(
-            id=llm_data.get("id"),
-            name=llm_data.get("name"),
-            api_key=llm_data.get("api_key"),
-            base_url=llm_data.get("base_url"),
-            model_name=llm_data.get("model_name"),
-            role=llm_data.get("role", "reviewer"),
-            is_default=llm_data.get("is_default", False),
-        )
-
-        # 添加provider属性
-        provider = llm_data.get("provider")
-        if provider:
-            reconstructed_llm.provider = provider
-
-        return reconstructed_llm
-
-    async def _save_votes(self, task_id: int, results: List[Dict], votes: List[tuple]) -> None:
+    async def _save_votes(self, task_id: int, votes: List[tuple]) -> bool:
         """
         保存投票记录
 
         Args:
             task_id: 任务ID
-            results: 结果列表
-            votes: 投票列表，每项为(reviewer_id, vote_result)元组
+            votes: 投票列表，每项为 (reviewer_id, voted_result_id, raw_response) 的元组
+
+        Returns:
+            是否保存成功
         """
-
-        async def _save_vote_records(session: Session):
-            for reviewer_id, vote_result in votes:
-                if not vote_result:
-                    continue
-
-                # 解析投票，获取评议者选择的结果ID
-                raw_response = vote_result.get("raw_response", "")
-                voted_result_id = self._parse_vote_result(raw_response, results)
-
-                if voted_result_id:
-                    # 保存投票记录
-                    reviewer_vote = ReviewerVote(
+        try:
+            # 使用run_in_session在数据库会话中执行操作
+            async def _save(session):
+                for reviewer_id, voted_result_id, raw_response in votes:
+                    # 创建新的投票记录
+                    vote = ReviewerVote(
                         task_id=task_id,
                         reviewer_id=reviewer_id,
-                        voted_result_id=voted_result_id,
-                        comment=raw_response,
-                    )
-                    session.add(reviewer_vote)
-                    logger.info(
-                        f"已保存投票记录: 评议者ID={reviewer_id}, 投票结果ID={voted_result_id}"
+                        result_id=voted_result_id,
+                        raw_response=raw_response,
                     )
 
-        try:
-            await run_in_session(_save_vote_records)
+                    session.add(vote)
+
+                return True
+
+            return await run_in_session(_save)
         except Exception as e:
-            logger.error(f"保存投票记录失败: 任务ID={task_id}, 错误: {str(e)}", exc_info=True)
-
-    def _parse_vote_result(self, vote_text: str, results: List[Dict]) -> Optional[int]:
-        """
-        解析投票结果
-
-        Args:
-            vote_text: 投票文本
-            results: 结果列表
-
-        Returns:
-            投票选择的结果ID，如果未能解析则返回None
-        """
-        if not vote_text:
-            return None
-
-        logger.debug(f"开始解析投票结果文本: {len(vote_text)} 字符")
-        try:
-            # 解析投票文本，查找"ID: X"模式
-            id_pattern = re.compile(r"ID:\s*(\d+)")
-            match = id_pattern.search(vote_text)
-            if match:
-                voted_id = int(match.group(1))
-                logger.debug(f"找到ID格式投票: {voted_id}")
-                # 验证ID是否在结果列表中
-                if any(result.get("id") == voted_id for result in results):
-                    logger.info(f"投票结果解析成功: 投票ID={voted_id}")
-                    return voted_id
-                else:
-                    logger.warning(f"投票ID {voted_id} 不在有效结果列表中")
-
-            # 如果未找到ID格式，尝试查找"LLM X"格式
-            llm_pattern = re.compile(r"LLM\s*(\d+)")
-            match = llm_pattern.search(vote_text)
-            if match:
-                llm_index = int(match.group(1)) - 1  # 减1因为索引从0开始
-                logger.debug(f"找到LLM索引格式投票: 索引={llm_index}")
-                if 0 <= llm_index < len(results):
-                    voted_id = results[llm_index].get("id")
-                    logger.info(f"投票结果解析成功: 索引={llm_index}, 投票ID={voted_id}")
-                    return voted_id
-                else:
-                    logger.warning(f"LLM索引 {llm_index} 超出范围 [0-{len(results)-1}]")
-
-            logger.warning(f"无法从投票文本中解析出有效的投票ID: {vote_text[:100]}...")
-            return None
-        except Exception as e:
-            logger.error(f"解析投票结果时发生异常: {str(e)}", exc_info=True)
-            return None
-
-    async def _count_votes(self, task_id: int, result_ids: List[int]) -> Dict[int, int]:
-        """
-        统计投票
-
-        Args:
-            task_id: 任务ID
-            result_ids: 结果ID列表
-
-        Returns:
-            投票统计字典，键为结果ID，值为票数
-        """
-
-        async def _count_vote_records(session: Session):
-            # 查询所有投票记录
-            votes = session.query(ReviewerVote).filter_by(task_id=task_id).all()
-
-            # 统计票数
-            vote_counts = {}
-            for vote in votes:
-                if vote.voted_result_id in result_ids:  # 确保投票的是有效结果
-                    vote_counts[vote.voted_result_id] = vote_counts.get(vote.voted_result_id, 0) + 1
-
-            return vote_counts
-
-        try:
-            return await run_in_session(_count_vote_records)
-        except Exception as e:
-            logger.error(f"统计投票失败: 任务ID={task_id}, 错误: {str(e)}", exc_info=True)
-            return {}
+            logger.error(f"保存投票记录异常: 任务ID={task_id}, 错误: {str(e)}")
+            return False
 
     async def _set_final_result(self, task_id: int, result_id: int) -> bool:
         """
@@ -625,29 +724,73 @@ class ReviewProcessor(BaseTaskProcessor):
 
         Args:
             task_id: 任务ID
-            result_id: 最终结果ID
+            result_id: 结果ID
 
         Returns:
-            设置是否成功
+            是否设置成功
         """
-
-        async def _update_final_result(session: Session):
-            # 获取任务
-            task = session.query(Task).filter_by(id=task_id).first()
-            if not task:
-                logger.warning(f"设置最终结果失败: 任务不存在, ID={task_id}")
-                return False
-
-            # 更新最终结果ID
-            task.final_result_id = result_id
-            task.updated_at = time.time()
-            return True
-
         try:
-            return await run_in_session(_update_final_result)
+            # 使用run_in_session在数据库会话中执行操作
+            async def _update(session):
+                task = session.query(Task).filter(Task.id == task_id).first()
+                if not task:
+                    return False
+
+                task.final_result_id = result_id
+                return True
+
+            return await run_in_session(_update)
         except Exception as e:
-            logger.error(
-                f"设置最终结果失败: 任务ID={task_id}, 结果ID={result_id}, 错误: {str(e)}",
-                exc_info=True,
-            )
+            logger.error(f"设置最终结果异常: 任务ID={task_id}, 结果ID={result_id}, 错误: {str(e)}")
             return False
+
+    async def _update_task_status(self, task_id: int, status: TaskStatus) -> bool:
+        """
+        更新任务状态
+
+        Args:
+            task_id: 任务ID
+            status: 新状态
+
+        Returns:
+            是否更新成功
+        """
+        try:
+            # 使用run_in_session在数据库会话中执行操作
+            async def _update(session):
+                task = session.query(Task).filter(Task.id == task_id).first()
+                if not task:
+                    return False
+
+                task.status = status
+                return True
+
+            return await run_in_session(_update)
+        except Exception as e:
+            logger.error(f"更新任务状态异常: ID={task_id}, 状态={status}, 错误: {str(e)}")
+            return False
+
+    async def _handle_error(self, task_id: int, error) -> Dict:
+        """
+        处理错误
+
+        Args:
+            task_id: 任务ID
+            error: 错误信息
+
+        Returns:
+            错误结果字典
+        """
+        # 将错误转换为字符串
+        error_message = str(error)
+        logger.error(f"评议处理错误: ID={task_id}, 错误: {error_message}")
+
+        # 更新任务状态为失败
+        await self._update_task_status(task_id, TaskStatus.FAILED)
+
+        # 返回错误结果
+        return {
+            "success": False,
+            "task_id": task_id,
+            "error": error_message,
+        }
