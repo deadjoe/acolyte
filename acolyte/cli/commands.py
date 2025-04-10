@@ -942,12 +942,39 @@ def delete(task_id):
                     task = await client.get_task(task_id)
 
                 # 显示任务信息
+                # 格式化创建时间
+                created_at = task.get("created_at", "未知")
+
+                # 格式化时间为友好的24小时制格式
+                if created_at != "未知":
+                    try:
+                        # 解析ISO格式的时间字符串
+                        import time
+                        from datetime import datetime, timedelta, timezone
+
+                        # 解析UTC时间
+                        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+
+                        # 获取本地时区
+                        local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
+                        local_tz = timezone(timedelta(hours=local_tz_offset))
+
+                        # 将UTC时间转换为本地时间
+                        local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
+
+                        # 格式化为友好的24小时制格式
+                        created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                        logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
+                    except Exception as e:
+                        logger.warning(f"时间格式化失败: {e}")
+
                 console.print(
                     Panel(
                         f"ID: {task['id']}\n"
                         f"处理模式: {task['processing_mode']}\n"
                         f"状态: {task['status']}\n"
-                        f"创建时间: {task.get('created_at', '未知')}",
+                        f"创建时间: {created_at}",
                         title="将删除以下任务",
                     )
                 )
@@ -1481,7 +1508,31 @@ def show_prompt(prompt_id):
 
             # 如果存在创建时间，显示它
             if "created_at" in prompt and prompt["created_at"]:
-                panel_content += f"\n创建时间: {prompt['created_at']}"
+                # 格式化时间为友好的24小时制格式
+                created_at = prompt["created_at"]
+                try:
+                    # 解析ISO格式的时间字符串
+                    import time
+                    from datetime import datetime, timedelta, timezone
+
+                    # 解析UTC时间
+                    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+
+                    # 获取本地时区
+                    local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
+                    local_tz = timezone(timedelta(hours=local_tz_offset))
+
+                    # 将UTC时间转换为本地时间
+                    local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
+
+                    # 格式化为友好的24小时制格式
+                    created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                    logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
+                except Exception as e:
+                    logger.warning(f"时间格式化失败: {e}")
+
+                panel_content += f"\n创建时间: {created_at}"
 
             console.print(Panel(panel_content, title="Prompt信息"))
 
