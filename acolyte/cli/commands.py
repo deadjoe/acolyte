@@ -220,6 +220,22 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
+    async def get_task_votes(self, task_id: int, include_raw_response: bool = False):
+        """获取任务投票信息
+
+        Args:
+            task_id: 任务ID
+            include_raw_response: 是否包含原始响应
+
+        Returns:
+            投票信息列表
+        """
+        response = await self.client.get(
+            f"/tasks/{task_id}/votes", params={"include_raw_response": include_raw_response}
+        )
+        response.raise_for_status()
+        return response.json()
+
     async def get_llms(self):
         """获取LLM列表
 
@@ -653,6 +669,10 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                         logger.info("成功获取任务最终结果")
                         # 显示结果
                         _display_result(final_result)
+
+                        # 如果是评议结果或使用了multiple_with_review模式，显示投票信息
+                        if final_result.get("is_review_result", False) or mode == "multiple_with_review":
+                            await _display_votes(task_id, final_result.get("id"))
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 404:
                             logger.warning(f"任务 {task_id} 无最终结果，尝试获取所有结果")
@@ -735,6 +755,37 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             console.print(Markdown(result["raw_response"]))
         else:
             logger.debug("结果不包含原始响应")
+
+    async def _display_votes(task_id, final_result_id):
+        """显示任务的投票信息"""
+        try:
+            votes = await client.get_task_votes(task_id, include_raw_response=False)
+
+            if not votes:
+                logger.info(f"任务 {task_id} 没有投票信息")
+                return
+
+            # 显示投票信息
+            console.print("\n[bold]评议投票信息:[/]")
+
+            table = Table()
+            table.add_column("评议者", style="cyan")
+            table.add_column("投票结果ID", style="green")
+            table.add_column("是否为最终结果", style="yellow")
+
+            for vote in votes:
+                is_final = "✓" if vote["voted_result_id"] == final_result_id else ""
+                table.add_row(
+                    vote["reviewer_name"],
+                    str(vote["voted_result_id"]),
+                    is_final
+                )
+
+            console.print(table)
+
+        except Exception as e:
+            logger.warning(f"获取投票信息失败: {str(e)}")
+            console.print("[yellow]无法获取投票信息[/]")
 
     # 运行异步函数
     asyncio.run(_analyze())

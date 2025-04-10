@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, ProcessingMode, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, ProcessingMode, ReviewerVote, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import extract_model_data, run_in_session
 from acolyte.core.prompt.manager import PromptManager
 from acolyte.core.task.processor import TaskProcessor
@@ -315,6 +315,63 @@ class TaskService:
         except Exception as e:
             logger.error(f"获取任务结果失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务结果失败: {str(e)}", "success": False}
+
+    async def get_task_votes(self, task_id: int, include_raw_response: bool = False) -> Dict:
+        """
+        获取任务的评议者投票信息
+
+        Args:
+            task_id: 任务ID
+            include_raw_response: 是否包含原始响应
+
+        Returns:
+            投票信息字典
+        """
+        logger.info(f"获取任务投票信息: ID={task_id}, 包含原始响应={include_raw_response}")
+
+        async def _get_votes(session: Session):
+            task = session.query(Task).filter_by(id=task_id).first()
+            if not task:
+                return None
+
+            # 获取投票记录
+            votes_query = (
+                session.query(
+                    ReviewerVote,
+                    LlmConfig.name.label("reviewer_name")
+                )
+                .join(LlmConfig, ReviewerVote.reviewer_id == LlmConfig.id)
+                .filter(ReviewerVote.task_id == task_id)
+            )
+
+            votes = votes_query.all()
+
+            # 转换为字典列表
+            vote_list = []
+            for vote, reviewer_name in votes:
+                vote_dict = {
+                    "id": vote.id,
+                    "task_id": vote.task_id,
+                    "reviewer_id": vote.reviewer_id,
+                    "reviewer_name": reviewer_name,
+                    "voted_result_id": vote.voted_result_id,
+                    "created_at": vote.created_at.isoformat() if vote.created_at else None,
+                }
+                if include_raw_response and hasattr(vote, "raw_response"):
+                    vote_dict["raw_response"] = vote.raw_response
+
+                vote_list.append(vote_dict)
+
+            return vote_list
+
+        try:
+            votes = await run_in_session(_get_votes)
+            if votes is None:
+                return {"error": "任务不存在", "success": False}
+            return {"votes": votes, "success": True}
+        except Exception as e:
+            logger.error(f"获取任务投票信息失败: {str(e)}", exc_info=True)
+            return {"error": f"获取任务投票信息失败: {str(e)}", "success": False}
 
     async def process_task_async(self, task_id: int) -> Dict:
         """

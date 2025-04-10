@@ -97,6 +97,19 @@ class TaskResultResponse(BaseModel):
         from_attributes = True
 
 
+class ReviewerVoteResponse(BaseModel):
+    id: int
+    task_id: int
+    reviewer_id: int
+    reviewer_name: Optional[str] = None
+    voted_result_id: int
+    raw_response: Optional[str] = None
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class PromptCreate(BaseModel):
     version: str
     model_target: str = "general"
@@ -398,6 +411,23 @@ async def get_task_final_result(task_id: int, include_raw_response: bool = False
     except Exception as e:
         logger.error(f"API错误: 获取任务最终结果失败, ID={task_id}, 错误={str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取任务最终结果失败: {str(e)}")
+
+
+@router.get("/tasks/{task_id}/votes", response_model=List[ReviewerVoteResponse])
+async def get_task_votes(task_id: int, include_raw_response: bool = False):
+    """获取任务的评议者投票信息"""
+    logger.info(f"API请求: 获取任务投票信息, ID={task_id}, 包含原始响应={include_raw_response}")
+
+    task_service = TaskService()
+    result = await task_service.get_task_votes(task_id, include_raw_response)
+
+    if not result.get("success", False):
+        status_code = 404 if "不存在" in result.get("error", "") else 500
+        raise HTTPException(status_code=status_code, detail=result.get("error", "获取任务投票信息失败"))
+
+    votes = result.get("votes", [])
+    logger.info(f"API响应: 成功获取任务投票信息, ID={task_id}, 投票数量={len(votes)}")
+    return votes
 
 
 # 配置路由
