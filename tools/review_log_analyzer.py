@@ -231,7 +231,7 @@ class ReviewLogAnalyzer:
             print()
 
         # 检查评议者选择结果
-        vote_results = [line for line, _, _, keyword in filtered_lines if keyword == "评议者选择结果: 评议者="]
+        vote_results = [line for line, _, _, keyword in filtered_lines if "评议者选择结果: 评议者" in keyword]
         if vote_results:
             print(f"{colorize('评议者选择结果:', 'GREEN')}")
             for result in vote_results:
