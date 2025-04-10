@@ -628,11 +628,11 @@ class ReviewProcessor(BaseTaskProcessor):
                     reviewer_list.append({
                         "id": reviewer.id,
                         "name": reviewer.name,
-                        "provider": reviewer.provider,
-                        "model": reviewer.model,
+                        "base_url": reviewer.base_url,
+                        "model_name": reviewer.model_name,
                         "role": reviewer.role,
-                        "parameters": reviewer.parameters,
-                        "system_prompt": reviewer.system_prompt,
+                        "api_key": reviewer.api_key,
+                        "is_default": reviewer.is_default,
                     })
 
                 return reviewer_list
@@ -655,11 +655,11 @@ class ReviewProcessor(BaseTaskProcessor):
         reconstructed_llm = LlmConfig(
             id=llm_data.get("id"),
             name=llm_data.get("name"),
-            provider=llm_data.get("provider"),
-            model=llm_data.get("model"),
+            base_url=llm_data.get("base_url"),
+            model_name=llm_data.get("model_name"),
             role=llm_data.get("role", "reviewer"),
-            parameters=llm_data.get("parameters", {}),
-            system_prompt=llm_data.get("system_prompt", ""),
+            api_key=llm_data.get("api_key"),
+            is_default=llm_data.get("is_default", False),
         )
 
         return reconstructed_llm
