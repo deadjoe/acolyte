@@ -517,8 +517,17 @@ class TaskService:
                 return False
 
             # 先清除任务与LLM的关联
+            from acolyte.core.db.models import task_llm_association
+            from sqlalchemy import delete
+
+            # 使用SQL删除语句直接从关联表中删除记录
+            stmt = delete(task_llm_association).where(task_llm_association.c.task_id == task_id)
+            llm_assoc_count = session.execute(stmt).rowcount
+            logger.debug(f"从关联表中删除了 {llm_assoc_count} 条任务-LLM关联记录")
+
+            # 同时在内存中清除关联
             if task.llm_configs:
-                logger.debug(f"清除任务与LLM的关联, 数量: {len(task.llm_configs)}")
+                logger.debug(f"在内存中清除任务与LLM的关联, 数量: {len(task.llm_configs)}")
                 task.llm_configs = []
 
             # 删除关联的评审投票
@@ -574,17 +583,35 @@ class TaskService:
             if not task_ids:
                 return {"message": "没有找到需要删除的任务", "count": 0}
 
-            # 先删除关联的任务结果
+            # 先清除任务与LLM的关联
+            from acolyte.core.db.models import task_llm_association
+            from sqlalchemy import delete
+
+            # 使用SQL删除语句直接从关联表中删除记录
+            stmt = delete(task_llm_association).where(task_llm_association.c.task_id.in_(task_ids))
+            llm_assoc_count = session.execute(stmt).rowcount
+            logger.debug(f"从关联表中删除了 {llm_assoc_count} 条任务-LLM关联记录")
+
+            # 删除关联的评审投票
+            from acolyte.core.db.models import ReviewerVote
+            vote_count = session.query(ReviewerVote).filter(ReviewerVote.task_id.in_(task_ids)).delete()
+            logger.debug(f"已删除 {vote_count} 个关联评审投票")
+
+            # 删除关联的任务结果
             result_count = (
                 session.query(TaskResult).filter(TaskResult.task_id.in_(task_ids)).delete()
             )
+            logger.debug(f"已删除 {result_count} 个关联结果")
 
             # 然后删除任务
             task_count = task_query.delete()
 
             return {
-                "message": f"已清空{task_count}个任务和{result_count}个任务结果",
+                "message": f"已清空{task_count}个任务、{result_count}个任务结果、{vote_count}个评审投票和{llm_assoc_count}条任务-LLM关联",
                 "count": task_count,
+                "result_count": result_count,
+                "vote_count": vote_count,
+                "llm_assoc_count": llm_assoc_count
             }
 
         try:
