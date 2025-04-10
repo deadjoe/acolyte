@@ -765,12 +765,16 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             votes = await votes_client.get_task_votes(task_id, include_raw_response=False)
 
             # 确保投票信息是一个列表
-            if not isinstance(votes, list):
-                # 如果不是列表，尝试从字典中提取votes字段
-                if isinstance(votes, dict) and "votes" in votes:
-                    votes = votes.get("votes", [])
-                else:
-                    votes = []
+            try:
+                if not isinstance(votes, list):
+                    # 如果不是列表，尝试从字典中提取votes字段
+                    if isinstance(votes, dict) and "votes" in votes:
+                        votes = votes.get("votes", [])
+                    else:
+                        votes = []
+            except Exception as e:
+                logger.warning(f"处理投票信息时出错: {str(e)}")
+                votes = []
 
             if not votes:
                 logger.info(f"任务 {task_id} 没有投票信息")
