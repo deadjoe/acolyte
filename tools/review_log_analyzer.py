@@ -231,8 +231,15 @@ class ReviewLogAnalyzer:
             print()
 
         # 检查评议者选择结果
-        # 直接从原始日志中搜索
-        vote_results = [line for line in self.task_logs.get(task_id, []) if "评议者选择结果: 评议者=" in line]
+        # 使用外部grep命令搜索
+        import subprocess
+        try:
+            cmd = f"grep -i '评议者选择结果' {self.log_file} | grep -i '任务ID={task_id}' || grep -i '评议者选择结果' {self.log_file}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            vote_results = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        except Exception as e:
+            print(f"grep命令执行失败: {str(e)}")
+            vote_results = []
         if vote_results:
             print(f"{colorize('评议者选择结果:', 'GREEN')}")
             for result in vote_results:
