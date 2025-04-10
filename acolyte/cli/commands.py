@@ -220,22 +220,6 @@ class AcolyteClient:
         response.raise_for_status()
         return response.json()
 
-    async def get_task_votes(self, task_id: int, include_raw_response: bool = False):
-        """获取任务投票信息
-
-        Args:
-            task_id: 任务ID
-            include_raw_response: 是否包含原始响应
-
-        Returns:
-            投票信息列表
-        """
-        response = await self.client.get(
-            f"/tasks/{task_id}/votes", params={"include_raw_response": include_raw_response}
-        )
-        response.raise_for_status()
-        return response.json()
-
     async def get_llms(self):
         """获取LLM列表
 
@@ -669,10 +653,6 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                         logger.info("成功获取任务最终结果")
                         # 显示结果
                         _display_result(final_result)
-
-                        # 只在multiple_with_review模式下显示投票信息
-                        if mode == "multiple_with_review" or final_result.get("is_review_result", False):
-                            await _display_votes(task_id, final_result.get("id"))
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 404:
                             logger.warning(f"任务 {task_id} 无最终结果，尝试获取所有结果")
@@ -755,62 +735,6 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             console.print(Markdown(result["raw_response"]))
         else:
             logger.debug("结果不包含原始响应")
-
-    async def _display_votes(task_id, final_result_id):
-        """显示任务的投票信息"""
-        # 创建一个新的客户端实例，避免使用外部的client变量
-        votes_client = AcolyteClient()
-        try:
-            # 获取投票信息
-            votes = await votes_client.get_task_votes(task_id, include_raw_response=False)
-
-            # 确保投票信息是一个列表
-            try:
-                # 使用type检查而不是isinstance
-                if type(votes) is not list:
-                    # 如果不是列表，尝试从字典中提取votes字段
-                    if type(votes) is dict and "votes" in votes:
-                        votes = votes.get("votes", [])
-                    else:
-                        votes = []
-            except Exception as e:
-                logger.warning(f"处理投票信息时出错: {str(e)}")
-                votes = []
-
-            if not votes:
-                logger.info(f"任务 {task_id} 没有投票信息")
-                console.print("[yellow]没有找到投票信息。这可能是因为评议者没有明确选择最佳结果。[/]")
-                return
-
-            # 显示投票信息
-            console.print("\n[bold]评议投票信息:[/]")
-
-            table = Table(title="评议结果")
-            table.add_column("评议者", style="cyan")
-            table.add_column("投票结果ID", style="green")
-            table.add_column("是否为最终结果", style="yellow")
-
-            for vote in votes:
-                is_final = "✓" if vote["voted_result_id"] == final_result_id else ""
-                table.add_row(
-                    vote["reviewer_name"],
-                    str(vote["voted_result_id"]),
-                    is_final
-                )
-
-            console.print(table)
-
-            # 显示评议结果的详细信息
-            if final_result_id:
-                console.print("\n[bold]评议结果摘要:[/]")
-                console.print("评议者对分析结果进行了审核，并选择了最合适的结果作为最终结果。")
-
-        except Exception as e:
-            logger.warning(f"获取投票信息失败: {str(e)}")
-            console.print("[yellow]无法获取投票信息[/]")
-        finally:
-            # 确保关闭客户端连接
-            await votes_client.close()
 
     # 运行异步函数
     asyncio.run(_analyze())
@@ -942,39 +866,12 @@ def delete(task_id):
                     task = await client.get_task(task_id)
 
                 # 显示任务信息
-                # 格式化创建时间
-                created_at = task.get("created_at", "未知")
-
-                # 格式化时间为友好的24小时制格式
-                if created_at != "未知":
-                    try:
-                        # 解析ISO格式的时间字符串
-                        import time
-                        from datetime import datetime, timedelta, timezone
-
-                        # 解析UTC时间
-                        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-
-                        # 获取本地时区
-                        local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
-                        local_tz = timezone(timedelta(hours=local_tz_offset))
-
-                        # 将UTC时间转换为本地时间
-                        local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
-
-                        # 格式化为友好的24小时制格式
-                        created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
-
-                        logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
-                    except Exception as e:
-                        logger.warning(f"时间格式化失败: {e}")
-
                 console.print(
                     Panel(
                         f"ID: {task['id']}\n"
                         f"处理模式: {task['processing_mode']}\n"
                         f"状态: {task['status']}\n"
-                        f"创建时间: {created_at}",
+                        f"创建时间: {task.get('created_at', '未知')}",
                         title="将删除以下任务",
                     )
                 )
@@ -1508,31 +1405,7 @@ def show_prompt(prompt_id):
 
             # 如果存在创建时间，显示它
             if "created_at" in prompt and prompt["created_at"]:
-                # 格式化时间为友好的24小时制格式
-                created_at = prompt["created_at"]
-                try:
-                    # 解析ISO格式的时间字符串
-                    import time
-                    from datetime import datetime, timedelta, timezone
-
-                    # 解析UTC时间
-                    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-
-                    # 获取本地时区
-                    local_tz_offset = -time.timezone // 3600  # 将秒转换为小时
-                    local_tz = timezone(timedelta(hours=local_tz_offset))
-
-                    # 将UTC时间转换为本地时间
-                    local_dt = dt.replace(tzinfo=timezone.utc).astimezone(local_tz)
-
-                    # 格式化为友好的24小时制格式
-                    created_at = local_dt.strftime("%Y-%m-%d %H:%M:%S")
-
-                    logger.debug(f"时间转换: UTC {dt.isoformat()} -> 本地 {created_at}")
-                except Exception as e:
-                    logger.warning(f"时间格式化失败: {e}")
-
-                panel_content += f"\n创建时间: {created_at}"
+                panel_content += f"\n创建时间: {prompt['created_at']}"
 
             console.print(Panel(panel_content, title="Prompt信息"))
 

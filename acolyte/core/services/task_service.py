@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, LlmRole, ProcessingMode, ReviewerVote, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, ProcessingMode, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import extract_model_data, run_in_session
 from acolyte.core.prompt.manager import PromptManager
 from acolyte.core.task.processor import TaskProcessor
@@ -174,16 +174,16 @@ class TaskService:
                 logger.debug(f"初始关联的LLM IDs: {[llm.id for llm in initial_llm_configs]}")
                 logger.debug(f"初始关联的LLM名称: {[llm.name for llm in initial_llm_configs]}")
 
-            # 清空初始关联的LLM
-            initial_llm_count = len(new_task.llm_configs)
-            if initial_llm_count > 0:
-                logger.debug(f"清空初始关联的LLM，数量: {initial_llm_count}")
-                logger.debug(f"清空前关联的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
-                new_task.llm_configs = []
-                logger.debug(f"清空后关联的LLM数量: {len(new_task.llm_configs)}")
-
-            # 如果指定了LLM，关联任务与指定的LLM
+            # 如果指定了LLM，关联任务与LLM
             if llm_ids:
+                # 清空初始关联的LLM
+                initial_llm_count = len(new_task.llm_configs)
+                if initial_llm_count > 0:
+                    logger.debug(f"清空初始关联的LLM，数量: {initial_llm_count}")
+                    logger.debug(f"清空前关联的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
+                    new_task.llm_configs = []
+                    logger.debug(f"清空后关联的LLM数量: {len(new_task.llm_configs)}")
+
                 # 去除重复的LLM ID
                 unique_llm_ids = list(set(llm_ids))
                 logger.debug(f"关联LLM(去重后): {unique_llm_ids}")
@@ -201,33 +201,20 @@ class TaskService:
                         f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配"
                     )
                     logger.warning(f"未找到的LLM IDs: {missing_ids}")
-            else:
-                # 如果没有指定llm_ids，获取所有normal角色的LLM
-                logger.debug(f"未指定LLM IDs，获取所有normal角色的LLM")
 
-                # 查询数据库获取所有normal角色的LLM
-                llms = session.query(LlmConfig).filter_by(role=LlmRole.NORMAL).all()
-                logger.debug(f"从数据库查询到 {len(llms)} 个normal角色的LLM")
-
+                # 直接设置llm_configs，而不是使用extend
+                new_task.llm_configs = llms
+                logger.debug(f"直接设置LLM关联，数量: {len(llms)}")
                 if llms:
-                    logger.debug(f"查询到的normal角色LLM IDs: {[llm.id for llm in llms]}")
-                    logger.debug(f"查询到的normal角色LLM名称: {[llm.name for llm in llms]}")
-                else:
-                    logger.warning("未找到任何normal角色的LLM")
+                    logger.debug(f"设置的LLM IDs: {[llm.id for llm in llms]}")
 
-            # 直接设置llm_configs，而不是使用extend
-            new_task.llm_configs = llms if 'llms' in locals() and llms else []
-            logger.debug(f"直接设置LLM关联，数量: {len(new_task.llm_configs)}")
-            if new_task.llm_configs:
-                logger.debug(f"设置的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
+                # 记录最终的llm_configs状态
+                final_llm_configs = list(new_task.llm_configs)
+                logger.debug(f"最终LLM关联数量: {len(final_llm_configs)}")
+                if final_llm_configs:
+                    logger.debug(f"最终关联的LLM IDs: {[llm.id for llm in final_llm_configs]}")
 
-            # 记录最终的llm_configs状态
-            final_llm_configs = list(new_task.llm_configs)
-            logger.debug(f"最终LLM关联数量: {len(final_llm_configs)}")
-            if final_llm_configs:
-                logger.debug(f"最终关联的LLM IDs: {[llm.id for llm in final_llm_configs]}")
-
-            logger.debug(f"成功关联 {len(new_task.llm_configs)} 个LLM")
+                logger.debug(f"成功关联 {len(llms)} 个LLM")
 
             return task_id
 
@@ -328,63 +315,6 @@ class TaskService:
         except Exception as e:
             logger.error(f"获取任务结果失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务结果失败: {str(e)}", "success": False}
-
-    async def get_task_votes(self, task_id: int, include_raw_response: bool = False) -> Dict:
-        """
-        获取任务的评议者投票信息
-
-        Args:
-            task_id: 任务ID
-            include_raw_response: 是否包含原始响应
-
-        Returns:
-            投票信息字典
-        """
-        logger.info(f"获取任务投票信息: ID={task_id}, 包含原始响应={include_raw_response}")
-
-        async def _get_votes(session: Session):
-            task = session.query(Task).filter_by(id=task_id).first()
-            if not task:
-                return None
-
-            # 获取投票记录
-            votes_query = (
-                session.query(
-                    ReviewerVote,
-                    LlmConfig.name.label("reviewer_name")
-                )
-                .join(LlmConfig, ReviewerVote.reviewer_id == LlmConfig.id)
-                .filter(ReviewerVote.task_id == task_id)
-            )
-
-            votes = votes_query.all()
-
-            # 转换为字典列表
-            vote_list = []
-            for vote, reviewer_name in votes:
-                vote_dict = {
-                    "id": vote.id,
-                    "task_id": vote.task_id,
-                    "reviewer_id": vote.reviewer_id,
-                    "reviewer_name": reviewer_name,
-                    "voted_result_id": vote.voted_result_id,
-                    "created_at": vote.created_at.isoformat() if vote.created_at else None,
-                }
-                if include_raw_response and hasattr(vote, "raw_response"):
-                    vote_dict["raw_response"] = vote.raw_response
-
-                vote_list.append(vote_dict)
-
-            return vote_list
-
-        try:
-            votes = await run_in_session(_get_votes)
-            if votes is None:
-                return {"error": "任务不存在", "success": False}
-            return {"votes": votes, "success": True}
-        except Exception as e:
-            logger.error(f"获取任务投票信息失败: {str(e)}", exc_info=True)
-            return {"error": f"获取任务投票信息失败: {str(e)}", "success": False}
 
     async def process_task_async(self, task_id: int) -> Dict:
         """
@@ -516,26 +446,7 @@ class TaskService:
             if not task:
                 return False
 
-            # 先清除任务与LLM的关联
-            from acolyte.core.db.models import task_llm_association
-            from sqlalchemy import delete
-
-            # 使用SQL删除语句直接从关联表中删除记录
-            stmt = delete(task_llm_association).where(task_llm_association.c.task_id == task_id)
-            llm_assoc_count = session.execute(stmt).rowcount
-            logger.debug(f"从关联表中删除了 {llm_assoc_count} 条任务-LLM关联记录")
-
-            # 同时在内存中清除关联
-            if task.llm_configs:
-                logger.debug(f"在内存中清除任务与LLM的关联, 数量: {len(task.llm_configs)}")
-                task.llm_configs = []
-
-            # 删除关联的评审投票
-            from acolyte.core.db.models import ReviewerVote
-            vote_count = session.query(ReviewerVote).filter_by(task_id=task_id).delete()
-            logger.debug(f"已删除 {vote_count} 个关联评审投票")
-
-            # 删除关联的任务结果
+            # 先删除关联的任务结果
             result_count = session.query(TaskResult).filter_by(task_id=task_id).delete()
             logger.debug(f"已删除 {result_count} 个关联结果")
 
@@ -583,35 +494,17 @@ class TaskService:
             if not task_ids:
                 return {"message": "没有找到需要删除的任务", "count": 0}
 
-            # 先清除任务与LLM的关联
-            from acolyte.core.db.models import task_llm_association
-            from sqlalchemy import delete
-
-            # 使用SQL删除语句直接从关联表中删除记录
-            stmt = delete(task_llm_association).where(task_llm_association.c.task_id.in_(task_ids))
-            llm_assoc_count = session.execute(stmt).rowcount
-            logger.debug(f"从关联表中删除了 {llm_assoc_count} 条任务-LLM关联记录")
-
-            # 删除关联的评审投票
-            from acolyte.core.db.models import ReviewerVote
-            vote_count = session.query(ReviewerVote).filter(ReviewerVote.task_id.in_(task_ids)).delete()
-            logger.debug(f"已删除 {vote_count} 个关联评审投票")
-
-            # 删除关联的任务结果
+            # 先删除关联的任务结果
             result_count = (
                 session.query(TaskResult).filter(TaskResult.task_id.in_(task_ids)).delete()
             )
-            logger.debug(f"已删除 {result_count} 个关联结果")
 
             # 然后删除任务
             task_count = task_query.delete()
 
             return {
-                "message": f"已清空{task_count}个任务、{result_count}个任务结果、{vote_count}个评审投票和{llm_assoc_count}条任务-LLM关联",
+                "message": f"已清空{task_count}个任务和{result_count}个任务结果",
                 "count": task_count,
-                "result_count": result_count,
-                "vote_count": vote_count,
-                "llm_assoc_count": llm_assoc_count
             }
 
         try:
