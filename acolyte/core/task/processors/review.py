@@ -620,7 +620,7 @@ class ReviewProcessor(BaseTaskProcessor):
             # 使用run_in_session在数据库会话中执行查询
             async def _get_reviewers(session):
                 # 获取所有reviewer角色的LLM配置
-                reviewers = session.query(LlmConfig).filter(LlmConfig.role == "reviewer").all()
+                reviewers = session.query(LlmConfig).filter(LlmConfig.role.ilike("reviewer")).all()
 
                 # 将结果转换为字典列表
                 reviewer_list = []
