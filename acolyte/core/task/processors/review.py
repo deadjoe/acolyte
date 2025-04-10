@@ -595,7 +595,7 @@ class ReviewProcessor(BaseTaskProcessor):
                         "id": result.id,
                         "llm_id": result.llm_id,
                         "llm_name": llm_name,
-                        "result": result.result,
+                        "result": result.processed_result,
                         "created_at": result.created_at,
                     })
 
