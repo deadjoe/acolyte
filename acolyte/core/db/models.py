@@ -269,12 +269,27 @@ class ReviewerVote(Base):
     reviewer_id = Column(Integer, ForeignKey("llm_configs.id"), nullable=False)
     voted_result_id = Column(Integer, ForeignKey("task_results.id"), nullable=False)
     comment = Column(Text)  # 评议者评论
+    raw_response = Column(Text)  # 原始响应
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # 关系
     task = relationship("Task", back_populates="reviewer_votes")
     reviewer = relationship("LlmConfig", back_populates="reviewer_votes")
     voted_result = relationship("TaskResult", back_populates="votes")
+
+    def to_dict(self, include_raw_response=False):
+        """转换为字典格式"""
+        result = {
+            "id": self.id,
+            "task_id": self.task_id,
+            "reviewer_id": self.reviewer_id,
+            "voted_result_id": self.voted_result_id,
+            "comment": self.comment,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_raw_response:
+            result["raw_response"] = self.raw_response
+        return result
 
 
 # 数据库连接和会话

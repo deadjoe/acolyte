@@ -221,6 +221,23 @@ class ReviewProcessor(BaseTaskProcessor):
             if not result_id:
                 return await self._handle_error(task_id, "保存评议结果失败")
 
+            # 解析评议结果，找出最佳结果ID
+            raw_response = review_result.get("raw_response", "")
+            best_result_id = self._parse_vote_result(raw_response, results)
+
+            # 如果成功解析出最佳结果ID，保存投票记录
+            if best_result_id:
+                logger.info(f"评议者选择结果: 评议者={reviewer.get('name')}, 选择结果ID={best_result_id}")
+                # 保存投票记录
+                votes = [(reviewer_id, best_result_id, raw_response)]
+                vote_saved = await self._save_votes(task_id, votes)
+                if not vote_saved:
+                    logger.warning(f"保存投票记录失败: 任务ID={task_id}, 评议者ID={reviewer_id}")
+            else:
+                # 如果无法解析出最佳结果ID，使用评议结果ID作为最终结果
+                logger.warning(f"无法解析评议者选择: 评议者={reviewer.get('name')}, 使用评议结果作为最终结果")
+                best_result_id = result_id
+
             # 将此结果设为最终结果
             await self._set_final_result(task_id, result_id)
 
@@ -796,7 +813,7 @@ class ReviewProcessor(BaseTaskProcessor):
                     vote = ReviewerVote(
                         task_id=task_id,
                         reviewer_id=reviewer_id,
-                        result_id=voted_result_id,
+                        voted_result_id=voted_result_id,  # 使用正确的字段名 voted_result_id
                         raw_response=raw_response,
                     )
 

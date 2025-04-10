@@ -758,17 +758,24 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
     async def _display_votes(task_id, final_result_id):
         """显示任务的投票信息"""
+        # 创建一个新的客户端实例，避免使用外部的client变量
+        votes_client = AcolyteClient()
         try:
-            votes = await client.get_task_votes(task_id, include_raw_response=False)
+            # 获取投票信息
+            response = await votes_client.get_task_votes(task_id, include_raw_response=False)
+
+            # API返回的是一个字典，需要提取votes字段
+            votes = response.get("votes", [])
 
             if not votes:
                 logger.info(f"任务 {task_id} 没有投票信息")
+                console.print("[yellow]没有找到投票信息。这可能是因为评议者没有明确选择最佳结果。[/]")
                 return
 
             # 显示投票信息
             console.print("\n[bold]评议投票信息:[/]")
 
-            table = Table()
+            table = Table(title="评议结果")
             table.add_column("评议者", style="cyan")
             table.add_column("投票结果ID", style="green")
             table.add_column("是否为最终结果", style="yellow")
@@ -783,9 +790,17 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
 
             console.print(table)
 
+            # 显示评议结果的详细信息
+            if final_result_id:
+                console.print("\n[bold]评议结果摘要:[/]")
+                console.print("评议者对分析结果进行了审核，并选择了最合适的结果作为最终结果。")
+
         except Exception as e:
             logger.warning(f"获取投票信息失败: {str(e)}")
             console.print("[yellow]无法获取投票信息[/]")
+        finally:
+            # 确保关闭客户端连接
+            await votes_client.close()
 
     # 运行异步函数
     asyncio.run(_analyze())
