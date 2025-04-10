@@ -195,6 +195,14 @@ class ReviewProcessor(BaseTaskProcessor):
             # 运行处理
             review_result = await client.process_content(content=task_content, prompt=review_prompt)
 
+            # 确保review_result是一个字典，而不是字符串
+            if isinstance(review_result, str):
+                try:
+                    review_result = json.loads(review_result)
+                except json.JSONDecodeError:
+                    logger.warning(f"无法将review_result字符串解析为JSON: {review_result[:100]}...")
+                    review_result = {"success": False, "error": "无法解析评议结果"}
+
             logger.info(
                 f"评议处理完成: 任务ID={task_id}, 成功={review_result.get('success', False)}"
             )

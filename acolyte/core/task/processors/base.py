@@ -273,12 +273,16 @@ class BaseTaskProcessor(ABC):
                 logger.debug(f"任务关联的LLM IDs: {[llm.id for llm in task_llm_configs]}")
                 logger.debug(f"任务关联的LLM名称: {[llm.name for llm in task_llm_configs]}")
 
+            # 只获取normal角色的LLM
             llms = []
-            for llm_assoc in task_llm_configs:
+            normal_llms = [llm for llm in task_llm_configs if llm.role.lower() == "normal"]
+            logger.debug(f"任务 {task_id} 关联的normal角色LLM数量: {len(normal_llms)}")
+
+            for llm_assoc in normal_llms:
                 llm_data = extract_model_data(llm_assoc, include_relationships=False)
                 llms.append(llm_data)
                 logger.debug(
-                    f"提取LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
+                    f"提取normal角色LLM数据: ID={llm_data.get('id')}, 名称={llm_data.get('name')}, 角色={llm_data.get('role')}"
                 )
 
             if not llms:
