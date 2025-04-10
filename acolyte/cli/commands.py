@@ -670,8 +670,8 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
                         # 显示结果
                         _display_result(final_result)
 
-                        # 如果是评议结果或使用了multiple_with_review模式，显示投票信息
-                        if final_result.get("is_review_result", False) or mode == "multiple_with_review":
+                        # 只在multiple_with_review模式下显示投票信息
+                        if mode == "multiple_with_review" or final_result.get("is_review_result", False):
                             await _display_votes(task_id, final_result.get("id"))
                     except httpx.HTTPStatusError as e:
                         if e.response.status_code == 404:
