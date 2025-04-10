@@ -600,11 +600,20 @@ class ReviewProcessor(BaseTaskProcessor):
                     llm = session.query(LlmConfig).filter(LlmConfig.id == result.llm_id).first()
                     llm_name = llm.name if llm else f"LLM {result.llm_id}"
 
+                    # 确保processed_result是字典格式
+                    processed_result = result.processed_result
+                    if isinstance(processed_result, str):
+                        try:
+                            processed_result = json.loads(processed_result)
+                        except json.JSONDecodeError:
+                            logger.warning(f"无法将processed_result解析为JSON: {processed_result[:100]}...")
+                            processed_result = {}
+
                     result_list.append({
                         "id": result.id,
                         "llm_id": result.llm_id,
                         "llm_name": llm_name,
-                        "result": result.processed_result,
+                        "result": processed_result,
                         "created_at": result.created_at,
                     })
 
@@ -737,7 +746,7 @@ class ReviewProcessor(BaseTaskProcessor):
                 task_result = TaskResult(
                     task_id=task_id,
                     llm_id=llm_id,
-                    result=result_data,
+                    processed_result=json.dumps(result_data) if isinstance(result_data, dict) else result_data,
                     raw_response=result.get("raw_response", ""),
                     bias_index=bias_index,
                     misleading_index=misleading_index,
