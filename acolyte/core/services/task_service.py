@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, ProcessingMode, ReviewerVote, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, LlmRole, ProcessingMode, ReviewerVote, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import extract_model_data, run_in_session
 from acolyte.core.prompt.manager import PromptManager
 from acolyte.core.task.processor import TaskProcessor
@@ -174,16 +174,16 @@ class TaskService:
                 logger.debug(f"初始关联的LLM IDs: {[llm.id for llm in initial_llm_configs]}")
                 logger.debug(f"初始关联的LLM名称: {[llm.name for llm in initial_llm_configs]}")
 
-            # 如果指定了LLM，关联任务与LLM
-            if llm_ids:
-                # 清空初始关联的LLM
-                initial_llm_count = len(new_task.llm_configs)
-                if initial_llm_count > 0:
-                    logger.debug(f"清空初始关联的LLM，数量: {initial_llm_count}")
-                    logger.debug(f"清空前关联的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
-                    new_task.llm_configs = []
-                    logger.debug(f"清空后关联的LLM数量: {len(new_task.llm_configs)}")
+            # 清空初始关联的LLM
+            initial_llm_count = len(new_task.llm_configs)
+            if initial_llm_count > 0:
+                logger.debug(f"清空初始关联的LLM，数量: {initial_llm_count}")
+                logger.debug(f"清空前关联的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
+                new_task.llm_configs = []
+                logger.debug(f"清空后关联的LLM数量: {len(new_task.llm_configs)}")
 
+            # 如果指定了LLM，关联任务与指定的LLM
+            if llm_ids:
                 # 去除重复的LLM ID
                 unique_llm_ids = list(set(llm_ids))
                 logger.debug(f"关联LLM(去重后): {unique_llm_ids}")
@@ -201,20 +201,33 @@ class TaskService:
                         f"请求的LLM数量 ({len(unique_llm_ids)}) 与找到的LLM数量 ({len(llms)}) 不匹配"
                     )
                     logger.warning(f"未找到的LLM IDs: {missing_ids}")
+            else:
+                # 如果没有指定llm_ids，获取所有normal角色的LLM
+                logger.debug(f"未指定LLM IDs，获取所有normal角色的LLM")
 
-                # 直接设置llm_configs，而不是使用extend
-                new_task.llm_configs = llms
-                logger.debug(f"直接设置LLM关联，数量: {len(llms)}")
+                # 查询数据库获取所有normal角色的LLM
+                llms = session.query(LlmConfig).filter_by(role=LlmRole.NORMAL).all()
+                logger.debug(f"从数据库查询到 {len(llms)} 个normal角色的LLM")
+
                 if llms:
-                    logger.debug(f"设置的LLM IDs: {[llm.id for llm in llms]}")
+                    logger.debug(f"查询到的normal角色LLM IDs: {[llm.id for llm in llms]}")
+                    logger.debug(f"查询到的normal角色LLM名称: {[llm.name for llm in llms]}")
+                else:
+                    logger.warning("未找到任何normal角色的LLM")
 
-                # 记录最终的llm_configs状态
-                final_llm_configs = list(new_task.llm_configs)
-                logger.debug(f"最终LLM关联数量: {len(final_llm_configs)}")
-                if final_llm_configs:
-                    logger.debug(f"最终关联的LLM IDs: {[llm.id for llm in final_llm_configs]}")
+            # 直接设置llm_configs，而不是使用extend
+            new_task.llm_configs = llms if 'llms' in locals() and llms else []
+            logger.debug(f"直接设置LLM关联，数量: {len(new_task.llm_configs)}")
+            if new_task.llm_configs:
+                logger.debug(f"设置的LLM IDs: {[llm.id for llm in new_task.llm_configs]}")
 
-                logger.debug(f"成功关联 {len(llms)} 个LLM")
+            # 记录最终的llm_configs状态
+            final_llm_configs = list(new_task.llm_configs)
+            logger.debug(f"最终LLM关联数量: {len(final_llm_configs)}")
+            if final_llm_configs:
+                logger.debug(f"最终关联的LLM IDs: {[llm.id for llm in final_llm_configs]}")
+
+            logger.debug(f"成功关联 {len(new_task.llm_configs)} 个LLM")
 
             return task_id
 
