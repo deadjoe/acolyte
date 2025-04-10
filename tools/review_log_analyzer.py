@@ -215,9 +215,9 @@ class ReviewLogAnalyzer:
             print(f"{colorize(timestamp_str, 'CYAN')} {level_str}: {highlighted_line}")
 
         # 分析任务处理流程
-        self.analyze_task_flow(filtered_lines)
+        self.analyze_task_flow(filtered_lines, task_id)
 
-    def analyze_task_flow(self, filtered_lines: List[Tuple[str, datetime, str, str]]) -> None:
+    def analyze_task_flow(self, filtered_lines: List[Tuple[str, datetime, str, str]], task_id: int = None) -> None:
         """分析任务处理流程"""
         print(f"\n{colorize('任务处理流程分析', 'BOLD')}")
         print(f"{colorize('-'*80, 'BOLD')}")
@@ -231,7 +231,8 @@ class ReviewLogAnalyzer:
             print()
 
         # 检查评议者选择结果
-        vote_results = [line for line, _, _, keyword in filtered_lines if "评议者选择结果: 评议者" in keyword]
+        # 直接从原始日志中搜索
+        vote_results = [line for line in self.task_logs.get(task_id, []) if "评议者选择结果: 评议者=" in line]
         if vote_results:
             print(f"{colorize('评议者选择结果:', 'GREEN')}")
             for result in vote_results:
