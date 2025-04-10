@@ -4,6 +4,7 @@
 处理使用多个LLM并进行评议的任务。
 """
 
+import json
 import re
 import time
 from typing import Dict, List, Optional
@@ -690,6 +691,16 @@ class ReviewProcessor(BaseTaskProcessor):
 
                 # 提取评分
                 result_data = result.get("result", {})
+
+                # 如果result_data是字符串，尝试将其转换为字典
+                if isinstance(result_data, str):
+                    try:
+                        # 尝试解析JSON字符串
+                        result_data = json.loads(result_data)
+                    except json.JSONDecodeError:
+                        # 如果解析失败，创建一个空字典
+                        logger.warning(f"无法将result字符串解析为JSON: {result_data[:100]}...")
+                        result_data = {}
 
                 # 尝试从结果中提取评分
                 bias_index = result_data.get("bias_index")
