@@ -762,10 +762,11 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
         votes_client = AcolyteClient()
         try:
             # 获取投票信息
-            response = await votes_client.get_task_votes(task_id, include_raw_response=False)
+            votes = await votes_client.get_task_votes(task_id, include_raw_response=False)
 
-            # API返回的是一个字典，需要提取votes字段
-            votes = response.get("votes", [])
+            # API返回的是一个列表
+            if not isinstance(votes, list):
+                votes = []
 
             if not votes:
                 logger.info(f"任务 {task_id} 没有投票信息")
