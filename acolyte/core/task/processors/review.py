@@ -845,6 +845,7 @@ class ReviewProcessor(BaseTaskProcessor):
 
                     session.add(vote)
 
+                logger.info(f"保存投票记录成功: 任务ID={task_id}, 投票数量={len(votes)}")
                 return True
 
             return await run_in_session(_save)

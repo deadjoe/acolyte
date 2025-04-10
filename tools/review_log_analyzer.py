@@ -79,6 +79,7 @@ class ReviewLogAnalyzer:
             # 其他相关关键字
             "voted_result_id",
             "raw_response",
+            "保存投票记录成功: 任务ID=",
         ]
 
     def load_log(self) -> None:
@@ -143,12 +144,12 @@ class ReviewLogAnalyzer:
         for line in lines:
             timestamp = self.extract_timestamp(line)
             log_level = self.extract_log_level(line)
-            
+
             for keyword in self.keywords:
                 if keyword in line:
                     filtered_lines.append((line, timestamp, log_level, keyword))
                     break
-        
+
         # 按时间戳排序
         filtered_lines.sort(key=lambda x: x[1] if x[1] else datetime.min)
         return filtered_lines
@@ -190,7 +191,7 @@ class ReviewLogAnalyzer:
             if not self.task_logs:
                 print("未找到任何任务的日志")
                 return
-            
+
             for task_id in sorted(self.task_logs.keys()):
                 self.analyze_task(task_id)
 
@@ -201,7 +202,7 @@ class ReviewLogAnalyzer:
         print(f"{colorize('='*80, 'BOLD')}")
 
         filtered_lines = self.filter_logs_by_keywords(self.task_logs[task_id])
-        
+
         if not filtered_lines:
             print(f"未找到任务ID={task_id}的相关日志")
             return
@@ -273,7 +274,7 @@ def main():
     args = parser.parse_args()
 
     log_file = args.log_file
-    
+
     # 如果指定了--latest参数，则使用最新的日志文件
     if args.latest:
         log_dir = os.path.dirname(log_file) or "."
