@@ -408,10 +408,19 @@ class ReviewProcessor(BaseTaskProcessor):
             result_content = result.get("result", {})
 
             # 提取关键字段
-            bias = result_content.get("bias", "")
-            misleading = result_content.get("misleading", "")
-            hidden_intent = result_content.get("hidden_intent", "")
-            analysis = result_content.get("analysis", "")
+            # 尝试不同的字段名称
+            bias = result_content.get("bias", result_content.get("偏见", result_content.get("偏见指数", "")))
+            misleading = result_content.get("misleading", result_content.get("误导性", result_content.get("误导性指数", "")))
+            hidden_intent = result_content.get("hidden_intent", result_content.get("隐藏意图", result_content.get("隐藏意图指数", "")))
+            analysis = result_content.get("analysis", result_content.get("分析", result_content.get("整体评估", "")))
+
+            # 如果还是没有找到关键字段，尝试使用整个JSON字符串
+            if not bias and not misleading and not hidden_intent and not analysis:
+                logger.warning(f"无法从结果中提取关键字段，使用原始响应")
+                # 尝试使用原始响应
+                raw_response = result.get("raw_response", "")
+                if raw_response:
+                    analysis = raw_response
 
             prompt += f"""
 
@@ -472,10 +481,19 @@ class ReviewProcessor(BaseTaskProcessor):
             result_content = result.get("result", {})
 
             # 提取关键字段
-            bias = result_content.get("bias", "")
-            misleading = result_content.get("misleading", "")
-            hidden_intent = result_content.get("hidden_intent", "")
-            analysis = result_content.get("analysis", "")
+            # 尝试不同的字段名称
+            bias = result_content.get("bias", result_content.get("偏见", result_content.get("偏见指数", "")))
+            misleading = result_content.get("misleading", result_content.get("误导性", result_content.get("误导性指数", "")))
+            hidden_intent = result_content.get("hidden_intent", result_content.get("隐藏意图", result_content.get("隐藏意图指数", "")))
+            analysis = result_content.get("analysis", result_content.get("分析", result_content.get("整体评估", "")))
+
+            # 如果还是没有找到关键字段，尝试使用整个JSON字符串
+            if not bias and not misleading and not hidden_intent and not analysis:
+                logger.warning(f"无法从结果中提取关键字段，使用原始响应")
+                # 尝试使用原始响应
+                raw_response = result.get("raw_response", "")
+                if raw_response:
+                    analysis = raw_response
 
             prompt += f"""
 
