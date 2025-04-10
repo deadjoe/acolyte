@@ -764,9 +764,13 @@ def analyze(file, text, mode, llm, llm_config, prompt, wait):
             # 获取投票信息
             votes = await votes_client.get_task_votes(task_id, include_raw_response=False)
 
-            # API返回的是一个列表
+            # 确保投票信息是一个列表
             if not isinstance(votes, list):
-                votes = []
+                # 如果不是列表，尝试从字典中提取votes字段
+                if isinstance(votes, dict) and "votes" in votes:
+                    votes = votes.get("votes", [])
+                else:
+                    votes = []
 
             if not votes:
                 logger.info(f"任务 {task_id} 没有投票信息")
