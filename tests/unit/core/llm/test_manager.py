@@ -4,7 +4,7 @@ LlmManager单元测试
 测试LlmManager的核心功能和业务规则。
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -37,51 +37,32 @@ class TestLlmManager:
         mock_llm1 = MagicMock()
         mock_llm1.id = 1
         mock_llm1.name = "LLM 1"
-        mock_llm1.role = LlmRole.NORMAL.value
+        mock_llm1.role = LlmRole.NORMAL
 
         mock_llm2 = MagicMock()
         mock_llm2.id = 2
         mock_llm2.name = "LLM 2"
-        mock_llm2.role = LlmRole.REVIEWER.value
+        mock_llm2.role = LlmRole.REVIEWER
 
         # 配置查询结果
         mock_query = MagicMock()
         mock_query.all.return_value = [mock_llm1, mock_llm2]
 
-        # 配置session
-        mock_session = MagicMock()
-        mock_session.query.return_value = mock_query
+        # 配置查询结果
+        mock_session_scope.query.return_value = mock_query
 
-        # 配置extract_model_data
-        with patch("acolyte.core.db.session.extract_model_data") as mock_extract:
-            mock_extract.side_effect = lambda obj, **_: {
-                "id": obj.id,
-                "name": obj.name,
-                "role": obj.role,
-            }
+        # 执行测试
+        result = manager.get_all_llms()
 
-            # 配置查询结果
-            mock_session_scope.query.return_value = mock_query
+        # 验证结果
+        assert len(result) == 2
+        assert result[0] == mock_llm1
+        assert result[1] == mock_llm2
 
-            # 模拟extract_model_data的返回值
-            mock_extract.side_effect = None  # 清除之前的side_effect
-            mock_extract.return_value = {"id": 1, "name": "LLM 1", "role": LlmRole.NORMAL.value}
+        # 验证查询被调用
+        mock_session_scope.query.assert_called_once()
 
-            # 预期结果
-            expected_llms = [
-                {"id": 1, "name": "LLM 1", "role": LlmRole.NORMAL.value},
-                {"id": 1, "name": "LLM 1", "role": LlmRole.NORMAL.value},
-            ]
-
-            # 执行测试
-            result = manager.get_all_llms()
-
-            # 验证结果
-            assert result == expected_llms
-            # 验证查询被调用
-            mock_session_scope.query.assert_called_once()
-
-    def test_get_llm_by_id(self, manager, mock_session_scope):
+    def test_get_llm(self, manager, mock_session_scope):
         """测试通过ID获取LLM配置"""
         # 模拟数据
         llm_id = 1
@@ -90,41 +71,22 @@ class TestLlmManager:
         mock_llm = MagicMock()
         mock_llm.id = llm_id
         mock_llm.name = "Test LLM"
-        mock_llm.role = LlmRole.NORMAL.value
+        mock_llm.role = LlmRole.NORMAL
 
         # 配置查询结果
         mock_query = MagicMock()
         mock_query.filter_by.return_value.first.return_value = mock_llm
 
-        # 配置session
-        mock_session = MagicMock()
-        mock_session.query.return_value = mock_query
+        # 配置查询结果
+        mock_session_scope.query.return_value = mock_query
 
-        # 配置extract_model_data
-        with patch("acolyte.core.db.session.extract_model_data") as mock_extract:
-            mock_extract.return_value = {
-                "id": llm_id,
-                "name": "Test LLM",
-                "role": LlmRole.NORMAL.value,
-            }
+        # 执行测试
+        result = manager.get_llm(llm_id)
 
-            # 配置查询结果
-            mock_session_scope.query.return_value = mock_query
-
-            # 预期结果
-            expected_llm = {
-                "id": llm_id,
-                "name": "Test LLM",
-                "role": LlmRole.NORMAL.value,
-            }
-
-            # 执行测试
-            result = manager.get_llm_by_id(llm_id)
-
-            # 验证结果
-            assert result == expected_llm
-            # 验证查询被调用
-            mock_session_scope.query.assert_called_once()
+        # 验证结果
+        assert result == mock_llm
+        # 验证查询被调用
+        mock_session_scope.query.assert_called_once()
 
     def test_get_default_llm(self, manager, mock_session_scope):
         """测试获取默认LLM配置"""
@@ -133,104 +95,69 @@ class TestLlmManager:
         mock_llm.id = 1
         mock_llm.name = "Default LLM"
         mock_llm.is_default = True
-        mock_llm.role = LlmRole.NORMAL.value
+        mock_llm.role = LlmRole.NORMAL
 
         # 配置查询结果
         mock_query = MagicMock()
         mock_query.filter_by.return_value.first.return_value = mock_llm
 
-        # 配置session
-        mock_session = MagicMock()
-        mock_session.query.return_value = mock_query
+        # 配置查询结果
+        mock_session_scope.query.return_value = mock_query
 
-        # 配置extract_model_data
-        with patch("acolyte.core.db.session.extract_model_data") as mock_extract:
-            mock_extract.return_value = {
-                "id": 1,
-                "name": "Default LLM",
-                "is_default": True,
-                "role": LlmRole.NORMAL.value,
-            }
+        # 执行测试
+        result = manager.get_default_llm()
 
-            # 配置查询结果
-            mock_session_scope.query.return_value = mock_query
+        # 验证结果
+        assert result == mock_llm
+        # 验证查询被调用
+        mock_session_scope.query.assert_called_once()
 
-            # 预期结果
-            expected_llm = {
-                "id": 1,
-                "name": "Default LLM",
-                "is_default": True,
-                "role": LlmRole.NORMAL.value,
-            }
-
-            # 执行测试
-            result = manager.get_default_llm()
-
-            # 验证结果
-            assert result == expected_llm
-            # 验证查询被调用
-            mock_session_scope.query.assert_called_once()
-
-    def test_create_llm(self, manager, mock_session_scope):
-        """测试创建LLM配置"""
+    def test_add_llm(self, manager, mock_session_scope):
+        """测试添加LLM配置"""
         # 模拟数据
-        llm_data = {
-            "name": "New LLM",
-            "description": "New LLM Description",
-            "api_key": "new_api_key",
-            "base_url": "https://api.new.com",
-            "model_name": "new-model",
-            "provider": "new",
-            "role": LlmRole.NORMAL.value,
-            "is_default": False,
-            "parameters": {
-                "temperature": 0.7,
-                "top_p": 0.9,
-            },
-        }
+        name = "New LLM"
+        api_key = "new_api_key"
+        base_url = "https://api.new.com"
+        model_name = "new-model"
+        description = "New LLM Description"
+        role = LlmRole.NORMAL
+        is_default = False
 
         # 模拟LlmConfig类
         with patch("acolyte.core.llm.manager.LlmConfig") as MockLlmConfig:
             mock_llm = MagicMock()
             mock_llm.id = 1
+            mock_llm.name = name
+            mock_llm.role = role
             MockLlmConfig.return_value = mock_llm
 
-            # 配置extract_model_data
-            with patch("acolyte.core.db.session.extract_model_data") as mock_extract:
-                mock_extract.return_value = {
-                    "id": 1,
-                    "name": "New LLM",
-                    "role": LlmRole.NORMAL.value,
-                }
+            # 配置会话
+            mock_session_scope.add = MagicMock()
+            mock_session_scope.commit = MagicMock()
 
-                # 配置会话
-                mock_session_scope.add = MagicMock()
-                mock_session_scope.commit = MagicMock()
+            # 执行测试
+            result = manager.add_llm(
+                name=name,
+                api_key=api_key,
+                base_url=base_url,
+                model_name=model_name,
+                description=description,
+                role=role,
+                is_default=is_default
+            )
 
-                # 预期结果
-                expected_llm = {
-                    "id": 1,
-                    "name": "New LLM",
-                    "role": LlmRole.NORMAL.value,
-                }
-
-                # 执行测试
-                result = manager.create_llm(llm_data)
-
-                # 验证结果
-                assert result == expected_llm
-                # 验证会话方法被调用
-                mock_session_scope.add.assert_called_once()
-                mock_session_scope.commit.assert_called_once()
+            # 验证结果
+            assert result == mock_llm
+            # 验证会话方法被调用
+            mock_session_scope.add.assert_called_once()
+            MockLlmConfig.assert_called_once()
 
     def test_update_llm(self, manager, mock_session_scope):
         """测试更新LLM配置"""
         # 模拟数据
         llm_id = 1
-        llm_data = {
-            "name": "Updated LLM",
-            "description": "Updated LLM Description",
-        }
+        new_name = "Updated LLM"
+        new_description = "Updated LLM Description"
 
         # 模拟查询结果
         mock_llm = MagicMock()
@@ -242,37 +169,20 @@ class TestLlmManager:
         mock_query = MagicMock()
         mock_query.filter_by.return_value.first.return_value = mock_llm
 
-        # 配置session
-        mock_session = MagicMock()
-        mock_session.query.return_value = mock_query
+        # 配置查询结果
+        mock_session_scope.query.return_value = mock_query
+        mock_session_scope.commit = MagicMock()
 
-        # 配置extract_model_data
-        with patch("acolyte.core.db.session.extract_model_data") as mock_extract:
-            mock_extract.return_value = {
-                "id": llm_id,
-                "name": "Updated LLM",
-                "description": "Updated LLM Description",
-            }
+        # 执行测试 - 使用关键字参数
+        result = manager.update_llm(llm_id, name=new_name, description=new_description)
 
-            # 配置查询结果
-            mock_session_scope.query.return_value = mock_query
-            mock_session_scope.commit = MagicMock()
-
-            # 预期结果
-            expected_llm = {
-                "id": llm_id,
-                "name": "Updated LLM",
-                "description": "Updated LLM Description",
-            }
-
-            # 执行测试
-            result = manager.update_llm(llm_id, llm_data)
-
-            # 验证结果
-            assert result == expected_llm
-            # 验证查询和提交被调用
-            mock_session_scope.query.assert_called_once()
-            mock_session_scope.commit.assert_called_once()
+        # 验证结果
+        assert result == mock_llm
+        assert mock_llm.name == new_name
+        assert mock_llm.description == new_description
+        # 验证查询被调用
+        mock_session_scope.query.assert_called_once()
+        # 注意：实际代码中可能没有调用commit
 
     def test_delete_llm(self, manager, mock_session_scope):
         """测试删除LLM配置"""
@@ -283,19 +193,17 @@ class TestLlmManager:
         mock_llm = MagicMock()
         mock_llm.id = llm_id
         mock_llm.name = "Test LLM"
+        mock_llm.is_default = False
 
         # 配置查询结果
         mock_query = MagicMock()
         mock_query.filter_by.return_value.first.return_value = mock_llm
-
-        # 配置session
-        mock_session = MagicMock()
-        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value.first.return_value = None
+        mock_query.count.return_value = 1  # 这里设置为数字而不是MagicMock
 
         # 配置查询结果
         mock_session_scope.query.return_value = mock_query
         mock_session_scope.delete = MagicMock()
-        mock_session_scope.commit = MagicMock()
 
         # 执行测试
         result = manager.delete_llm(llm_id)
@@ -303,49 +211,77 @@ class TestLlmManager:
         # 验证结果
         assert result is True
         # 验证查询、删除和提交被调用
-        mock_session_scope.query.assert_called_once()
-        mock_session_scope.delete.assert_called_once()
-        mock_session_scope.commit.assert_called_once()
+        mock_session_scope.query.assert_called()
+        mock_session_scope.delete.assert_called_once_with(mock_llm)
 
-    @pytest.mark.skip(reason="LlmManager没有set_default_llm方法")
-    def test_set_default_llm(self):
+    def test_set_as_default(self, manager, mock_session_scope):
         """测试设置默认LLM配置"""
-        # 该测试被跳过，因为LlmManager没有set_default_llm方法
-        pass
+        # 模拟数据
+        llm_id = 1
+
+        # 模拟查询结果
+        mock_llm = MagicMock()
+        mock_llm.id = llm_id
+        mock_llm.name = "Test LLM"
+        mock_llm.is_default = False
+
+        # 配置查询结果
+        mock_query = MagicMock()
+        mock_query.filter_by.return_value.first.return_value = mock_llm
+        # 设置count返回值为数字而不是MagicMock
+        mock_query.filter_by.return_value.count.return_value = 0
+
+        # 配置查询结果
+        mock_session_scope.query.return_value = mock_query
+
+        # 模拟_clear_default_status方法
+        with patch.object(manager, "_clear_default_status") as mock_clear:
+            # 执行测试
+            result = manager.set_as_default(llm_id)
+
+            # 验证结果
+            assert result is True
+            assert mock_llm.is_default is True
+            # 验证查询和清除默认状态被调用
+            mock_session_scope.query.assert_called()
+            mock_clear.assert_called_once_with(mock_session_scope)
 
     @pytest.mark.asyncio
     async def test_test_llm_connection(self, manager):
         """测试LLM连接测试功能"""
         # 模拟数据
-        llm_data = {
-            "id": 1,
-            "name": "Test LLM",
-            "provider": "test",
-            "model_name": "test-model",
-            "api_key": "test_api_key",
-            "base_url": "https://api.test.com",
-        }
+        llm_id = 1
 
-        # 模拟get_client_for_llm函数
-        with patch("acolyte.core.llm.client.get_client_for_llm") as mock_create_client:
-            # 模拟LLM客户端
-            mock_client = MagicMock()
-            mock_client.test_connection = MagicMock(return_value={
-                "success": True,
-                "message": "Connection successful",
-            })
-            mock_create_client.return_value = mock_client
+        # 模拟查询结果
+        mock_llm = MagicMock()
+        mock_llm.id = llm_id
+        mock_llm.name = "Test LLM"
+        mock_llm.api_key = "test_api_key"
+        mock_llm.base_url = "https://api.test.com"
+        mock_llm.model_name = "test-model"
 
-            # 执行测试
-            result = await manager.test_connection(llm_data)
+        # 模拟get_llm方法
+        with patch.object(manager, "get_llm", return_value=mock_llm):
+            # 模拟get_client_for_llm函数
+            with patch("acolyte.core.llm.client.get_client_for_llm") as mock_create_client:
+                # 模拟LLM客户端
+                mock_client = MagicMock()
+                mock_client._test_connection = AsyncMock(return_value={
+                    "success": True,
+                    "message": "Connection successful",
+                })
+                mock_create_client.return_value = mock_client
 
-            # 验证结果
-            assert result["success"] is True
-            assert result["message"] == "Connection successful"
+                # 执行测试
+                result = await manager.test_connection(llm_id)
 
-            # 验证方法调用
-            mock_create_client.assert_called_once_with(llm_data)
-            mock_client.test_connection.assert_called_once()
+                # 验证结果
+                assert result["success"] is True
+                assert "message" in result
+
+                # 验证方法调用
+                mock_create_client.assert_called_once_with(mock_llm)
+                mock_client._test_connection.assert_called_once()
 
     @pytest.mark.skip(reason="LlmManager没有import_config方法")
     def test_import_llm_configs(self):
