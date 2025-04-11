@@ -57,6 +57,7 @@ if result.returncode != 0:
     sys.exit(1)
 
 import json
+
 installed_packages = json.loads(result.stdout)
 installed_dict = {pkg["name"].lower(): pkg["version"] for pkg in installed_packages}
 

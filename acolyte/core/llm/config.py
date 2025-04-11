@@ -30,7 +30,6 @@ def import_llm_config_from_file(
     try:
         from acolyte.core.llm.manager import LlmManager
 
-        llm_manager = LlmManager()
         imported_llms = []
 
         # 筛选配置
