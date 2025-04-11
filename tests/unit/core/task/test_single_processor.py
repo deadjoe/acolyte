@@ -122,26 +122,10 @@ class TestSingleLlmProcessor:
         processor._update_task_status.assert_called_once()
         processor._handle_error.assert_called_once_with(1, error)
 
-    @pytest.mark.skip(reason="SingleLlmProcessor没有_process_single_mode方法")
-    @pytest.mark.asyncio
-    async def test_process_single_mode(self):
-        """测试_process_single_mode方法"""
-        # 该测试被跳过，因为SingleLlmProcessor没有_process_single_mode方法
-        pass
-
-    @pytest.mark.skip(reason="SingleLlmProcessor没有_get_default_llm方法")
-    @pytest.mark.asyncio
-    async def test_get_default_llm(self):
-        """测试_get_default_llm方法"""
-        # 该测试被跳过，因为SingleLlmProcessor没有_get_default_llm方法
-        pass
-
-    @pytest.mark.skip(reason="SingleLlmProcessor没有_get_llm_by_id方法")
-    @pytest.mark.asyncio
-    async def test_get_llm_by_id(self):
-        """测试_get_llm_by_id方法"""
-        # 该测试被跳过，因为SingleLlmProcessor没有_get_llm_by_id方法
-        pass
+    # 删除了测试不存在方法的测试：
+    # - test_process_single_mode
+    # - test_get_default_llm
+    # - test_get_llm_by_id
 
     @pytest.mark.skip(reason="无法模拟数据库调用")
     @pytest.mark.asyncio

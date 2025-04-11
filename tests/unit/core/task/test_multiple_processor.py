@@ -118,19 +118,9 @@ class TestMultipleLlmProcessor:
         processor._update_task_status.assert_called_once()
         processor._handle_error.assert_called_once_with(1, error)
 
-    @pytest.mark.skip(reason="MultipleLlmProcessor没有_process_multiple_mode方法")
-    @pytest.mark.asyncio
-    async def test_process_multiple_mode(self):
-        """测试_process_multiple_mode方法"""
-        # 该测试被跳过，因为MultipleLlmProcessor没有_process_multiple_mode方法
-        pass
-
-    @pytest.mark.skip(reason="MultipleLlmProcessor没有_process_with_llm方法")
-    @pytest.mark.asyncio
-    async def test_process_with_llm(self):
-        """测试_process_with_llm方法"""
-        # 该测试被跳过，因为MultipleLlmProcessor没有_process_with_llm方法
-        pass
+    # 删除了测试不存在方法的测试：
+    # - test_process_multiple_mode
+    # - test_process_with_llm
 
     @pytest.mark.skip(reason="无法模拟数据库调用")
     @pytest.mark.asyncio
@@ -139,23 +129,7 @@ class TestMultipleLlmProcessor:
         # 该测试被跳过，因为无法模拟数据库调用
         pass
 
-    @pytest.mark.skip(reason="MultipleLlmProcessor没有_calculate_final_result方法")
-    @pytest.mark.asyncio
-    async def test_calculate_final_result(self):
-        """测试_calculate_final_result方法"""
-        # 该测试被跳过，因为MultipleLlmProcessor没有_calculate_final_result方法
-        pass
-
-    @pytest.mark.skip(reason="MultipleLlmProcessor没有_get_best_result方法")
-    @pytest.mark.asyncio
-    async def test_get_best_result(self):
-        """测试_get_best_result方法"""
-        # 该测试被跳过，因为MultipleLlmProcessor没有_get_best_result方法
-        pass
-
-    @pytest.mark.skip(reason="MultipleLlmProcessor没有_update_task_final_result方法")
-    @pytest.mark.asyncio
-    async def test_update_task_final_result(self):
-        """测试_update_task_final_result方法"""
-        # 该测试被跳过，因为MultipleLlmProcessor没有_update_task_final_result方法
-        pass
+    # 删除了测试不存在方法的测试：
+    # - test_calculate_final_result
+    # - test_get_best_result
+    # - test_update_task_final_result
