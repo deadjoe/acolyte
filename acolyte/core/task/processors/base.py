@@ -273,8 +273,13 @@ class BaseTaskProcessor(ABC):
                 logger.debug(f"任务关联的LLM IDs: {[llm.id for llm in task_llm_configs]}")
                 logger.debug(f"任务关联的LLM名称: {[llm.name for llm in task_llm_configs]}")
 
+            # 过滤出普通角色的LLM
+            from acolyte.core.db.models import LlmRole
+            normal_task_llms = [llm for llm in task_llm_configs if llm.role == LlmRole.NORMAL]
+            logger.debug(f"任务 {task_id} 关联的normal角色LLM数量: {len(normal_task_llms)}")
+
             llms = []
-            for llm_assoc in task_llm_configs:
+            for llm_assoc in normal_task_llms:
                 llm_data = extract_model_data(llm_assoc, include_relationships=False)
                 llms.append(llm_data)
                 logger.debug(
