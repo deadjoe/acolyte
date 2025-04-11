@@ -284,7 +284,8 @@ class BaseTaskProcessor(ABC):
             if not llms:
                 logger.debug(f"任务 {task_id} 没有关联的LLM，尝试获取默认角色的LLM")
                 # 如果没有关联的LLM，获取所有普通角色的LLM
-                normal_llms = session.query(LlmConfig).filter_by(role="normal").all()
+                from acolyte.core.db.models import LlmRole
+                normal_llms = session.query(LlmConfig).filter_by(role=LlmRole.NORMAL).all()
                 logger.debug(f"从数据库查询到 {len(normal_llms)} 个普通角色的LLM")
 
                 if normal_llms:
@@ -335,15 +336,17 @@ class BaseTaskProcessor(ABC):
                 return []
 
             # 获取关联的评议者LLM
+            from acolyte.core.db.models import LlmRole
             reviewers = []
             for llm_assoc in task.llm_configs:
-                if llm_assoc.role == "reviewer":
+                if llm_assoc.role == LlmRole.REVIEWER:
                     reviewers.append(extract_model_data(llm_assoc, include_relationships=False))
 
             if not reviewers:
                 logger.debug(f"任务 {task_id} 没有关联的评议者LLM，尝试获取评议者角色的LLM")
                 # 如果没有关联的评议者，获取所有评议者角色的LLM
-                all_reviewers = session.query(LlmConfig).filter_by(role="reviewer").all()
+                from acolyte.core.db.models import LlmRole
+                all_reviewers = session.query(LlmConfig).filter_by(role=LlmRole.REVIEWER).all()
                 if all_reviewers:
                     reviewers = [
                         extract_model_data(rev, include_relationships=False)
