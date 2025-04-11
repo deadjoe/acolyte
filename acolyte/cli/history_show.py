@@ -217,6 +217,7 @@ async def show_all_llm_results(
         compare_table.add_column("MI", style="yellow")
         compare_table.add_column("HI", style="magenta")
         compare_table.add_column("CS", style="green")
+        compare_table.add_column("类型", style="blue")
 
         for result in results:
             llm_id = result.get("llm_id")
@@ -235,7 +236,9 @@ async def show_all_llm_results(
             cs = result.get("credibility_score")
             cs_str = f"{cs:.2f}" if cs is not None else "N/A"
 
-            compare_table.add_row(f"{llm_name} ({llm_id})", bi_str, mi_str, hi_str, cs_str)
+            # 根据 is_review_result 字段判断结果类型
+            result_type = "评议结果" if result.get("is_review_result") else "分析结果"
+            compare_table.add_row(f"{llm_name} ({llm_id})", bi_str, mi_str, hi_str, cs_str, result_type)
 
         console.print(compare_table)
 
