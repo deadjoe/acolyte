@@ -238,7 +238,9 @@ async def show_all_llm_results(
 
             # 根据 is_review_result 字段判断结果类型
             result_type = "评议结果" if result.get("is_review_result") else "分析结果"
-            compare_table.add_row(f"{llm_name} ({llm_id})", bi_str, mi_str, hi_str, cs_str, result_type)
+            compare_table.add_row(
+                f"{llm_name} ({llm_id})", bi_str, mi_str, hi_str, cs_str, result_type
+            )
 
         console.print(compare_table)
 
