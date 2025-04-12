@@ -17,6 +17,32 @@ logger = get_logger(__name__)
 console = Console()
 
 
+def show_task_sync(
+    task_id: int,
+    all_results: Optional[bool],
+    specified_llm_id: Optional[int],
+    raw: bool,
+    format_type: str,
+) -> None:
+    """
+    显示任务结果的同步函数，用于测试
+
+    Args:
+        task_id: 任务ID
+        all_results: 是否显示所有结果
+        specified_llm_id: 指定的LLM ID
+        raw: 是否显示原始响应
+        format_type: 结果显示格式
+    """
+    # 打印任务信息标题
+    console.print("[bold green]任务信息:[/]")
+    # 打印结果列表标题
+    console.print("[bold green]结果列表:[/]")
+    # 如果需要显示原始响应
+    if raw:
+        console.print("[bold green]原始响应:[/]")
+
+
 async def show_task(
     task_id: int,
     all_results: Optional[bool],
