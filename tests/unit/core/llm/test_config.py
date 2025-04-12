@@ -121,7 +121,7 @@ class TestLlmConfig:
                 assert hasattr(config, "llm_configs")
                 assert len(config.llm_configs) == 0
 
-    def test_import_llm_config_from_file(self, mock_config_file, db_session):
+    def test_import_llm_config_from_file(self, mock_config_file):
         """测试从文件导入LLM配置"""
         # 模拟get_config_path
         with patch("acolyte.config.settings.get_config_path") as mock_get_path:
@@ -131,10 +131,15 @@ class TestLlmConfig:
             # 模拟session_scope
             with patch("acolyte.core.db.database.db.session_scope") as mock_session_scope:
                 # 设置上下文管理器返回模拟会话
-                mock_session_scope.return_value.__enter__.return_value = db_session
+                mock_session = MagicMock()
+                mock_session.query.return_value.filter.return_value.count.return_value = 0
+                mock_session_scope.return_value.__enter__.return_value = mock_session
 
                 # 模拟LlmManager
-                with patch("acolyte.core.llm.manager.LlmManager"):
+                with patch("acolyte.core.llm.manager.LlmManager"), \
+                     patch("acolyte.core.llm.config.LlmConfig") as mock_llm_config_model:
+                    # 设置模拟属性
+                    mock_llm_config_model.name = MagicMock()
                     # 执行测试
                     result = import_llm_config_from_file()
 

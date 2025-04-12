@@ -37,10 +37,10 @@ class TestGetClientForLlm:
         """测试通过名称检测Anthropic"""
         # 设置名称
         llm_config.name = "Claude"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_anthropic_client.called
         mock_anthropic_client.assert_called_once_with(llm_config)
@@ -50,10 +50,10 @@ class TestGetClientForLlm:
         """测试通过名称检测OpenAI"""
         # 设置名称
         llm_config.name = "GPT-4"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_openai_client.called
         mock_openai_client.assert_called_once_with(llm_config)
@@ -63,10 +63,10 @@ class TestGetClientForLlm:
         """测试通过名称检测Gemini"""
         # 设置名称
         llm_config.name = "Gemini"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_gemini_client.called
         mock_gemini_client.assert_called_once_with(llm_config)
@@ -76,10 +76,10 @@ class TestGetClientForLlm:
         """测试通过名称检测DeepSeek"""
         # 设置名称
         llm_config.name = "DeepSeek"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_deepseek_client.called
         mock_deepseek_client.assert_called_once_with(llm_config)
@@ -89,10 +89,10 @@ class TestGetClientForLlm:
         """测试通过名称检测Ollama"""
         # 设置名称
         llm_config.name = "Ollama"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_ollama_client.called
         mock_ollama_client.assert_called_once_with(llm_config)
@@ -103,10 +103,10 @@ class TestGetClientForLlm:
         # 设置URL
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.anthropic.com"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_anthropic_client.called
         mock_anthropic_client.assert_called_once_with(llm_config)
@@ -117,10 +117,10 @@ class TestGetClientForLlm:
         # 设置URL
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.openai.com"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_openai_client.called
         mock_openai_client.assert_called_once_with(llm_config)
@@ -131,10 +131,10 @@ class TestGetClientForLlm:
         # 设置URL
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://generativelanguage.googleapis.com"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_gemini_client.called
         mock_gemini_client.assert_called_once_with(llm_config)
@@ -144,11 +144,11 @@ class TestGetClientForLlm:
         """测试通过URL检测DeepSeek"""
         # 设置URL
         llm_config.name = "Generic LLM"
-        llm_config.base_url = "https://api.deepseek.com"
-        
+        llm_config.base_url = "https://api.deepseek.ai"
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_deepseek_client.called
         mock_deepseek_client.assert_called_once_with(llm_config)
@@ -158,11 +158,11 @@ class TestGetClientForLlm:
         """测试通过URL检测Ollama"""
         # 设置URL
         llm_config.name = "Generic LLM"
-        llm_config.base_url = "http://localhost:11434"
-        
+        llm_config.base_url = "http://localhost:11434/ollama"
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_ollama_client.called
         mock_ollama_client.assert_called_once_with(llm_config)
@@ -174,10 +174,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "claude-3-opus"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_anthropic_client.called
         mock_anthropic_client.assert_called_once_with(llm_config)
@@ -189,10 +189,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "gpt-4"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_openai_client.called
         mock_openai_client.assert_called_once_with(llm_config)
@@ -204,10 +204,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "gemini-pro"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_gemini_client.called
         mock_gemini_client.assert_called_once_with(llm_config)
@@ -219,10 +219,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "deepseek-v3"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_deepseek_client.called
         mock_deepseek_client.assert_called_once_with(llm_config)
@@ -234,10 +234,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "llama2"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_ollama_client.called
         mock_ollama_client.assert_called_once_with(llm_config)
@@ -249,10 +249,10 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "generic-model"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_openai_client.called
         mock_openai_client.assert_called_once_with(llm_config)
@@ -265,9 +265,9 @@ class TestGetClientForLlm:
         llm_config.name = "Generic LLM"
         llm_config.base_url = "https://api.generic.com"
         llm_config.model_name = "generic-model"
-        
+
         # 调用函数
         client = get_client_for_llm(llm_config)
-        
+
         # 验证结果
         assert mock_logger.warning.called
