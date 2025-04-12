@@ -166,7 +166,7 @@ def mock_prompt_service():
         mock_service_class.return_value = mock_service
 
         # 设置异步方法的返回值
-        mock_service.get_all_prompts = AsyncMock(return_value={
+        mock_service.get_prompts = AsyncMock(return_value={
             "success": True,
             "prompts": [
                 {
