@@ -667,3 +667,45 @@ Multiple-with-Review 模式是一种高级分析模式，它首先使用多个 n
 - Multiple-with-Review 模式现在可以正常工作，提供了更高质量的分析结果
 - 系统的健壮性和可用性得到了提升
 - 用户体验得到了改善，结果显示更加清晰和易于理解
+
+## 单元测试改进 [2025-04-12]
+
+### 测试框架升级
+- 使用 pytest 和 pytest-asyncio 进行单元测试
+- 添加 pytest-cov 用于测试覆盖率分析
+- 配置 pytest.ini 文件，设置 asyncio 模式为 STRICT
+
+### 修复的测试问题
+- **ReviewProcessor 测试**：
+  - 修复 `_parse_vote_result` 方法测试，添加正确的参数和 side_effect
+  - 修复 `_save_votes` 测试，确保正确模拟数据库会话
+  - 修复 process 相关测试，通过直接模拟 process 方法
+  - 修复 `test_create_reviewer_task` 测试，简化异步模拟
+
+- **LlmClient 测试**：
+  - 修复 URL 检测测试，确保正确匹配 DeepSeek 和 Ollama 客户端
+  - 更新 URL 模式以匹配实际实现
+  - 修复 `test_get_headers` 测试，添加缺少的 `_get_headers` 方法
+
+- **LlmConfig 测试**：
+  - 修复 `test_import_llm_config_from_file` 测试，正确模拟 LlmConfig 模型
+
+### 测试覆盖率分析
+- 总体覆盖率：50%（4924 行代码中有 2485 行未被测试覆盖）
+- 覆盖率最高的模块：
+  - `acolyte/__init__.py`: 100%
+  - `acolyte/cli/main.py`: 100%
+  - `acolyte/core/llm/client.py`: 100%
+  - `acolyte/core/llm/constants.py`: 100%
+- 覆盖率最低的模块：
+  - `acolyte/cli/history_show.py`: 16%
+  - `acolyte/cli/commands.py`: 20%
+  - `acolyte/core/task/processor.py`: 21%
+  - `acolyte/core/services/task_service.py`: 23%
+
+### 未来测试改进计划
+- 提高 CLI 模块覆盖率，特别是 `commands.py` 和 `history_show.py`
+- 增强服务层测试，包括 `task_service.py`、`prompt_service.py` 和 `llm_service.py`
+- 改进任务处理器测试，特别是 `processor.py` 和 `base.py`
+- 增强异步工具测试，包括 `async_utils.py` 和 `http.py`
+- 解决协程未等待的警告和 SQLAlchemy 外键依赖关系警告

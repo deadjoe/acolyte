@@ -230,18 +230,23 @@ Acolyte includes a comprehensive test suite to ensure code quality and functiona
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-asyncio pytest-cov
+uv pip install pytest pytest-asyncio pytest-cov
 
 # Run all tests
-./run_tests.sh
+uv run pytest tests/unit/
 
 # Run specific test modules
-python -m pytest tests/unit/core/llm/test_response_parser.py
-python -m pytest tests/unit/core/db/test_models.py
-python -m pytest tests/unit/core/task/test_base_processor.py
+uv run pytest tests/unit/core/llm/test_response_parser.py
+uv run pytest tests/unit/core/db/test_models.py
+uv run pytest tests/unit/core/task/test_base_processor.py
 
-# Generate coverage report
-python -m pytest tests/ --cov=acolyte --cov-report=term --cov-report=html
+# Run tests with coverage report
+uv run pytest tests/unit/ --cov=acolyte --cov-report=term --cov-report=html
+
+# Run a specific test function
+uv run pytest tests/unit/core/task/test_review_processor.py::TestReviewProcessor::test_save_votes -v
 ```
+
+The project currently has a test coverage of approximately 50%, with higher coverage in core modules like LLM client implementation and lower coverage in CLI and service layers. Future development will focus on improving test coverage in these areas.
 
 See [tests/README.md](tests/README.md) for more details on the testing framework and best practices.

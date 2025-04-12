@@ -230,18 +230,23 @@ Acolyte包含全面的测试套件，以确保代码质量和功能正常：
 
 ```bash
 # 安装测试依赖
-pip install pytest pytest-asyncio pytest-cov
+uv pip install pytest pytest-asyncio pytest-cov
 
 # 运行所有测试
-./run_tests.sh
+uv run pytest tests/unit/
 
 # 运行特定测试模块
-python -m pytest tests/unit/core/llm/test_response_parser.py
-python -m pytest tests/unit/core/db/test_models.py
-python -m pytest tests/unit/core/task/test_base_processor.py
+uv run pytest tests/unit/core/llm/test_response_parser.py
+uv run pytest tests/unit/core/db/test_models.py
+uv run pytest tests/unit/core/task/test_base_processor.py
 
-# 生成覆盖率报告
-python -m pytest tests/ --cov=acolyte --cov-report=term --cov-report=html
+# 运行带覆盖率报告的测试
+uv run pytest tests/unit/ --cov=acolyte --cov-report=term --cov-report=html
+
+# 运行特定测试函数
+uv run pytest tests/unit/core/task/test_review_processor.py::TestReviewProcessor::test_save_votes -v
 ```
+
+项目当前的测试覆盖率约为50%，其中LLM客户端实现等核心模块的覆盖率较高，CLI和服务层的覆盖率较低。未来的开发将专注于提高这些领域的测试覆盖率。
 
 查看[tests/README.md](tests/README.md)获取有关测试框架和最佳实践的更多详细信息。
