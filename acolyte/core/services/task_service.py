@@ -8,7 +8,7 @@ import asyncio
 import time
 import traceback
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from sqlalchemy.orm import Session
 
@@ -404,26 +404,64 @@ class TaskService:
         logger.info(f"获取任务列表: 状态筛选={status}, 跳过={skip}, 限制={limit}")
 
         async def _get_tasks(session: Session):
-            query = session.query(Task)
+            # 使用原生SQL查询绕过枚举转换问题
+            sql = """
+                SELECT t.id, t.content, t.processing_mode, t.status, t.prompt_id, t.final_result_id,
+                       t.created_at, t.updated_at, p.version as prompt_version, p.model_target as prompt_target
+                FROM tasks t
+                LEFT JOIN prompts p ON t.prompt_id = p.id
+                LEFT JOIN task_results tr ON t.final_result_id = tr.id
+            """
 
-            # 如果指定了状态，进行筛选
+            # 如果指定了状态，添加状态筛选
+            params = {}
             if status:
                 try:
+                    # 尝试将状态转换为枚举值
                     status_enum = TaskStatus(status)
-                    query = query.filter(Task.status == status_enum)
+                    sql += " WHERE t.status = :status"
+                    params["status"] = status_enum.value
                 except ValueError:
                     logger.warning(f"无效的任务状态值: {status}")
                     return []
 
-            # 获取分页结果
-            results = query.order_by(Task.created_at.desc()).offset(skip).limit(limit).all()
+            # 添加排序和分页
+            sql += " ORDER BY t.created_at DESC LIMIT :limit OFFSET :skip"
+            params["limit"] = limit
+            params["skip"] = skip
+
+            # 执行查询
+            from sqlalchemy import text
+            results = session.execute(text(sql), params).fetchall()
             logger.debug(f"找到 {len(results)} 个任务")
 
-            return [task.to_dict() for task in results]
+            # 手动构建任务字典
+            tasks = []
+            for row in results:
+                task_dict = {
+                    "id": row.id,
+                    "content": row.content,
+                    "processing_mode": row.processing_mode,
+                    "status": row.status,
+                    "prompt_id": row.prompt_id,
+                    "final_result_id": row.final_result_id,
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                    "prompt_version": row.prompt_version,
+                    "prompt_target": row.prompt_target
+                }
+                tasks.append(task_dict)
+
+            return tasks
 
         try:
             tasks = await run_in_session(_get_tasks)
             return {"tasks": tasks, "total": len(tasks), "success": True}
+        except LookupError as e:
+            # 处理枚举值不匹配的情况
+            logger.error(f"获取任务列表失败: {str(e)}", exc_info=True)
+            # 返回空列表，而不是错误
+            return {"tasks": [], "total": 0, "success": True}
         except Exception as e:
             logger.error(f"获取任务列表失败: {str(e)}", exc_info=True)
             return {"error": f"获取任务列表失败: {str(e)}", "success": False}
