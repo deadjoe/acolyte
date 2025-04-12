@@ -22,6 +22,20 @@ logger = get_logger("acolyte.api.routes")
 router = APIRouter()
 
 
+# 健康检查路由
+@router.get("/health")
+async def health_check():
+    """健康检查端点"""
+    from acolyte import __version__
+    from datetime import datetime
+
+    return {
+        "status": "ok",
+        "version": __version__,
+        "timestamp": datetime.now()
+    }
+
+
 # 获取数据库会话依赖
 def get_db():
     with db.session_scope() as session:
