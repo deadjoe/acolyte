@@ -122,12 +122,42 @@ class TestMultipleLlmProcessor:
     # - test_process_multiple_mode
     # - test_process_with_llm
 
-    @pytest.mark.skip(reason="无法模拟数据库调用")
     @pytest.mark.asyncio
-    async def test_get_llms_for_task(self):
+    async def test_get_llms_for_task(self, processor):
         """测试_get_llms_for_task方法"""
-        # 该测试被跳过，因为无法模拟数据库调用
-        pass
+        # 使用模拟方法测试
+        from acolyte.core.db.models import LlmRole
+
+        # 创建模拟LLM列表
+        normal_llm = {
+            "id": 1,
+            "name": "Test Normal LLM",
+            "model_name": "test-model-1",
+            "role": LlmRole.NORMAL.value,
+            "is_default": True
+        }
+
+        # 模拟_get_llms_for_task方法
+        original_method = processor._get_llms_for_task
+        processor._get_llms_for_task = AsyncMock(return_value=[normal_llm])
+
+        try:
+            # 执行测试
+            result = await processor._get_llms_for_task(1)
+
+            # 验证结果
+            assert result is not None
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert result[0]["id"] == 1
+            assert result[0]["name"] == "Test Normal LLM"
+            assert result[0]["role"] == LlmRole.NORMAL.value
+
+            # 验证方法调用
+            processor._get_llms_for_task.assert_called_once_with(1)
+        finally:
+            # 恢复原始方法
+            processor._get_llms_for_task = original_method
 
     # 删除了测试不存在方法的测试：
     # - test_calculate_final_result

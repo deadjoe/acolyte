@@ -283,14 +283,7 @@ class TestLlmManager:
                 mock_create_client.assert_called_once_with(mock_llm)
                 mock_client._test_connection.assert_called_once()
 
-    @pytest.mark.skip(reason="LlmManager没有import_config方法")
-    def test_import_llm_configs(self):
-        """测试导入LLM配置"""
-        # 该测试被跳过，因为LlmManager没有import_config方法
-        pass
-
-    @pytest.mark.skip(reason="LlmManager没有export_config方法")
-    def test_export_llm_configs(self):
-        """测试导出LLM配置"""
-        # 该测试被跳过，因为LlmManager没有export_config方法
-        pass
+    # 删除了测试不存在方法的测试：
+    # - test_import_llm_configs
+    # - test_export_llm_configs
+    # 这些方法在LlmManager类中不存在，相关功能在acolyte.core.llm.config模块中实现
