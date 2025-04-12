@@ -5,7 +5,6 @@ LLM配置单元测试
 """
 
 import json
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -122,14 +121,60 @@ class TestLlmConfig:
                 assert hasattr(config, "llm_configs")
                 assert len(config.llm_configs) == 0
 
-    @pytest.mark.skip(reason="测试需要数据库调用")
-    def test_import_llm_config_from_file(self):
+    def test_import_llm_config_from_file(self, mock_config_file, db_session):
         """测试从文件导入LLM配置"""
-        # 该测试需要数据库调用，所以跳过
-        pass
+        # 模拟get_config_path
+        with patch("acolyte.config.settings.get_config_path") as mock_get_path:
+            # 返回Path对象而不是字符串
+            mock_get_path.return_value = mock_config_file
 
-    @pytest.mark.skip(reason="测试需要数据库调用")
+            # 模拟session_scope
+            with patch("acolyte.core.db.database.db.session_scope") as mock_session_scope:
+                # 设置上下文管理器返回模拟会话
+                mock_session_scope.return_value.__enter__.return_value = db_session
+
+                # 模拟LlmManager
+                with patch("acolyte.core.llm.manager.LlmManager"):
+                    # 执行测试
+                    result = import_llm_config_from_file()
+
+                    # 验证结果
+                    assert isinstance(result, list)
+                    # 实际返回的数量可能不同，只验证结果类型和非空
+                    assert len(result) > 0
+                    # 验证结果包含预期的字段
+                    for item in result:
+                        assert "id" in item
+                        assert "name" in item
+                        assert "model_name" in item
+                        assert "role" in item
+                        assert "is_default" in item
+
     def test_export_llm_config_to_file(self):
         """测试导出LLM配置到文件"""
-        # 该测试需要数据库调用，所以跳过
-        pass
+        # 模拟数据库中的LLM配置
+        mock_llm = MagicMock()
+        mock_llm.id = 1
+        mock_llm.name = "Test LLM"
+        mock_llm.api_key = "test_key"
+        mock_llm.base_url = "https://api.test.com"
+        mock_llm.model_name = "test-model"
+        mock_llm.description = "Test description"
+        mock_llm.role = MagicMock(value="normal")
+        mock_llm.is_default = True
+
+        # 模拟session_scope
+        with patch("acolyte.core.db.database.db.session_scope") as mock_session_scope:
+            # 设置上下文管理器返回模拟会话
+            mock_session = MagicMock()
+            mock_session.query.return_value.all.return_value = [mock_llm]
+            mock_session_scope.return_value.__enter__.return_value = mock_session
+
+            # 模拟save_config
+            with patch("acolyte.core.llm.config.save_config", return_value=True) as mock_save:
+                # 执行测试
+                result = export_llm_config_to_file()
+
+                # 验证结果
+                assert result is True
+                assert mock_save.called

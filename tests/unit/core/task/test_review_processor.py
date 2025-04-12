@@ -1,14 +1,15 @@
 """
-ReviewTaskProcessor单元测试
+ReviewProcessor单元测试
 
-测试ReviewTaskProcessor的核心功能和业务规则，特别是multiple_with_review功能。
+测试ReviewProcessor的核心功能和业务规则，特别是multiple_with_review功能。
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-# 所有测试都被跳过，不需要导入模型
+from acolyte.core.db.models import LlmConfig, LlmRole, TaskStatus
 from acolyte.core.task.processors.review import ReviewProcessor
 
 
@@ -34,118 +35,724 @@ class TestReviewProcessor:
             mock.side_effect = side_effect
             yield mock
 
-    @pytest.mark.skip(reason="ReviewProcessor的process方法需要真实的LLM客户端")
+    @pytest.fixture
+    def mock_multiple_processor(self):
+        """模拟MultipleLlmProcessor"""
+        with patch("acolyte.core.task.processors.review.MultipleLlmProcessor") as mock_class:
+            # 创建模拟实例
+            mock_instance = MagicMock()
+            mock_instance.process = AsyncMock()
+            # 设置process方法的返回值
+            mock_instance.process.return_value = {
+                "success": True,
+                "task_id": 1,
+                "result_ids": [1, 2, 3]
+            }
+            # 设置类实例化返回模拟实例
+            mock_class.return_value = mock_instance
+            yield mock_instance
+
+    @pytest.fixture
+    def mock_task_data(self):
+        """模拟任务数据"""
+        return {
+            "id": 1,
+            "content": "测试内容",
+            "status": TaskStatus.PENDING.value,
+            "created_at": time.time(),
+            "updated_at": time.time()
+        }
+
+    @pytest.fixture
+    def mock_results(self):
+        """模拟任务结果"""
+        return [
+            {
+                "id": 1,
+                "llm_id": 1,
+                "raw_response": "LLM 1的分析结果",
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5
+            },
+            {
+                "id": 2,
+                "llm_id": 2,
+                "raw_response": "LLM 2的分析结果",
+                "bias_index": 6.8,
+                "misleading_index": 5.5,
+                "hidden_intent_index": 3.9,
+                "credibility_score": 65.2
+            },
+            {
+                "id": 3,
+                "llm_id": 3,
+                "raw_response": "LLM 3的分析结果",
+                "bias_index": 8.1,
+                "misleading_index": 7.0,
+                "hidden_intent_index": 5.2,
+                "credibility_score": 55.8
+            }
+        ]
+
+    @pytest.fixture
+    def mock_reviewers(self):
+        """模拟评议者LLM配置"""
+        return [
+            {
+                "id": 4,
+                "name": "Reviewer 1",
+                "api_key": "test_api_key_1",
+                "base_url": "https://api.test.com",
+                "model_name": "test-model-1",
+                "role": LlmRole.REVIEWER.value,
+                "is_default": False
+            },
+            {
+                "id": 5,
+                "name": "Reviewer 2",
+                "api_key": "test_api_key_2",
+                "base_url": "https://api.test.com",
+                "model_name": "test-model-2",
+                "role": LlmRole.REVIEWER.value,
+                "is_default": False
+            }
+        ]
+
     @pytest.mark.asyncio
-    async def test_process(self):
-        """测试process方法"""
-        # 该测试被跳过，因为ReviewProcessor的process方法需要真实的LLM客户端
-        pass
+    async def test_process_with_multiple_processor_error(self, processor, mock_multiple_processor):
+        """测试process方法处理MultipleLlmProcessor错误的情况"""
+        # 设置模拟返回值为错误
+        mock_multiple_processor.process.return_value = {
+            "success": False,
+            "task_id": 1,
+            "error": "多LLM处理失败"
+        }
 
-    @pytest.mark.skip(reason="ReviewProcessor的process方法需要真实的LLM客户端")
+        # 模拟_update_task_status方法
+        processor._update_task_status = AsyncMock(return_value=True)
+        processor._handle_error = AsyncMock(return_value={"success": False, "error": "多LLM处理失败"})
+
+        # 执行测试
+        result = await processor.process(1)
+
+        # 验证结果
+        assert result["success"] is False
+        assert "error" in result
+        assert "多LLM处理失败" in result["error"]
+
+        # 验证方法调用
+        mock_multiple_processor.process.assert_called_once_with(1)
+        processor._update_task_status.assert_called_once_with(1, TaskStatus.PROCESSING)
+        processor._handle_error.assert_called_once()
+
     @pytest.mark.asyncio
-    async def test_process_error(self):
-        """测试process方法处理错误的情况"""
-        # 该测试被跳过，因为ReviewProcessor的process方法需要真实的LLM客户端
-        pass
+    async def test_process_with_no_reviewers(self, processor, mock_multiple_processor, mock_task_data):
+        """测试process方法在没有评议者的情况下的行为"""
+        # 设置_get_task_with_content返回模拟任务数据
+        processor._get_task_with_content = AsyncMock(return_value=mock_task_data)
 
-    # 根据代码分析，ReviewProcessor实际上有_get_reviewers_for_task和_create_review_prompt方法
-    # 但由于这些方法需要数据库调用，我们保留这些测试但标记为跳过
+        # 设置_get_reviewers_for_task返回空列表
+        processor._get_reviewers_for_task = AsyncMock(return_value=[])
+
+        # 设置_update_task_status返回成功
+        processor._update_task_status = AsyncMock(return_value=True)
+
+        # 执行测试
+        result = await processor.process(1)
+
+        # 验证结果
+        assert result["success"] is True
+        assert result["task_id"] == 1
+        assert "result_ids" in result
+
+        # 验证方法调用
+        mock_multiple_processor.process.assert_called_once_with(1)
+        processor._get_task_with_content.assert_called_once_with(1)
+        processor._get_reviewers_for_task.assert_called_once_with(1)
+        processor._update_task_status.assert_called_once_with(1, TaskStatus.PROCESSING)
 
     @pytest.mark.asyncio
-    async def test_get_reviewers_for_task(self, processor):
-        """测试_get_reviewers_for_task方法"""
-        # 直接模拟_get_reviewers_for_task方法
-        from acolyte.core.db.models import LlmRole
+    async def test_process_with_single_reviewer(self, processor, mock_multiple_processor, mock_task_data, mock_reviewers):
+        """测试process方法在单评议者模式下的行为"""
+        # 设置_get_task_with_content返回模拟任务数据
+        processor._get_task_with_content = AsyncMock(return_value=mock_task_data)
 
-        # 创建模拟LLM列表
-        reviewer_llm = {
-            "id": 2,
-            "name": "Test Reviewer LLM",
-            "model_name": "test-model-2",
+        # 设置_get_reviewers_for_task返回单个评议者
+        processor._get_reviewers_for_task = AsyncMock(return_value=[mock_reviewers[0]])
+
+        # 设置_update_task_status返回成功
+        processor._update_task_status = AsyncMock(return_value=True)
+
+        # 设置_single_reviewer_mode返回成功
+        single_reviewer_result = {
+            "success": True,
+            "task_id": 1,
+            "final_result_id": 4,
+            "reviewer_id": mock_reviewers[0]["id"]
+        }
+        processor._single_reviewer_mode = AsyncMock(return_value=single_reviewer_result)
+
+        # 执行测试
+        result = await processor.process(1)
+
+        # 验证结果
+        assert result["success"] is True
+        assert result["task_id"] == 1
+        assert result["final_result_id"] == 4
+        assert result["reviewer_id"] == mock_reviewers[0]["id"]
+
+        # 验证方法调用
+        mock_multiple_processor.process.assert_called_once_with(1)
+        processor._get_task_with_content.assert_called_once_with(1)
+        processor._get_reviewers_for_task.assert_called_once_with(1)
+        processor._single_reviewer_mode.assert_called_once_with(
+            task_id=1,
+            task_content=mock_task_data["content"],
+            reviewer=mock_reviewers[0],
+            result_ids=mock_multiple_processor.process.return_value["result_ids"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_process_with_multiple_reviewers(self, processor, mock_multiple_processor, mock_task_data, mock_reviewers):
+        """测试process方法在多评议者模式下的行为"""
+        # 设置_get_task_with_content返回模拟任务数据
+        processor._get_task_with_content = AsyncMock(return_value=mock_task_data)
+
+        # 设置_get_reviewers_for_task返回多个评议者
+        processor._get_reviewers_for_task = AsyncMock(return_value=mock_reviewers)
+
+        # 设置_update_task_status返回成功
+        processor._update_task_status = AsyncMock(return_value=True)
+
+        # 设置_multiple_reviewer_vote_mode返回成功
+        multiple_reviewer_result = {
+            "success": True,
+            "task_id": 1,
+            "final_result_id": 2,
+            "vote_counts": {1: 0, 2: 2, 3: 0},
+            "valid_votes": 2
+        }
+        processor._multiple_reviewer_vote_mode = AsyncMock(return_value=multiple_reviewer_result)
+
+        # 执行测试
+        result = await processor.process(1)
+
+        # 验证结果
+        assert result["success"] is True
+        assert result["task_id"] == 1
+        assert result["final_result_id"] == 2
+        assert result["vote_counts"] == {1: 0, 2: 2, 3: 0}
+        assert result["valid_votes"] == 2
+
+        # 验证方法调用
+        mock_multiple_processor.process.assert_called_once_with(1)
+        processor._get_task_with_content.assert_called_once_with(1)
+        processor._get_reviewers_for_task.assert_called_once_with(1)
+        processor._multiple_reviewer_vote_mode.assert_called_once_with(
+            task_id=1,
+            task_content=mock_task_data["content"],
+            reviewers=mock_reviewers,
+            result_ids=mock_multiple_processor.process.return_value["result_ids"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_single_reviewer_mode(self, processor, mock_results):
+        """测试_single_reviewer_mode方法"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        reviewer = {
+            "id": 4,
+            "name": "Test Reviewer",
+            "api_key": "test_api_key",
+            "base_url": "https://api.test.com",
+            "model_name": "test-model",
+            "role": LlmRole.REVIEWER.value,
+            "is_default": False
+        }
+        result_ids = [1, 2, 3]
+
+        # 模拟方法
+        processor._get_task_results = AsyncMock(return_value=mock_results)
+        processor._create_review_prompt = MagicMock(return_value="测试评议提示词")
+        processor._rebuild_llm_config = MagicMock(return_value=LlmConfig(
+            id=reviewer["id"],
+            name=reviewer["name"],
+            api_key=reviewer["api_key"],
+            base_url=reviewer["base_url"],
+            model_name=reviewer["model_name"],
+            role=reviewer["role"]
+        ))
+        processor._update_task_status = AsyncMock(return_value=True)
+        processor._save_result = AsyncMock(return_value=5)  # 返回评议结果的ID
+
+        # 模拟LLM客户端
+        mock_client = MagicMock()
+        mock_client.process_content = AsyncMock(return_value={
+            "success": True,
+            "raw_response": "评议结果原始响应",
+            "result": {
+                "content": "评议结果内容",
+                "scores": {
+                    "bias_index": 7.0,
+                    "misleading_index": 6.0,
+                    "hidden_intent_index": 5.0,
+                    "credibility_score": 65.0
+                }
+            }
+        })
+
+        # 模拟get_client_for_llm函数
+        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
+            # 执行测试
+            result = await processor._single_reviewer_mode(task_id, task_content, reviewer, result_ids)
+
+            # 验证结果
+            assert result["success"] is True
+            assert result["task_id"] == task_id
+            assert result["final_result_id"] == 5
+            assert result["reviewer_id"] == reviewer["id"]
+
+            # 验证方法调用
+            processor._get_task_results.assert_called_once_with(task_id, result_ids)
+            processor._create_review_prompt.assert_called_once_with(mock_results)
+            processor._rebuild_llm_config.assert_called_once_with(reviewer)
+            mock_client.process_content.assert_called_once_with(
+                content=task_content,
+                prompt="测试评议提示词"
+            )
+            processor._save_result.assert_called_once_with(
+                task_id=task_id,
+                llm_id=reviewer["id"],
+                result=mock_client.process_content.return_value,
+                is_review_result=True
+            )
+            processor._update_task_status.assert_called_once_with(task_id, TaskStatus.COMPLETED)
+
+    @pytest.mark.asyncio
+    async def test_single_reviewer_mode_error(self, processor):
+        """测试_single_reviewer_mode方法处理错误的情况"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        reviewer = {
+            "id": 4,
+            "name": "Test Reviewer",
+            "api_key": "test_api_key",
+            "base_url": "https://api.test.com",
+            "model_name": "test-model",
+            "role": LlmRole.REVIEWER.value,
+            "is_default": False
+        }
+        result_ids = [1, 2, 3]
+
+        # 模拟方法
+        processor._get_task_results = AsyncMock(return_value=[])
+        processor._handle_error = AsyncMock(return_value={
+            "success": False,
+            "error": "获取任务结果失败"
+        })
+
+        # 执行测试
+        result = await processor._single_reviewer_mode(task_id, task_content, reviewer, result_ids)
+
+        # 验证结果
+        assert result["success"] is False
+        assert "error" in result
+        assert "获取任务结果失败" in result["error"]
+
+        # 验证方法调用
+        processor._get_task_results.assert_called_once_with(task_id, result_ids)
+        processor._handle_error.assert_called_once_with(task_id, "获取任务结果失败")
+
+    @pytest.mark.asyncio
+    async def test_multiple_reviewer_vote_mode(self, processor, mock_results, mock_reviewers):
+        """测试_multiple_reviewer_vote_mode方法"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        result_ids = [1, 2, 3]
+
+        # 模拟方法
+        processor._get_task_results = AsyncMock(return_value=mock_results)
+        processor._create_vote_prompt = MagicMock(return_value="测试投票提示词")
+        processor._create_reviewer_task = AsyncMock()
+        processor._save_votes = AsyncMock()
+        processor._count_votes = AsyncMock(return_value={1: 0, 2: 2, 3: 0})
+        processor._set_final_result = AsyncMock(return_value=True)
+        processor._update_task_status = AsyncMock(return_value=True)
+
+        # 模拟评议者处理结果
+        vote_results = [
+            {
+                "success": True,
+                "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
+            },
+            {
+                "success": True,
+                "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
+            }
+        ]
+
+        # 模拟gather_with_concurrency
+        with patch("acolyte.core.task.processors.review.gather_with_concurrency", new=AsyncMock(return_value=vote_results)):
+            # 执行测试
+            result = await processor._multiple_reviewer_vote_mode(task_id, task_content, mock_reviewers, result_ids)
+
+            # 验证结果
+            assert result["success"] is True
+            assert result["task_id"] == task_id
+            assert result["final_result_id"] == 2
+            assert result["vote_counts"] == {1: 0, 2: 2, 3: 0}
+
+            # 验证方法调用
+            processor._get_task_results.assert_called_once_with(task_id, result_ids)
+            processor._create_vote_prompt.assert_called_once_with(mock_results)
+            assert processor._create_reviewer_task.call_count == 2
+            processor._save_votes.assert_called_once()
+            processor._count_votes.assert_called_once_with(task_id, result_ids)
+            processor._set_final_result.assert_called_once_with(task_id, 2)
+            processor._update_task_status.assert_called_once_with(task_id, TaskStatus.COMPLETED)
+
+    @pytest.mark.asyncio
+    async def test_multiple_reviewer_vote_mode_error(self, processor, mock_reviewers):
+        """测试_multiple_reviewer_vote_mode方法处理错误的情况"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        result_ids = [1, 2, 3]
+
+        # 模拟方法
+        processor._get_task_results = AsyncMock(return_value=[])
+        processor._handle_error = AsyncMock(return_value={
+            "success": False,
+            "error": "获取任务结果失败"
+        })
+
+        # 执行测试
+        result = await processor._multiple_reviewer_vote_mode(task_id, task_content, mock_reviewers, result_ids)
+
+        # 验证结果
+        assert result["success"] is False
+        assert "error" in result
+        assert "获取任务结果失败" in result["error"]
+
+        # 验证方法调用
+        processor._get_task_results.assert_called_once_with(task_id, result_ids)
+        processor._handle_error.assert_called_once_with(task_id, "获取任务结果失败")
+
+    @pytest.mark.asyncio
+    async def test_create_reviewer_task(self, processor):
+        """测试_create_reviewer_task方法"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        prompt = "测试投票提示词"
+        reviewer = {
+            "id": 4,
+            "name": "Test Reviewer",
+            "api_key": "test_api_key",
+            "base_url": "https://api.test.com",
+            "model_name": "test-model",
             "role": LlmRole.REVIEWER.value,
             "is_default": False
         }
 
-        # 直接替换_get_reviewers_for_task方法
-        original_method = processor._get_reviewers_for_task
-        processor._get_reviewers_for_task = AsyncMock(return_value=[reviewer_llm])
+        # 模拟方法
+        processor._rebuild_llm_config = MagicMock(return_value=LlmConfig(
+            id=reviewer["id"],
+            name=reviewer["name"],
+            api_key=reviewer["api_key"],
+            base_url=reviewer["base_url"],
+            model_name=reviewer["model_name"],
+            role=reviewer["role"]
+        ))
 
-        try:
+        # 模拟LLM客户端
+        mock_client = MagicMock()
+        mock_client.process_content = AsyncMock(return_value={
+            "success": True,
+            "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
+        })
+
+        # 模拟get_client_for_llm函数
+        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
             # 执行测试
-            result = await processor._get_reviewers_for_task(1)
+            result = await processor._create_reviewer_task(task_id, task_content, prompt, reviewer)
 
             # 验证结果
-            assert result is not None
-            assert isinstance(result, list)
-            assert len(result) == 1
-            assert result[0]["id"] == 2
-            assert result[0]["name"] == "Test Reviewer LLM"
-            assert result[0]["role"] == LlmRole.REVIEWER.value
+            assert result["success"] is True
+            assert "raw_response" in result
+            assert "我投票给 LLM 2 (ID: 2)" in result["raw_response"]
 
             # 验证方法调用
-            processor._get_reviewers_for_task.assert_called_once_with(1)
-        finally:
-            # 恢复原始方法
-            processor._get_reviewers_for_task = original_method
+            processor._rebuild_llm_config.assert_called_once_with(reviewer)
+            mock_client.process_content.assert_called_once_with(
+                content=task_content,
+                prompt=prompt
+            )
+
+    @pytest.mark.asyncio
+    async def test_create_reviewer_task_error(self, processor):
+        """测试_create_reviewer_task方法处理错误的情况"""
+        # 准备测试数据
+        task_id = 1
+        task_content = "测试内容"
+        prompt = "测试投票提示词"
+        reviewer = {
+            "id": 4,
+            "name": "Test Reviewer",
+            "api_key": "test_api_key",
+            "base_url": "https://api.test.com",
+            "model_name": "test-model",
+            "role": LlmRole.REVIEWER.value,
+            "is_default": False
+        }
+
+        # 模拟方法
+        processor._rebuild_llm_config = MagicMock(return_value=LlmConfig(
+            id=reviewer["id"],
+            name=reviewer["name"],
+            api_key=reviewer["api_key"],
+            base_url=reviewer["base_url"],
+            model_name=reviewer["model_name"],
+            role=reviewer["role"]
+        ))
+
+        # 模拟LLM客户端
+        mock_client = MagicMock()
+        mock_client.process_content = AsyncMock(return_value={
+            "success": False,
+            "error": "LLM处理失败"
+        })
+
+        # 模拟get_client_for_llm函数
+        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
+            # 执行测试
+            result = await processor._create_reviewer_task(task_id, task_content, prompt, reviewer)
+
+            # 验证结果
+            assert result["success"] is False
+            assert "error" in result
+            assert "LLM处理失败" in result["error"]
+
+            # 验证方法调用
+            processor._rebuild_llm_config.assert_called_once_with(reviewer)
+            mock_client.process_content.assert_called_once_with(
+                content=task_content,
+                prompt=prompt
+            )
+
+    def test_rebuild_llm_config(self, processor):
+        """测试_rebuild_llm_config方法"""
+        # 准备测试数据
+        reviewer = {
+            "id": 4,
+            "name": "Test Reviewer",
+            "api_key": "test_api_key",
+            "base_url": "https://api.test.com",
+            "model_name": "test-model",
+            "role": LlmRole.REVIEWER.value,
+            "is_default": False
+        }
+
+        # 执行测试
+        result = processor._rebuild_llm_config(reviewer)
+
+        # 验证结果
+        assert isinstance(result, LlmConfig)
+        assert result.id == reviewer["id"]
+        assert result.name == reviewer["name"]
+        assert result.api_key == reviewer["api_key"]
+        assert result.base_url == reviewer["base_url"]
+        assert result.model_name == reviewer["model_name"]
+        assert result.role == reviewer["role"]
 
     def test_create_review_prompt(self, processor):
         """测试_create_review_prompt方法"""
-        # 使用模拟数据测试
-
         # 准备测试数据
-        normal_results = [{
-            "id": 1,
-            "llm_id": 2,
-            "raw_response": "Test raw response",
-            "processed_result": "Test processed result",
-            "bias_index": 7.5,
-            "misleading_index": 6.2,
-            "hidden_intent_index": 4.8,
-            "credibility_score": 60.5
-        }]
+        results = [
+            {
+                "id": 1,
+                "llm_id": 1,
+                "raw_response": "LLM 1的分析结果",
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5
+            },
+            {
+                "id": 2,
+                "llm_id": 2,
+                "raw_response": "LLM 2的分析结果",
+                "bias_index": 6.8,
+                "misleading_index": 5.5,
+                "hidden_intent_index": 3.9,
+                "credibility_score": 65.2
+            }
+        ]
 
         # 执行测试
-        prompt = processor._create_review_prompt(normal_results)
+        prompt = processor._create_review_prompt(results)
 
         # 验证结果
-        assert prompt is not None
         assert isinstance(prompt, str)
-        assert "Test raw response" in prompt
+        assert "LLM 1" in prompt
+        assert "LLM 2" in prompt
+        assert "LLM 1的分析结果" in prompt
+        assert "LLM 2的分析结果" in prompt
 
-    # 删除了测试不存在方法的测试：
-    # - test_process_multiple_with_review_mode
-    # - test_process_normal_llms
-    # - test_process_reviewer_llms
-    # - test_process_with_reviewer
-    # - test_get_normal_results
+    def test_create_vote_prompt(self, processor):
+        """测试_create_vote_prompt方法"""
+        # 准备测试数据
+        results = [
+            {
+                "id": 1,
+                "llm_id": 1,
+                "raw_response": "LLM 1的分析结果",
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5
+            },
+            {
+                "id": 2,
+                "llm_id": 2,
+                "raw_response": "LLM 2的分析结果",
+                "bias_index": 6.8,
+                "misleading_index": 5.5,
+                "hidden_intent_index": 3.9,
+                "credibility_score": 65.2
+            }
+        ]
 
-    # 根据代码分析，ReviewProcessor实际上有_set_final_result方法，但没有其他这些方法
-    # 我们保留_set_final_result测试但标记为跳过，删除其他不存在的方法测试
+        # 执行测试
+        prompt = processor._create_vote_prompt(results)
+
+        # 验证结果
+        assert isinstance(prompt, str)
+        assert "LLM 1" in prompt
+        assert "LLM 2" in prompt
+        assert "LLM 1的分析结果" in prompt
+        assert "LLM 2的分析结果" in prompt
+        assert "ID: 1" in prompt
+        assert "ID: 2" in prompt
+
+    def test_parse_vote_result(self, processor):
+        """测试_parse_vote_result方法"""
+        # 准备测试数据
+        raw_response = "我投票给 LLM 2 (ID: 2)，因为它的分析更全面。"
+
+        # 执行测试
+        result = processor._parse_vote_result(raw_response)
+
+        # 验证结果
+        assert result == 2
+
+    def test_parse_vote_result_with_no_match(self, processor):
+        """测试_parse_vote_result方法处理无匹配的情况"""
+        # 准备测试数据
+        raw_response = "我认为所有的LLM都做得很好，很难选择。"
+
+        # 执行测试
+        result = processor._parse_vote_result(raw_response)
+
+        # 验证结果
+        assert result is None
 
     @pytest.mark.asyncio
-    async def test_set_final_result(self, processor):
+    async def test_count_votes(self, processor, mock_session_run):
+        """测试_count_votes方法"""
+        # 准备测试数据
+        task_id = 1
+        result_ids = [1, 2, 3]
+
+        # 模拟数据库查询结果
+        mock_votes = [
+            MagicMock(reviewer_id=4, result_id=2),
+            MagicMock(reviewer_id=5, result_id=2),
+            MagicMock(reviewer_id=6, result_id=1)
+        ]
+
+        # 模拟会话查询
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.all.return_value = mock_votes
+
+        # 执行测试
+        result = await processor._count_votes(task_id, result_ids)
+
+        # 验证结果
+        assert result == {1: 1, 2: 2, 3: 0}
+
+    @pytest.mark.asyncio
+    async def test_save_votes(self, processor, mock_session_run):
+        """测试_save_votes方法"""
+        # 准备测试数据
+        task_id = 1
+        vote_results = [
+            {
+                "success": True,
+                "reviewer_id": 4,
+                "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
+            },
+            {
+                "success": True,
+                "reviewer_id": 5,
+                "raw_response": "我投票给 LLM 1 (ID: 1)，因为..."
+            }
+        ]
+
+        # 模拟_parse_vote_result方法
+        processor._parse_vote_result = MagicMock(side_effect=[2, 1])
+
+        # 模拟会话添加和提交
+        mock_session = MagicMock()
+
+        # 执行测试
+        await processor._save_votes(task_id, vote_results, mock_session)
+
+        # 验证结果
+        assert mock_session.add.call_count == 2
+        assert mock_session.commit.call_count == 1
+        processor._parse_vote_result.assert_any_call("我投票给 LLM 2 (ID: 2)，因为...")
+        processor._parse_vote_result.assert_any_call("我投票给 LLM 1 (ID: 1)，因为...")
+
+    @pytest.mark.asyncio
+    async def test_set_final_result(self, processor, mock_session_run):
         """测试_set_final_result方法"""
-        # 使用模拟方法测试
+        # 准备测试数据
+        task_id = 1
+        result_id = 2
 
-        # 模拟_set_final_result方法
-        original_method = processor._set_final_result
-        processor._set_final_result = AsyncMock(return_value=True)
+        # 模拟会话查询和更新
+        mock_task = MagicMock()
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_task
 
-        try:
-            # 执行测试
-            result = await processor._set_final_result(1, 2)
+        # 执行测试
+        result = await processor._set_final_result(task_id, result_id)
 
-            # 验证结果
-            assert result is True
+        # 验证结果
+        assert result is True
+        assert mock_task.final_result_id == result_id
+        assert mock_session.commit.call_count == 1
 
-            # 验证方法调用
-            processor._set_final_result.assert_called_once_with(1, 2)
-        finally:
-            # 恢复原始方法
-            processor._set_final_result = original_method
+    @pytest.mark.asyncio
+    async def test_set_final_result_error(self, processor, mock_session_run):
+        """测试_set_final_result方法处理错误的情况"""
+        # 准备测试数据
+        task_id = 1
+        result_id = 2
 
-    # 删除了测试不存在方法的测试：
-    # - test_save_review_result
-    # - test_calculate_final_result
-    # - test_get_best_result_from_reviews
-    # - test_update_task_final_result
+        # 模拟会话查询返回空
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.first.return_value = None
+
+        # 执行测试
+        result = await processor._set_final_result(task_id, result_id)
+
+        # 验证结果
+        assert result is False
+        assert mock_session.commit.call_count == 0

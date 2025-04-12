@@ -235,7 +235,7 @@ class DeepSeekClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             # 处理HTTP状态错误
-            error_info = ErrorHandler.handle_http_error(e, self.provider)
+            error_info = ErrorHandler.handle_httpx_error(e, self.provider)
             logger.error(f"DeepSeek API HTTP错误: {error_info.message}", exc_info=True)
 
             return {
@@ -373,7 +373,7 @@ class DeepSeekClient(LlmClient):
 
         except httpx.HTTPStatusError as e:
             # 处理HTTP状态错误
-            error_info = ErrorHandler.handle_http_error(e, self.provider)
+            error_info = ErrorHandler.handle_httpx_error(e, self.provider)
             logger.error(f"DeepSeek连接测试失败 - HTTP错误: {error_info.message}", exc_info=True)
 
             return {
