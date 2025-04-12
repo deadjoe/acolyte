@@ -53,6 +53,8 @@ class TestGeminiClient:
         config = MagicMock(spec=LlmConfig)
         config.name = "Test Gemini"
         config.model_name = "pro"
+        config.api_key = "test_api_key"  # 添加api_key属性
+        config.base_url = "https://generativelanguage.googleapis.com"  # 添加base_url属性
 
         # 创建客户端
         client = GeminiClient(config)

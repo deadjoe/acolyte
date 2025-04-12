@@ -27,6 +27,14 @@ class TestLlmClientImpl(LlmClient):
     def _detect_provider(self):
         return "test_provider"
 
+    def _get_headers(self):
+        """获取请求头"""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        return headers
+
     def _prepare_request(self, prompt, system_prompt=None):
         return {
             "model": self.model_name,
@@ -34,7 +42,7 @@ class TestLlmClientImpl(LlmClient):
                 {"role": "system", "content": system_prompt or ""},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": self.parameters.get("temperature", 0.7)
+            "temperature": 0.7  # 使用固定值而不是从不存在的parameters属性获取
         }
 
     def _process_response(self, response_data):
