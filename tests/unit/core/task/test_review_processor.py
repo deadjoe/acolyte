@@ -5,7 +5,7 @@ ReviewProcessor单元测试
 """
 
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
@@ -123,19 +123,30 @@ class TestReviewProcessor:
         """测试多LLM处理器错误情况"""
         # 准备测试数据
         task_id = 1
+        error_message = "处理失败"
 
-        # 模拟multiple_processor.process返回错误
+        # 模拟multiple_processor.process返回失败
         processor.multiple_processor.process = AsyncMock(return_value={
             "success": False,
-            "error": "处理失败"
+            "error": error_message
         })
+
+        # 模拟_update_task_status返回成功
+        processor._update_task_status = AsyncMock(return_value=True)
 
         # 执行测试
         result = await processor.process(task_id)
 
         # 验证结果
         assert result["success"] is False
-        assert result["error"] == "多LLM处理失败: 处理失败"
+        assert result["error"] == f"多LLM处理失败: {error_message}"
+
+        # 验证方法调用
+        assert processor._update_task_status.call_count == 2
+        processor._update_task_status.assert_has_calls([
+            call(task_id, TaskStatus.PROCESSING),
+            call(task_id, TaskStatus.FAILED)
+        ], any_order=False)
 
     @pytest.mark.asyncio
     async def test_process_with_no_reviewers(self, processor):
@@ -264,10 +275,11 @@ class TestReviewProcessor:
         task_content = "测试内容"
         reviewer = {
             "id": 4,
+            "name": "Test Reviewer",
             "api_key": "test_api_key",
             "base_url": "https://api.test.com",
             "model_name": "test-model",
-            "role": LlmRole.REVIEWER.value,
+            "role": LlmRole.REVIEWER,
             "is_default": False
         }
         result_ids = [1, 2, 3]
@@ -276,6 +288,7 @@ class TestReviewProcessor:
         processor._get_task_results = AsyncMock(return_value=mock_results)
         processor._create_review_prompt = MagicMock(return_value="测试评议提示词")
         processor._rebuild_llm_config = MagicMock(return_value=LlmConfig(
+            name=reviewer["name"],
             api_key=reviewer["api_key"],
             base_url=reviewer["base_url"],
             model_name=reviewer["model_name"],
@@ -335,10 +348,11 @@ class TestReviewProcessor:
         task_content = "测试内容"
         reviewer = {
             "id": 4,
+            "name": "Test Reviewer",
             "api_key": "test_api_key",
             "base_url": "https://api.test.com",
             "model_name": "test-model",
-            "role": LlmRole.REVIEWER.value,
+            "role": LlmRole.REVIEWER,
             "is_default": False
         }
         result_ids = [1, 2, 3]
@@ -470,7 +484,10 @@ class TestReviewProcessor:
 
         # 验证方法调用
         processor._rebuild_llm_config.assert_called_once_with(reviewer)
-        mock_client.process_content.assert_called_once_with(content=task_content, prompt=prompt_content)
+        mock_client.process_content.assert_called_once_with(
+            content=task_content,
+            prompt=prompt_content
+        )
 
     @pytest.mark.asyncio
     async def test_create_reviewer_task_error(self, processor):
@@ -501,12 +518,16 @@ class TestReviewProcessor:
 
         # 验证方法调用
         processor._rebuild_llm_config.assert_called_once_with(reviewer)
-        mock_client.process_content.assert_called_once_with(content=task_content, prompt=prompt_content)
+        mock_client.process_content.assert_called_once_with(
+            content=task_content,
+            prompt=prompt_content
+        )
 
     def test_rebuild_llm_config(self, processor):
         """测试_rebuild_llm_config方法"""
         # 准备测试数据
         reviewer = {
+            "name": "Test Reviewer",
             "api_key": "test_key",
             "base_url": "http://test.com",
             "model_name": "test_model",
@@ -518,6 +539,7 @@ class TestReviewProcessor:
 
         # 验证结果
         assert isinstance(result, LlmConfig)
+        assert result.name == reviewer["name"]
         assert result.api_key == reviewer["api_key"]
         assert result.base_url == reviewer["base_url"]
         assert result.model_name == reviewer["model_name"]
