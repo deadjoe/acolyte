@@ -48,7 +48,11 @@ def main():
     logger.info("=" * 40)
 
     # 获取端口
-    port = int(os.environ.get("ACOLYTE_PORT", "8000"))
+    try:
+        port = int(os.environ.get("ACOLYTE_PORT", "8000"))
+    except ValueError:
+        logger.warning(f"\u65e0效的端口配置: '{os.environ.get("ACOLYTE_PORT")}', 使用默认端口 8000")
+        port = 8000
 
     try:
         # 启动API服务
