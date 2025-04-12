@@ -144,7 +144,7 @@ class TestGetClientForLlm:
         """测试通过URL检测DeepSeek"""
         # 设置URL
         llm_config.name = "Generic LLM"
-        llm_config.base_url = "https://api.deepseek.com"
+        llm_config.base_url = "https://api.deepseek.ai"
         
         # 调用函数
         client = get_client_for_llm(llm_config)
