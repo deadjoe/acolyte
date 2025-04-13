@@ -17,7 +17,7 @@ PROVIDER_URL_PATTERNS = {
     PROVIDER_OPENAI: ["openai.com", "azure-openai"],
     PROVIDER_GEMINI: ["googleapis.com", "generativelanguage", "gemini"],
     PROVIDER_DEEPSEEK: ["deepseek.ai", "deepseek-api"],
-    PROVIDER_OLLAMA: ["ollama.ai", "ollama.com", "ollama"],
+    PROVIDER_OLLAMA: ["ollama.ai", "ollama.com", "ollama", "localhost:11434"],
 }
 
 # 模型名称特征

@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from acolyte.core.db.models import LlmConfig, ReviewerVote, Task, TaskResult, TaskStatus
+from acolyte.core.db.models import LlmConfig, LlmRole, ReviewerVote, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
 from acolyte.core.llm.client import get_client_for_llm
 from acolyte.core.task.processors.base import BaseTaskProcessor
@@ -496,15 +496,17 @@ class ReviewProcessor(BaseTaskProcessor):
         Returns:
             LLM配置对象
         """
-        reconstructed_llm = LlmConfig(
-            id=llm_data.get("id"),
-            name=llm_data.get("name"),
-            api_key=llm_data.get("api_key"),
-            base_url=llm_data.get("base_url"),
-            model_name=llm_data.get("model_name"),
-            role=llm_data.get("role", "reviewer"),
-            is_default=llm_data.get("is_default", False),
-        )
+        # 创建LlmConfig对象
+        reconstructed_llm = LlmConfig()
+
+        # 设置属性
+        if "name" in llm_data:
+            reconstructed_llm.name = llm_data.get("name")
+        reconstructed_llm.api_key = llm_data.get("api_key")
+        reconstructed_llm.base_url = llm_data.get("base_url")
+        reconstructed_llm.model_name = llm_data.get("model_name")
+        reconstructed_llm.role = llm_data.get("role", LlmRole.REVIEWER)
+        reconstructed_llm.is_default = llm_data.get("is_default", False)
 
         # 添加provider属性
         provider = llm_data.get("provider")
@@ -534,12 +536,11 @@ class ReviewProcessor(BaseTaskProcessor):
 
                 if voted_result_id:
                     # 保存投票记录
-                    reviewer_vote = ReviewerVote(
-                        task_id=task_id,
-                        reviewer_id=reviewer_id,
-                        voted_result_id=voted_result_id,
-                        comment=raw_response,
-                    )
+                    reviewer_vote = ReviewerVote()
+                    reviewer_vote.task_id = task_id
+                    reviewer_vote.reviewer_id = reviewer_id
+                    reviewer_vote.voted_result_id = voted_result_id
+                    reviewer_vote.comment = raw_response
                     session.add(reviewer_vote)
                     logger.info(
                         f"已保存投票记录: 评议者ID={reviewer_id}, 投票结果ID={voted_result_id}"

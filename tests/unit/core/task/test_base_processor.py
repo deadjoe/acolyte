@@ -141,7 +141,7 @@ class TestBaseTaskProcessor:
 
         # 配置查询结果
         mock_query = MagicMock()
-        mock_query.filter_by.return_value.first.return_value = mock_task
+        mock_query.filter.return_value.first.return_value = mock_task
 
         # 配置session
         mock_session = MagicMock()

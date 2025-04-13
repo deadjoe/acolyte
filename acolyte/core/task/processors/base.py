@@ -80,7 +80,7 @@ class BaseTaskProcessor(ABC):
         """
 
         async def _get_task_content(session: Session):
-            task = session.query(Task).filter_by(id=task_id).first()
+            task = session.query(Task).filter(Task.id == task_id).first()
             if not task:
                 return None
 
@@ -505,7 +505,7 @@ class BaseTaskProcessor(ABC):
         """
 
         async def _update_status(session: Session):
-            task = session.query(Task).filter_by(id=task_id).first()
+            task = session.query(Task).filter(Task.id == task_id).first()
             if not task:
                 logger.warning(f"更新状态失败: 任务不存在, ID={task_id}")
                 return False
