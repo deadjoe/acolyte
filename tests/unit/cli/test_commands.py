@@ -3,14 +3,9 @@ CLI命令测试 - 包含对commands.py中的命令和AcolyteClient类的测试
 """
 
 import asyncio
-import os
-import tempfile
-from io import StringIO
-from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
-import json
 import pytest
 from click.testing import CliRunner
 
@@ -101,7 +96,7 @@ def run_mock_command(runner, command, monkeypatch=None, mock_client=None, mock_r
 
 
 # 从这里导入CLI，确保在我们设置模拟之后
-from acolyte.cli.commands import cli, AcolyteClient
+from acolyte.cli.commands import AcolyteClient, cli
 
 
 class TestCliCommands:

@@ -2,18 +2,10 @@
 CLI历史显示测试，采用内部导入方式避免循环导入问题
 """
 
-import json
-import sys
-import os
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from datetime import datetime
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from click.testing import CliRunner
 
 
 @pytest.mark.asyncio
@@ -123,7 +115,7 @@ async def test_show_task_with_specified_llm():
     # 模拟以避免循环导入
     with patch.dict("sys.modules", {"acolyte.cli.commands": MagicMock()}):
         with patch("acolyte.cli.history_show.AcolyteClient", return_value=mock_client):
-            from acolyte.cli.history_show import show_task, show_specific_llm_result
+            from acolyte.cli.history_show import show_task
 
             with (
                 patch("acolyte.cli.history_show.console", mock_console),
@@ -167,7 +159,7 @@ async def test_show_task_all_results():
     # 模拟以避免循环导入
     with patch.dict("sys.modules", {"acolyte.cli.commands": MagicMock()}):
         with patch("acolyte.cli.history_show.AcolyteClient", return_value=mock_client):
-            from acolyte.cli.history_show import show_task, show_all_llm_results
+            from acolyte.cli.history_show import show_task
 
             with (
                 patch("acolyte.cli.history_show.console", mock_console),

@@ -10,9 +10,9 @@ import pytest
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.task.processor import TaskProcessor
-from acolyte.core.task.processors.single import SingleLlmProcessor
 from acolyte.core.task.processors.multiple import MultipleLlmProcessor
 from acolyte.core.task.processors.review import ReviewProcessor
+from acolyte.core.task.processors.single import SingleLlmProcessor
 
 
 class TestTaskProcessor:

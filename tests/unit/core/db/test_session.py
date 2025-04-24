@@ -4,10 +4,7 @@
 对acolyte.core.db.session模块进行单元测试。
 """
 
-import asyncio
-import inspect
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch, call
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError

@@ -4,15 +4,15 @@
 测试BaseTaskProcessor的核心功能和业务规则。
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
 import json
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from acolyte.core.db.models import ProcessingMode, Task, TaskStatus, TaskResult
-from acolyte.core.task.processors.base import BaseTaskProcessor
+from acolyte.core.db.models import ProcessingMode, Task, TaskResult, TaskStatus
 from acolyte.core.db.session import run_in_session
+from acolyte.core.task.processors.base import BaseTaskProcessor
 
 
 class TestBaseTaskProcessor:

@@ -4,16 +4,15 @@
 对TaskService类的单元测试，覆盖所有主要功能和边界情况。
 """
 
+import sys
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text as sa_text
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.services.task_service import TaskService
-import sys
 
 
 class TestTaskService:

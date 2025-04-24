@@ -2,13 +2,11 @@
 提示词服务测试
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock, mock_open
-import os
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
 from acolyte.core.services.prompt_service import PromptService
-from acolyte.core.db.models import Prompt
 
 
 class TestPromptService:

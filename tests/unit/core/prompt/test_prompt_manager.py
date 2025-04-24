@@ -5,9 +5,8 @@ Prompt模板管理器测试
 """
 
 import os
-import re
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, mock_open, call, ANY
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 from sqlalchemy.orm import Session
