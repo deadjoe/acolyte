@@ -168,6 +168,11 @@ class TestReviewProcessor:
         # 模拟_get_reviewers_for_task返回空列表
         processor._get_reviewers_for_task = AsyncMock(return_value=[])
 
+        # 模拟_get_task_with_content返回任务数据
+        processor._get_task_with_content = AsyncMock(
+            return_value={"id": task_id, "content": "测试内容"}
+        )
+
         # 模拟_update_task_status返回成功
         processor._update_task_status = AsyncMock(return_value=True)
 
@@ -198,6 +203,11 @@ class TestReviewProcessor:
         # 模拟_get_reviewers_for_task返回单个评议者
         reviewer = {"id": 1, "name": "Reviewer 1"}
         processor._get_reviewers_for_task = AsyncMock(return_value=[reviewer])
+
+        # 模拟_get_task_with_content返回任务数据
+        processor._get_task_with_content = AsyncMock(
+            return_value={"id": task_id, "content": "测试内容"}
+        )
 
         # 模拟_update_task_status返回成功
         processor._update_task_status = AsyncMock(return_value=True)

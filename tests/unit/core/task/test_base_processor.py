@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from acolyte.core.db.models import ProcessingMode, TaskStatus
+from acolyte.core.db.models import ProcessingMode, Task, TaskStatus
 from acolyte.core.task.processors.base import BaseTaskProcessor
 
 
@@ -23,8 +23,11 @@ class TestBaseTaskProcessor:
             async def side_effect(func):
                 # 创建一个模拟的session
                 session = MagicMock()
-                # 调用传入的函数并返回结果
-                return await func(session)
+                # 模拟Task.id
+                with patch("acolyte.core.task.processors.base.Task") as mock_task_class:
+                    mock_task_class.id = MagicMock()
+                    # 调用传入的函数并返回结果
+                    return await func(session)
 
             mock.side_effect = side_effect
             yield mock
@@ -51,14 +54,14 @@ class TestBaseTaskProcessor:
             "status": TaskStatus.PENDING,
         }
 
-        # 配置模拟session的查询行为
+        # 模拟任务数据
         mock_task = MagicMock()
         mock_task.id = task_data["id"]
         mock_task.content = task_data["content"]
         mock_task.processing_mode = task_data["processing_mode"]
         mock_task.status = task_data["status"]
 
-        # 配置查询结果
+        # 配置模拟session的查询行为
         mock_query = MagicMock()
         mock_query.filter_by.return_value.first.return_value = mock_task
 
