@@ -87,7 +87,7 @@ class DatetimeHandlerMiddleware(BaseHTTPMiddleware):
                 body_text = body.decode("utf-8")
                 json_body = json.loads(body_text)
                 logger.debug(f"请求体(JSON): {json_body}")
-            except:
+            except json.JSONDecodeError:
                 # 如果不是JSON，显示原始内容
                 if len(body) < 500:
                     logger.debug(f"请求体(原始): {body}")
@@ -135,7 +135,7 @@ async def startup_event():
 
         # 初始化Prompt管理器
         logger.info("正在初始化Prompt管理器...")
-        prompt_manager = PromptManager()
+        PromptManager()
         logger.info("Prompt管理器初始化完成")
 
         # 记录PID文件用于服务管理

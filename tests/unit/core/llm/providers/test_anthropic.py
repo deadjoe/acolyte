@@ -69,7 +69,7 @@ class TestAnthropicClient:
         config.model_name = "claude-3-sonnet-20240229"
 
         # 创建客户端
-        client = AnthropicClient(config)
+        AnthropicClient(config)
 
         # 验证警告日志
         assert "API密钥格式可能不正确" in caplog.text

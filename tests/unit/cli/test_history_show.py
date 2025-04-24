@@ -400,10 +400,10 @@ async def test_show_specific_llm_result_success():
         assert show_table is True
 
         # 获取任务结果
-        results = await client.get_task_results(task_id, include_raw_response=raw_response)
+        await client.get_task_results(task_id, include_raw_response=raw_response)
 
         # 获取LLM列表
-        llms = await client.get_llms()
+        await client.get_llms()
 
         # 模拟输出
         mock_console.print("LLM结果")
@@ -448,7 +448,7 @@ async def test_show_specific_llm_result_not_found():
         results = await client.get_task_results(task_id, include_raw_response=raw_response)
 
         # 获取LLM列表
-        llms = await client.get_llms()
+        await client.get_llms()
 
         # 检查是否有匹配的结果
         found = False
@@ -512,10 +512,10 @@ async def test_show_all_llm_results_table_format():
         assert format_type == "table"
 
         # 获取任务结果
-        results = await client.get_task_results(task_id, include_raw_response=raw_response)
+        await client.get_task_results(task_id, include_raw_response=raw_response)
 
         # 获取LLM列表
-        llms = await client.get_llms()
+        await client.get_llms()
 
         # 模拟表格输出
         if format_type == "table":
@@ -668,7 +668,7 @@ async def test_show_final_result_success():
         result = await client.get_task_final_result(task_id, include_raw_response=raw_response)
 
         # 获取LLM列表
-        llms = await client.get_llms()
+        await client.get_llms()
 
         # 模拟输出
         mock_console.print("最终结果表格")
@@ -712,7 +712,7 @@ async def test_show_final_result_not_found():
 
         try:
             # 获取最终结果
-            result = await client.get_task_final_result(task_id, include_raw_response=raw_response)
+            await client.get_task_final_result(task_id, include_raw_response=raw_response)
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 mock_console.print("[bold yellow]任务无结果[/]")

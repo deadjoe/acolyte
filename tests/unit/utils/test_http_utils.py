@@ -111,7 +111,7 @@ class TestHttpClientManager:
         config = HttpClientConfig(timeout=30.0, max_retries=5)
 
         # 获取客户端
-        client = HttpClientManager.get_client(config=config)
+        HttpClientManager.get_client(config=config)
 
         # 验证客户端配置
         assert HttpClientManager._client_configs["default"] is config
@@ -139,7 +139,7 @@ class TestHttpClientManager:
         HttpClientManager._client_configs = {}
 
         # 获取客户端
-        client1 = HttpClientManager.get_client()
+        HttpClientManager.get_client()
 
         # 使用模拟对象替换客户端池中的客户端
         mock_closed_client = MagicMock()
@@ -147,7 +147,7 @@ class TestHttpClientManager:
         HttpClientManager._clients["default"] = mock_closed_client
 
         # 再次获取客户端
-        client2 = HttpClientManager.get_client()
+        HttpClientManager.get_client()
 
         # 验证客户端
         assert HttpClientManager._clients["default"] is not mock_closed_client

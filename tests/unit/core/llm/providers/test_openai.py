@@ -86,7 +86,7 @@ class TestOpenAIClient:
         config.model_name = "gpt-4"
 
         # 创建客户端
-        client = OpenAIClient(config)
+        OpenAIClient(config)
 
         # 验证警告日志
         assert "API密钥格式可能不正确" in caplog.text

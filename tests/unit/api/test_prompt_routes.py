@@ -3,7 +3,6 @@
 """
 
 
-
 class TestPromptRoutes:
     """测试提示词API路由"""
 

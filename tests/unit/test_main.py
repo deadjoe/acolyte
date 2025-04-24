@@ -70,7 +70,7 @@ class TestMain:
                 # 模拟stderr
                 with patch("sys.stderr") as mock_stderr:
                     # 模拟日志
-                    with patch("acolyte.main.logger") as mock_logger:
+                    with patch("acolyte.main.logger"):
                         # 执行主函数
                         main()
 

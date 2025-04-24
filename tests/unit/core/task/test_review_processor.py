@@ -401,7 +401,7 @@ class TestReviewProcessor:
             patch.object(
                 processor, "_create_vote_prompt", return_value="测试投票提示词"
             ) as mock_create_prompt,
-            patch.object(processor, "_create_reviewer_task") as mock_create_task,
+            patch.object(processor, "_create_reviewer_task"),
             patch.object(processor, "_save_votes") as mock_save_votes,
             patch.object(
                 processor, "_count_votes", return_value={1: 0, 2: 2, 3: 0}
