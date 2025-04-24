@@ -31,7 +31,7 @@ class TestSessionScope:
         mock_db.get_session.return_value = mock_session
 
         # 使用会话上下文管理器
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             with SessionManager.session_scope() as session:
                 # 验证会话
                 assert session is mock_session
@@ -51,7 +51,7 @@ class TestSessionScope:
         mock_db.get_session.return_value = mock_session
 
         # 使用会话上下文管理器
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             with pytest.raises(SQLAlchemyError):
                 with SessionManager.session_scope() as session:
                     # 抛出异常
@@ -80,7 +80,7 @@ class TestWithSession:
             return a + b
 
         # 使用装饰器
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = test_func(3, b=4)
 
         # 验证结果和会话操作
@@ -107,7 +107,7 @@ class TestAsyncWithSession:
             return a * b
 
         # 使用装饰器
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = await test_async_func(5, b=6)
 
         # 验证结果和会话操作
@@ -130,7 +130,7 @@ class TestAsyncWithSession:
             return a - b
 
         # 使用装饰器
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = await test_sync_func(10, b=3)
 
         # 验证结果和会话操作
@@ -162,6 +162,7 @@ class TestSafeDetach:
 
     def test_safe_detach_with_dict(self):
         """测试带有__dict__属性的对象的安全分离"""
+
         # 创建带属性的模拟对象
         class MockModel:
             def __init__(self):
@@ -221,7 +222,7 @@ class TestGetEntityById:
         mock_model = Mock()
 
         # 测试获取实体
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = SessionManager.get_entity_by_id(mock_model, 456)
 
         # 验证结果和调用
@@ -245,8 +246,8 @@ class TestGetEntityById:
         mock_model = Mock()
 
         # 测试获取实体
-        with patch('acolyte.core.db.session.db', mock_db):
-            with patch('acolyte.core.db.session.logger') as mock_logger:
+        with patch("acolyte.core.db.session.db", mock_db):
+            with patch("acolyte.core.db.session.logger") as mock_logger:
                 result = SessionManager.get_entity_by_id(mock_model, 789)
 
                 # 验证日志记录
@@ -265,7 +266,7 @@ class TestExtractModelData:
 
     def test_extract_model_data_none(self):
         """测试提取空对象的数据"""
-        with patch('acolyte.core.db.session.logger') as mock_logger:
+        with patch("acolyte.core.db.session.logger") as mock_logger:
             result = extract_model_data(None)
 
             # 验证日志记录
@@ -298,7 +299,7 @@ class TestExtractModelData:
         mock_signature.parameters = {"include_relationships": None}
 
         # 测试提取数据，包含关系
-        with patch('inspect.signature', return_value=mock_signature):
+        with patch("inspect.signature", return_value=mock_signature):
             result = extract_model_data(mock_obj, include_relationships=True)
 
         # 验证结果
@@ -307,6 +308,7 @@ class TestExtractModelData:
 
     def test_extract_model_data_manual(self):
         """测试手动提取对象数据"""
+
         # 创建带属性的模拟对象
         class MockModel:
             def __init__(self):
@@ -314,7 +316,7 @@ class TestExtractModelData:
                     "id": 3,
                     "name": "manual_model",
                     "_private": "private_value",
-                    "created_at": Mock(isoformat=lambda: "2025-04-25T00:00:00")
+                    "created_at": Mock(isoformat=lambda: "2025-04-25T00:00:00"),
                 }
 
         mock_obj = MockModel()
@@ -330,26 +332,28 @@ class TestExtractModelData:
 
     def test_extract_model_data_with_exception(self):
         """测试提取数据时发生异常的情况"""
+
         # 创建一个在访问__dict__时会抛出异常的对象
         class ExceptionModel:
             @property
             def __dict__(self):
                 raise Exception("字典访问错误")
-                
+
         mock_obj = ExceptionModel()
-        
+
         # 测试提取数据
-        with patch('acolyte.core.db.session.logger') as mock_logger:
+        with patch("acolyte.core.db.session.logger") as mock_logger:
             result = extract_model_data(mock_obj)
-            
+
             # 验证日志记录
             mock_logger.error.assert_called_once()
-            
+
         # 验证结果
         assert result == {}
 
     def test_extract_model_data_with_relationships(self):
         """测试提取带关系的对象数据"""
+
         # 创建复杂的模拟对象结构
         class MockRelated:
             def __init__(self):
@@ -369,13 +373,13 @@ class TestExtractModelData:
             def get_relationship(cls):
                 return [
                     ("related_single", MockRelationship()),
-                    ("related_list", MockRelationship())
+                    ("related_list", MockRelationship()),
                 ]
 
         mock_obj = MockModel()
 
         # 模拟inspect.getmembers以返回关系
-        with patch('inspect.getmembers', return_value=MockModel.get_relationship()):
+        with patch("inspect.getmembers", return_value=MockModel.get_relationship()):
             # 测试提取数据，包含关系
             result = extract_model_data(mock_obj, include_relationships=True)
 
@@ -407,7 +411,7 @@ class TestRunInSession:
             return a * b
 
         # 测试在会话中运行函数
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = await run_in_session(test_async_func, 5, b=6)
 
         # 验证结果
@@ -426,7 +430,7 @@ class TestRunInSession:
             return a - b
 
         # 测试在会话中运行函数
-        with patch('acolyte.core.db.session.db', mock_db):
+        with patch("acolyte.core.db.session.db", mock_db):
             result = await run_in_session(test_sync_func, 10, b=3)
 
         # 验证结果

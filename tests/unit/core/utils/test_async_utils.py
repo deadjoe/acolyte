@@ -26,6 +26,7 @@ class TestRunInExecutor:
 
     def test_run_sync_function(self):
         """测试在线程池中运行同步函数"""
+
         # 创建一个模拟的同步函数
         def mock_sync_func(a, b, c=3):
             return a + b + c
@@ -38,6 +39,7 @@ class TestRunInExecutor:
 
     def test_run_function_with_exception(self):
         """测试在线程池中运行抛出异常的函数"""
+
         # 创建一个抛出异常的函数
         def mock_error_func():
             raise ValueError("测试异常")
@@ -53,6 +55,7 @@ class TestRunSyncInAsync:
     @pytest.mark.asyncio
     async def test_run_sync_in_async_context(self):
         """测试在异步上下文中运行同步函数"""
+
         # 创建一个模拟的同步函数
         def mock_sync_func(a, b):
             return a * b
@@ -66,6 +69,7 @@ class TestRunSyncInAsync:
     @pytest.mark.asyncio
     async def test_run_sync_in_async_with_exception(self):
         """测试在异步上下文中运行抛出异常的函数"""
+
         # 创建一个抛出异常的函数
         def mock_error_func():
             raise RuntimeError("运行时错误")
@@ -80,6 +84,7 @@ class TestToAsync:
 
     def test_to_async_converts_function(self):
         """测试to_async正确转换同步函数为异步函数"""
+
         # 创建一个模拟的同步函数
         def mock_sync_func(x, y):
             return x + y
@@ -97,6 +102,7 @@ class TestToAsync:
     @pytest.mark.asyncio
     async def test_converted_function_execution(self):
         """测试转换后的异步函数执行结果正确"""
+
         # 创建一个模拟的同步函数
         def mock_sync_func(x, y):
             return x - y
@@ -117,6 +123,7 @@ class TestGatherWithConcurrency:
     @pytest.mark.asyncio
     async def test_gather_tasks_with_limit(self):
         """测试限制并发数的任务收集"""
+
         # 创建测试协程
         async def mock_task(task_id, delay):
             await asyncio.sleep(delay)
@@ -135,6 +142,7 @@ class TestGatherWithConcurrency:
     @pytest.mark.asyncio
     async def test_gather_with_exceptions_not_returned(self):
         """测试当return_exceptions=False时，异常会导致任务终止"""
+
         # 创建测试协程，其中一个会抛出异常
         async def success_task(task_id):
             await asyncio.sleep(0.1)
@@ -154,6 +162,7 @@ class TestGatherWithConcurrency:
     @pytest.mark.asyncio
     async def test_gather_with_exceptions_returned(self):
         """测试当return_exceptions=True时，异常会作为结果返回"""
+
         # 创建测试协程，其中一个会抛出异常
         async def success_task(task_id):
             await asyncio.sleep(0.1)
@@ -179,6 +188,7 @@ class TestGatherWithConcurrency:
     @pytest.mark.asyncio
     async def test_gather_with_timeout(self):
         """测试设置超时的效果"""
+
         # 创建测试协程，一个会超时
         async def fast_task():
             await asyncio.sleep(0.1)
@@ -207,6 +217,7 @@ class TestAsyncTaskManager:
     @pytest.mark.asyncio
     async def test_add_task(self, task_manager_instance):
         """测试添加任务功能"""
+
         # 创建模拟协程
         async def mock_coro():
             await asyncio.sleep(0.1)
@@ -224,6 +235,7 @@ class TestAsyncTaskManager:
     @pytest.mark.asyncio
     async def test_add_existing_task(self, task_manager_instance):
         """测试添加已存在的任务"""
+
         # 创建模拟协程
         async def mock_coro():
             return "Task result"
@@ -231,33 +243,34 @@ class TestAsyncTaskManager:
         # 先添加一次任务
         task_id = "test_task_2"
         task_manager_instance.add_task(task_id, mock_coro())
-        
+
         # 获取已添加的任务对象
         original_task = task_manager_instance.tasks[task_id]
 
         # 尝试再次添加同ID的任务
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance.add_task(task_id, mock_coro())
-            
+
             # 验证记录了警告日志
             mock_logger.warning.assert_called_once_with(f"任务已存在: {task_id}")
-        
+
         # 验证任务未被替换
         assert task_manager_instance.tasks[task_id] is original_task
 
     @pytest.mark.asyncio
     async def test_add_task_with_callback(self, task_manager_instance):
         """测试添加带回调的任务"""
+
         # 创建模拟协程和回调
         async def mock_coro():
             return "Task result with callback"
-        
+
         callback_mock = Mock()
-        
+
         # 添加带回调的任务
         task_id = "test_task_with_callback"
         task_manager_instance.add_task(task_id, mock_coro(), callback_mock)
-        
+
         # 验证回调被正确设置
         assert task_manager_instance.callbacks[task_id] is callback_mock
 
@@ -267,18 +280,18 @@ class TestAsyncTaskManager:
         # 创建模拟任务和回调
         task_id = "success_task"
         task_result = "Success result"
-        
+
         task_mock = MagicMock()
         task_mock.result.return_value = task_result
-        
+
         callback_mock = Mock()
-        
+
         # 设置回调
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 调用任务完成处理
         task_manager_instance._task_done(task_mock, task_id)
-        
+
         # 验证结果和回调
         assert task_manager_instance.results[task_id] == task_result
         callback_mock.assert_called_once_with(task_id, task_result)
@@ -288,20 +301,20 @@ class TestAsyncTaskManager:
         """测试任务被取消后的处理"""
         # 创建模拟任务和回调
         task_id = "cancelled_task"
-        
+
         task_mock = MagicMock()
         task_mock.result.side_effect = asyncio.CancelledError()
-        
+
         callback_mock = Mock()
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 调用任务完成处理
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance._task_done(task_mock, task_id)
-            
+
             # 验证记录了警告日志
             mock_logger.warning.assert_called_once_with(f"异步任务已取消: {task_id}")
-        
+
         # 验证结果和回调
         assert task_manager_instance.results[task_id] == {"success": False, "error": "任务已取消"}
         callback_mock.assert_not_called()
@@ -312,20 +325,20 @@ class TestAsyncTaskManager:
         # 创建模拟任务和回调
         task_id = "error_task"
         error_msg = "Task execution error"
-        
+
         task_mock = MagicMock()
         task_mock.result.side_effect = ValueError(error_msg)
-        
+
         callback_mock = Mock()
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 调用任务完成处理
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance._task_done(task_mock, task_id)
-            
+
             # 验证记录了错误日志
             mock_logger.error.assert_called_once()
-        
+
         # 验证结果和回调
         assert task_manager_instance.results[task_id] == {"success": False, "error": error_msg}
         callback_mock.assert_called_once_with(task_id, {"success": False, "error": error_msg})
@@ -335,22 +348,21 @@ class TestAsyncTaskManager:
         """测试当回调函数抛出异常时的处理"""
         # 创建模拟任务和抛出异常的回调
         task_id = "callback_error_task"
-        
+
         task_mock = MagicMock()
         task_mock.result.return_value = "Callback will error"
-        
+
         callback_error = ValueError("Callback exception")
         callback_mock = Mock(side_effect=callback_error)
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 调用任务完成处理
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance._task_done(task_mock, task_id)
-            
+
             # 验证记录了错误日志
             mock_logger.error.assert_called_once_with(
-                f"任务回调执行失败: {task_id}, 错误: {str(callback_error)}", 
-                exc_info=True
+                f"任务回调执行失败: {task_id}, 错误: {str(callback_error)}", exc_info=True
             )
 
     @pytest.mark.asyncio
@@ -360,23 +372,28 @@ class TestAsyncTaskManager:
         task_id = "error_task_callback_error"
         task_error = ValueError("Task error")
         callback_error = RuntimeError("Error callback exception")
-        
+
         task_mock = MagicMock()
         task_mock.result.side_effect = task_error
-        
+
         callback_mock = Mock(side_effect=callback_error)
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 调用任务完成处理
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance._task_done(task_mock, task_id)
-            
+
             # 验证记录了错误日志，应有两次调用
             assert mock_logger.error.call_count == 2
-            mock_logger.error.assert_has_calls([
-                call(f"异步任务执行失败: {task_id}, 错误: {str(task_error)}", exc_info=True),
-                call(f"任务错误回调执行失败: {task_id}, 错误: {str(callback_error)}", exc_info=True)
-            ])
+            mock_logger.error.assert_has_calls(
+                [
+                    call(f"异步任务执行失败: {task_id}, 错误: {str(task_error)}", exc_info=True),
+                    call(
+                        f"任务错误回调执行失败: {task_id}, 错误: {str(callback_error)}",
+                        exc_info=True,
+                    ),
+                ]
+            )
 
     def test_cancel_task_success(self, task_manager_instance):
         """测试成功取消任务"""
@@ -384,17 +401,17 @@ class TestAsyncTaskManager:
         task_id = "task_to_cancel"
         task_mock = MagicMock()
         task_mock.done.return_value = False
-        
+
         # 添加任务到管理器
         task_manager_instance.tasks[task_id] = task_mock
-        
+
         # 执行取消操作
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             result = task_manager_instance.cancel_task(task_id)
-            
+
             # 验证记录了信息日志
             mock_logger.info.assert_called_once_with(f"已取消任务: {task_id}")
-        
+
         # 验证结果
         assert result is True
         task_mock.cancel.assert_called_once()
@@ -404,10 +421,10 @@ class TestAsyncTaskManager:
         # 尝试取消不存在的任务
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             result = task_manager_instance.cancel_task("nonexistent_task")
-            
+
             # 验证记录了警告日志
             mock_logger.warning.assert_called_once_with("尝试取消不存在的任务: nonexistent_task")
-        
+
         # 验证结果
         assert result is False
 
@@ -417,17 +434,17 @@ class TestAsyncTaskManager:
         task_id = "completed_task"
         task_mock = MagicMock()
         task_mock.done.return_value = True
-        
+
         # 添加任务到管理器
         task_manager_instance.tasks[task_id] = task_mock
-        
+
         # 尝试取消已完成的任务
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             result = task_manager_instance.cancel_task(task_id)
-            
+
             # 验证记录了警告日志
             mock_logger.warning.assert_called_once_with(f"尝试取消已完成的任务: {task_id}")
-        
+
         # 验证结果
         assert result is False
         task_mock.cancel.assert_not_called()
@@ -437,13 +454,13 @@ class TestAsyncTaskManager:
         # 准备测试数据
         task_id = "result_task"
         task_result = {"data": "task result data"}
-        
+
         # 设置任务结果
         task_manager_instance.results[task_id] = task_result
-        
+
         # 测试获取结果
         result = task_manager_instance.get_result(task_id)
-        
+
         # 验证结果
         assert result == task_result
 
@@ -451,7 +468,7 @@ class TestAsyncTaskManager:
         """测试获取不存在任务的结果"""
         # 测试获取不存在的任务结果
         result = task_manager_instance.get_result("nonexistent_task")
-        
+
         # 验证结果
         assert result is None
 
@@ -461,13 +478,13 @@ class TestAsyncTaskManager:
         task_id = "done_task"
         task_mock = MagicMock()
         task_mock.done.return_value = True
-        
+
         # 添加任务到管理器
         task_manager_instance.tasks[task_id] = task_mock
-        
+
         # 测试检查任务状态
         is_done = task_manager_instance.is_task_done(task_id)
-        
+
         # 验证结果
         assert is_done is True
 
@@ -477,13 +494,13 @@ class TestAsyncTaskManager:
         task_id = "running_task"
         task_mock = MagicMock()
         task_mock.done.return_value = False
-        
+
         # 添加任务到管理器
         task_manager_instance.tasks[task_id] = task_mock
-        
+
         # 测试检查任务状态
         is_done = task_manager_instance.is_task_done(task_id)
-        
+
         # 验证结果
         assert is_done is False
 
@@ -491,7 +508,7 @@ class TestAsyncTaskManager:
         """测试检查不存在任务的状态"""
         # 测试检查不存在的任务状态
         is_done = task_manager_instance.is_task_done("nonexistent_task")
-        
+
         # 验证结果
         assert is_done is False
 
@@ -502,19 +519,19 @@ class TestAsyncTaskManager:
         task_mock = MagicMock()
         result_mock = {"data": "some data"}
         callback_mock = Mock()
-        
+
         # 添加数据到管理器
         task_manager_instance.tasks[task_id] = task_mock
         task_manager_instance.results[task_id] = result_mock
         task_manager_instance.callbacks[task_id] = callback_mock
-        
+
         # 执行清除操作
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance.clear_task(task_id)
-            
+
             # 验证记录了调试日志
             mock_logger.debug.assert_called_once_with(f"已清除任务: {task_id}")
-        
+
         # 验证数据被清除
         assert task_id not in task_manager_instance.tasks
         assert task_id not in task_manager_instance.results
@@ -525,7 +542,7 @@ class TestAsyncTaskManager:
         # 执行清除操作
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance.clear_task("nonexistent_task")
-            
+
             # 验证记录了调试日志
             mock_logger.debug.assert_called_once_with("已清除任务: nonexistent_task")
 
@@ -534,7 +551,7 @@ class TestAsyncTaskManager:
         # 创建测试数据
         completed_tasks = ["task1", "task3"]
         running_tasks = ["task2", "task4"]
-        
+
         # 添加已完成的任务
         for task_id in completed_tasks:
             task_mock = MagicMock()
@@ -542,27 +559,29 @@ class TestAsyncTaskManager:
             task_manager_instance.tasks[task_id] = task_mock
             task_manager_instance.results[task_id] = {"data": f"{task_id} result"}
             task_manager_instance.callbacks[task_id] = Mock()
-        
+
         # 添加运行中的任务
         for task_id in running_tasks:
             task_mock = MagicMock()
             task_mock.done.return_value = False
             task_manager_instance.tasks[task_id] = task_mock
             task_manager_instance.callbacks[task_id] = Mock()
-        
+
         # 执行清除操作
         with patch("acolyte.core.utils.async_utils.logger") as mock_logger:
             task_manager_instance.clear_completed_tasks()
-            
+
             # 验证记录了信息日志
-            mock_logger.info.assert_called_once_with(f"已清除 {len(completed_tasks)} 个已完成的任务")
-        
+            mock_logger.info.assert_called_once_with(
+                f"已清除 {len(completed_tasks)} 个已完成的任务"
+            )
+
         # 验证已完成的任务被清除，运行中的任务保留
         for task_id in completed_tasks:
             assert task_id not in task_manager_instance.tasks
             assert task_id not in task_manager_instance.results
             assert task_id not in task_manager_instance.callbacks
-            
+
         for task_id in running_tasks:
             assert task_id in task_manager_instance.tasks
 
@@ -575,6 +594,6 @@ class TestGlobalTaskManager:
         # 导入两次模块，验证获取的是同一个实例
         from acolyte.core.utils.async_utils import task_manager as task_manager1
         from acolyte.core.utils.async_utils import task_manager as task_manager2
-        
+
         assert task_manager1 is task_manager2
         assert task_manager1 is task_manager

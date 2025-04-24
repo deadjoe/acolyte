@@ -20,39 +20,40 @@ from click.testing import CliRunner
 
 # ---------- 测试辅助函数 ----------
 
+
 def create_mock_response(status_code=200, json_data=None, raise_error=False):
     """创建模拟的HTTP响应对象
-    
+
     Args:
         status_code: HTTP状态码
         json_data: 响应的JSON数据
         raise_error: 是否在raise_for_status()时抛出异常
-    
+
     Returns:
         模拟的httpx.Response对象
     """
     mock_response = MagicMock(spec=httpx.Response)
     mock_response.status_code = status_code
-    
+
     if raise_error:
-        mock_response.raise_for_status = MagicMock(side_effect=httpx.HTTPStatusError(
-            "Error", request=MagicMock(), response=mock_response
-        ))
+        mock_response.raise_for_status = MagicMock(
+            side_effect=httpx.HTTPStatusError("Error", request=MagicMock(), response=mock_response)
+        )
     else:
         mock_response.raise_for_status = MagicMock()
-    
+
     if json_data is not None:
         mock_response.json = MagicMock(return_value=json_data)
-    
+
     return mock_response
 
 
 def create_mock_client_instance(responses=None):
     """创建模拟的httpx.AsyncClient实例
-    
+
     Args:
         responses: 字典，键为HTTP方法名(get, post等)，值为响应或响应列表
-    
+
     Returns:
         模拟的httpx.AsyncClient实例
     """
@@ -60,7 +61,7 @@ def create_mock_client_instance(responses=None):
     mock_client.__aenter__.return_value = mock_client
     mock_client.__aexit__.return_value = None
     mock_client.aclose = AsyncMock()
-    
+
     # 设置各HTTP方法的响应
     if responses:
         for method, response in responses.items():
@@ -71,30 +72,31 @@ def create_mock_client_instance(responses=None):
                 # 否则设置所有调用都返回同一个响应
                 method_mock = AsyncMock(return_value=response)
             setattr(mock_client, method, method_mock)
-    
+
     return mock_client
 
 
 def run_mock_command(runner, command, monkeypatch=None, mock_client=None, mock_responses=None):
     """运行CLI命令的辅助函数，处理模拟和依赖注入
-    
+
     Args:
         runner: CliRunner实例
         command: 命令列表，如['analyze', '--text', '测试']
         monkeypatch: pytest的monkeypatch fixture
         mock_client: 预配置的模拟AcolyteClient
         mock_responses: 模拟响应配置
-        
+
     Returns:
         命令执行结果
     """
     # 如果提供了monkeypatch和mock_client，注入模拟对象
     if monkeypatch and mock_client:
         from acolyte.cli import commands
+
         monkeypatch.setattr(commands, "AcolyteClient", MagicMock(return_value=mock_client))
-    
+
     # 使用patch_dict处理循环导入问题
-    with patch.dict('sys.modules', {'acolyte.cli.history_show': MagicMock()}):
+    with patch.dict("sys.modules", {"acolyte.cli.history_show": MagicMock()}):
         return runner.invoke(cli, command)
 
 
@@ -152,7 +154,7 @@ class TestCliCommands:
                 "role": "NORMAL",
             },
         ]
-        
+
         # 设置模拟客户端
         mock_client = MagicMock()
         mock_client.check_connection = AsyncMock(return_value=(True, None))
@@ -162,7 +164,7 @@ class TestCliCommands:
 
         # 直接操作asyncio.run，让它返回我们需要的结果
         original_run = asyncio.run
-        
+
         def mock_run(coro):
             # 如果是get_llms协程，返回我们的模拟数据
             if "get_llms" in str(coro):
@@ -173,7 +175,7 @@ class TestCliCommands:
             # 其他协程正常执行
             else:
                 return original_run(coro)
-        
+
         # 应用补丁
         with patch("acolyte.cli.commands.asyncio.run", mock_run):
             # 执行命令
@@ -183,7 +185,7 @@ class TestCliCommands:
             assert result.exit_code == 0
             # 验证表格或输出存在
             assert len(result.output) > 0
-            
+
             # 检查输出中包含LLM信息
             assert "Test LLM 1" in result.output or "LLM" in result.output
 
@@ -199,7 +201,7 @@ class TestCliCommands:
 
         # 直接操作asyncio.run，让它返回我们需要的结果
         original_run = asyncio.run
-        
+
         def mock_run(coro):
             # 如果是get_llms协程，返回空列表
             if "get_llms" in str(coro):
@@ -210,28 +212,28 @@ class TestCliCommands:
             # 其他协程正常执行
             else:
                 return original_run(coro)
-        
+
         # 应用补丁
         with patch("acolyte.cli.commands.asyncio.run", mock_run):
             # 执行命令
             result = runner.invoke(cli, ["config", "list-llms"])
-            
+
             # 验证结果
             assert result.exit_code == 0
             # 检查输出非空
             assert len(result.output) > 0
-            
+
             # 打印实际输出，帮助调试
             print(f"实际输出: {result.output}")
-            
+
             # 任何输出都可以接受，因为我们只是验证命令执行成功
 
-    @patch("acolyte.cli.commands.AcolyteClient") 
+    @patch("acolyte.cli.commands.AcolyteClient")
     def test_config_list_llms_connection_error(self, mock_client_class, runner):
         """测试配置列表LLM命令 - 连接错误情况"""
         # 设置模拟错误消息
         error_message = "连接错误"
-        
+
         # 设置模拟客户端
         mock_client = MagicMock()
         mock_client.check_connection = AsyncMock(return_value=(False, error_message))
@@ -244,7 +246,7 @@ class TestCliCommands:
             if "check_connection" in str(coro):
                 return False, error_message
             return None
-        
+
         # 应用补丁
         with patch("acolyte.cli.commands.asyncio.run", fake_asyncio_run):
             # 执行命令时，不要捕获异常，这样可以看到更详细的错误
@@ -325,30 +327,31 @@ class TestCliCommands:
     @patch("acolyte.cli.commands.AcolyteClient")
     def test_history_clear(self, mock_client_class, runner):
         """测试历史清空命令"""
+
         # 创建一个简单的模拟实现
         async def fake_clear_tasks(**kwargs):
             return {"message": "已清除 5 条任务记录"}
-            
+
         async def fake_check_connection():
             return True, None
-            
+
         # 设置模拟客户端
         mock_client = MagicMock()
         mock_client.clear_tasks = fake_clear_tasks
         mock_client.check_connection = fake_check_connection
         mock_client.close = AsyncMock()
         mock_client_class.return_value = mock_client
-        
+
         # 模拟用户输入和命令执行
         with patch("click.confirm", return_value=True):
             # 直接模拟 asyncio.run 调用结果
             mock_run = patch("acolyte.cli.commands.asyncio.run", return_value=None)
             mock_run.start()
-            
+
             try:
-                # 执行命令 
+                # 执行命令
                 result = runner.invoke(cli, ["history", "clear"])
-                
+
                 # 验证命令执行成功
                 assert result.exit_code == 0
             finally:
@@ -361,9 +364,7 @@ class TestCliCommands:
         # 设置模拟客户端
         mock_client = MagicMock()
         mock_client.check_connection = AsyncMock(return_value=(True, None))
-        mock_client.delete_llm = AsyncMock(
-            return_value={"success": True, "id": 1}
-        )
+        mock_client.delete_llm = AsyncMock(return_value={"success": True, "id": 1})
         mock_client_class.return_value = mock_client
 
         # 模拟 asyncio.run 执行协程对象
@@ -417,10 +418,14 @@ class TestCliCommands:
                 [
                     "config",
                     "add-llm",
-                    "--name", "Test LLM",
-                    "--api-key", "test-key",
-                    "--base-url", "http://test-url",
-                    "--model", "test-model",
+                    "--name",
+                    "Test LLM",
+                    "--api-key",
+                    "test-key",
+                    "--base-url",
+                    "http://test-url",
+                    "--model",
+                    "test-model",
                     "--default",
                 ],
             )
@@ -580,9 +585,7 @@ class TestCliCommands:
                 },
             }
         )
-        mock_client.delete_prompt = AsyncMock(
-            return_value={"id": 1, "file_deleted": False}
-        )
+        mock_client.delete_prompt = AsyncMock(return_value={"id": 1, "file_deleted": False})
         mock_client_class.return_value = mock_client
 
         # 模拟 asyncio.run 执行协程对象
@@ -609,9 +612,7 @@ class TestCliCommands:
                 },
             }
         )
-        mock_client.delete_prompt = AsyncMock(
-            return_value={"id": 1, "file_deleted": True}
-        )
+        mock_client.delete_prompt = AsyncMock(return_value={"id": 1, "file_deleted": True})
         mock_client_class.return_value = mock_client
 
         # 模拟 asyncio.run 执行协程对象
@@ -648,9 +649,11 @@ class TestCliCommands:
             def run_mock(coro):
                 # 获取协程对象的函数名
                 import inspect
+
                 if inspect.iscoroutine(coro):
                     # 如果是 _analyze 协程，则调用 mock_client.analyze
                     return None
+
             mock_run.side_effect = run_mock
 
             # 执行命令
@@ -671,37 +674,40 @@ class TestCliCommands:
         error_response = MagicMock()
         error_response.status_code = 500
         error_response.json.return_value = {"detail": "API错误"}
-        
+
         # 创建异步异常函数
         async def fake_analyze(**kwargs):
             raise httpx.HTTPStatusError("API错误", request=MagicMock(), response=error_response)
-            
+
         async def fake_check_connection():
             return True, None
-        
+
         # 设置模拟客户端
         mock_client = MagicMock()
         mock_client.analyze = fake_analyze
         mock_client.check_connection = fake_check_connection
         mock_client.close = AsyncMock()
         mock_client_class.return_value = mock_client
-        
+
         # 直接模拟 asyncio.run 执行传入的协程
         with patch("acolyte.cli.commands.asyncio.run") as mock_run:
             # 设置模拟 asyncio.run 的行为
             def execute_coroutine(coroutine):
                 # 如果是分析协程，抛出预期异常
                 if "_analyze" in str(coroutine):
-                    raise httpx.HTTPStatusError("API错误", request=MagicMock(), response=error_response)
+                    raise httpx.HTTPStatusError(
+                        "API错误", request=MagicMock(), response=error_response
+                    )
                 # 如果是连接检查协程，返回成功
                 if "check_connection" in str(coroutine):
                     return True, None
                 return None
+
             mock_run.side_effect = execute_coroutine
-            
+
             # 执行命令
             result = runner.invoke(cli, ["analyze", "--text", "测试内容", "--mode", "single"])
-            
+
             # 因为我们的模拟方式会导致异常传递到Click框架，所以我们验证结果码
             assert mock_run.called
             assert "API错误" in str(result.exception) or "错误" in str(result.exception)
@@ -774,9 +780,7 @@ class TestCliCommands:
         # 直接模拟 asyncio.run
         with patch("acolyte.cli.commands.asyncio.run") as mock_run:
             # 执行命令
-            result = runner.invoke(
-                cli, ["analyze", "--text", "测试内容", "--mode", "single"]
-            )
+            result = runner.invoke(cli, ["analyze", "--text", "测试内容", "--mode", "single"])
 
             # 验证结果
             assert result.exit_code == 0
@@ -800,9 +804,7 @@ class TestCliCommands:
         # 直接模拟 asyncio.run
         with patch("acolyte.cli.commands.asyncio.run") as mock_run:
             # 执行命令
-            result = runner.invoke(
-                cli, ["analyze", "--text", "测试内容", "--mode", "multiple"]
-            )
+            result = runner.invoke(cli, ["analyze", "--text", "测试内容", "--mode", "multiple"])
 
             # 验证结果
             assert result.exit_code == 0
@@ -915,7 +917,7 @@ class TestCliCommands:
 
         # 创建模拟响应
         mock_response = create_mock_response(json_data={"id": 123, "status": "pending"})
-        
+
         # 设置模拟客户端
         mock_client = create_mock_client_instance()
         mock_client.check_connection = AsyncMock(return_value=(True, None))
@@ -927,12 +929,12 @@ class TestCliCommands:
         def fake_asyncio_run(coro):
             # 简单返回预期的结果，避免实际运行协程
             return {"id": 123, "status": "pending"}
-        
+
         # 应用补丁
         with patch("acolyte.cli.commands.asyncio.run", fake_asyncio_run):
             # 执行命令
             result = runner.invoke(cli, [test_file_path, "--mode", "single", "--wait"])
-            
+
             # 验证结果
             assert result.exit_code == 0
 
@@ -948,9 +950,7 @@ class TestCliCommands:
         # 直接模拟 asyncio.run
         with patch("acolyte.cli.commands.asyncio.run") as mock_run:
             # 执行命令
-            result = runner.invoke(
-                cli, ["analyze", "--text", "测试内容", "--mode", "single"]
-            )
+            result = runner.invoke(cli, ["analyze", "--text", "测试内容", "--mode", "single"])
 
             # 验证结果
             assert result.exit_code == 0
@@ -968,9 +968,7 @@ class TestCliCommands:
         # 直接模拟 asyncio.run
         with patch("acolyte.cli.commands.asyncio.run") as mock_run:
             # 执行命令
-            result = runner.invoke(
-                cli, ["analyze", "--text", "测试内容", "--mode", "single"]
-            )
+            result = runner.invoke(cli, ["analyze", "--text", "测试内容", "--mode", "single"])
 
             # 验证结果
             assert result.exit_code == 0
@@ -995,6 +993,7 @@ class TestCliCommands:
             # 验证 asyncio.run 被调用
             mock_run.assert_called_once()
 
+
 class TestAcolyteClient:
     """测试AcolyteClient类"""
 
@@ -1002,6 +1001,7 @@ class TestAcolyteClient:
     def client(self):
         """创建AcolyteClient实例"""
         from acolyte.cli.commands import AcolyteClient
+
         return AcolyteClient(base_url="http://localhost:8000/api")
 
     @pytest.mark.asyncio
@@ -1009,18 +1009,18 @@ class TestAcolyteClient:
         """测试成功的连接检查"""
         # 创建成功响应的模拟
         mock_response = create_mock_response(status_code=200)
-        
+
         # 创建模拟客户端实例
-        mock_temp_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_temp_client = create_mock_client_instance(responses={"get": mock_response})
+
         # 创建主客户端实例
         mock_client_instance = AsyncMock()
-        
-        with patch("acolyte.cli.commands.httpx.AsyncClient", 
-                   side_effect=[mock_client_instance, mock_temp_client]):
-            
+
+        with patch(
+            "acolyte.cli.commands.httpx.AsyncClient",
+            side_effect=[mock_client_instance, mock_temp_client],
+        ):
+
             # 创建客户端并检查连接
             client = AcolyteClient()
             result, error = await client.check_connection()
@@ -1028,7 +1028,7 @@ class TestAcolyteClient:
             # 验证结果
             assert result is True
             assert error is None
-            
+
             # 验证get请求被调用
             mock_temp_client.get.assert_called_once()
             # 注意：不检查具体URL，因为实现可能会变化
@@ -1038,14 +1038,16 @@ class TestAcolyteClient:
         """测试连接失败的情况"""
         # 创建主客户端实例
         mock_client_instance = AsyncMock()
-        
+
         # 创建会抛出连接错误的临时客户端
         mock_temp_client = create_mock_client_instance()
         mock_temp_client.get = AsyncMock(side_effect=httpx.ConnectError("连接错误"))
-        
-        with patch("acolyte.cli.commands.httpx.AsyncClient", 
-                   side_effect=[mock_client_instance, mock_temp_client]):
-            
+
+        with patch(
+            "acolyte.cli.commands.httpx.AsyncClient",
+            side_effect=[mock_client_instance, mock_temp_client],
+        ):
+
             # 创建客户端并检查连接
             client = AcolyteClient()
             result, error = await client.check_connection()
@@ -1054,7 +1056,7 @@ class TestAcolyteClient:
             assert result is False
             assert "无法连接到API服务" in error
             # 注意：错误消息可能会变化，只检查关键部分
-            
+
             # 验证尝试了连接
             mock_temp_client.get.assert_called_once()
 
@@ -1067,20 +1069,20 @@ class TestAcolyteClient:
             "task_count": 1,
             "llm_count": 0,
             "prompt_count": 0,
-            "database_status": "connected"
+            "database_status": "connected",
         }
-        
+
         # 创建模拟响应和客户端
         tasks_response = create_mock_response(json_data={"tasks": ["task1"]})
         llms_response = create_mock_response(json_data=[])
         prompts_response = create_mock_response(json_data=[])
         version_response = create_mock_response(json_data={"version": "1.0.0"})
-        
+
         # 使用side_effect来模拟多次不同的get调用
         mock_client = create_mock_client_instance(
             responses={"get": [tasks_response, llms_response, prompts_response, version_response]}
         )
-        
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取系统信息
             client = AcolyteClient()
@@ -1092,14 +1094,14 @@ class TestAcolyteClient:
             assert "llm_count" in result
             assert "prompt_count" in result
             assert "database_status" in result
-            
+
             # 不需要验证具体值，因为它们可能会根据实际实现变化
             assert isinstance(result["version"], str)
             assert isinstance(result["task_count"], int)
             assert isinstance(result["llm_count"], int)
             assert isinstance(result["prompt_count"], int)
             assert isinstance(result["database_status"], str)
-            
+
             # 验证get被调用了相应次数
             assert mock_client.get.call_count >= 1
 
@@ -1109,10 +1111,8 @@ class TestAcolyteClient:
         # 准备模拟响应
         success_response = {"status": "ok"}
         mock_response = create_mock_response(json_data=success_response)
-        mock_client = create_mock_client_instance(
-            responses={"post": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"post": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并设置默认LLM
             client = AcolyteClient()
@@ -1120,7 +1120,7 @@ class TestAcolyteClient:
 
             # 验证结果
             assert result == success_response
-            
+
             # 验证调用了正确的端点和方法，但不检查具体参数
             assert mock_client.post.call_count == 1
             call_args = mock_client.post.call_args
@@ -1132,10 +1132,8 @@ class TestAcolyteClient:
         # 准备模拟响应
         success_response = {"status": "ok"}
         mock_response = create_mock_response(json_data=success_response)
-        mock_client = create_mock_client_instance(
-            responses={"delete": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"delete": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并清除任务
             client = AcolyteClient()
@@ -1143,7 +1141,7 @@ class TestAcolyteClient:
 
             # 验证结果
             assert result == success_response
-            
+
             # 验证调用了正确的端点和方法，但不检查具体参数
             assert mock_client.delete.call_count == 1
             call_args = mock_client.delete.call_args
@@ -1155,10 +1153,8 @@ class TestAcolyteClient:
         # 准备模拟响应
         task_response = {"id": 123, "status": "pending"}
         mock_response = create_mock_response(json_data=task_response)
-        mock_client = create_mock_client_instance(
-            responses={"post": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"post": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并执行分析
             client = AcolyteClient()
@@ -1166,7 +1162,7 @@ class TestAcolyteClient:
 
             # 验证结果
             assert result == task_response
-            
+
             # 验证发送了正确的请求，但不检查具体参数
             assert mock_client.post.call_count == 1
             call_args = mock_client.post.call_args
@@ -1178,23 +1174,18 @@ class TestAcolyteClient:
         # 准备模拟响应
         task_response = {"id": 123, "status": "pending"}
         mock_response = create_mock_response(json_data=task_response)
-        mock_client = create_mock_client_instance(
-            responses={"post": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"post": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并执行分析，包含所有可选参数
             client = AcolyteClient()
             result = await client.analyze(
-                "测试内容", 
-                mode="multiple",
-                llm_ids=[1, 2, 3],
-                prompt_id=5
+                "测试内容", mode="multiple", llm_ids=[1, 2, 3], prompt_id=5
             )
 
             # 验证结果
             assert result == task_response
-            
+
             # 验证发送了正确的请求及所有参数，但不检查具体参数
             assert mock_client.post.call_count == 1
             call_args = mock_client.post.call_args
@@ -1205,20 +1196,20 @@ class TestAcolyteClient:
         """测试分析功能发生错误的情况"""
         # 创建会抛出错误的客户端
         mock_client = create_mock_client_instance()
-        mock_client.post = AsyncMock(side_effect=httpx.HTTPStatusError(
-            "服务器错误", 
-            request=MagicMock(), 
-            response=MagicMock(status_code=500)
-        ))
-        
+        mock_client.post = AsyncMock(
+            side_effect=httpx.HTTPStatusError(
+                "服务器错误", request=MagicMock(), response=MagicMock(status_code=500)
+            )
+        )
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并尝试执行分析
             client = AcolyteClient()
-            
+
             # 验证异常被正确抛出并包含错误信息
             with pytest.raises(httpx.HTTPStatusError) as excinfo:
                 await client.analyze("测试内容", mode="single")
-            
+
             assert "服务器错误" in str(excinfo.value)
 
     @pytest.mark.asyncio
@@ -1229,13 +1220,11 @@ class TestAcolyteClient:
             {"id": 1, "name": "LLM1"},
             {"id": 2, "name": "LLM2"},
         ]
-        
+
         # 创建模拟响应和客户端
         mock_response = create_mock_response(json_data=llms_data)
-        mock_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"get": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取LLM列表
             client = AcolyteClient()
@@ -1245,7 +1234,7 @@ class TestAcolyteClient:
             assert result == llms_data
             assert len(result) == 2
             assert result[0]["id"] == 1
-            
+
             # 验证调用了正确的端点，但不检查具体参数
             assert mock_client.get.call_count == 1
             call_args = mock_client.get.call_args
@@ -1255,18 +1244,12 @@ class TestAcolyteClient:
     async def test_get_task(self):
         """测试获取任务详情"""
         # 准备模拟任务数据
-        task_data = {
-            "id": 123,
-            "status": "completed",
-            "result": "测试结果"
-        }
-        
+        task_data = {"id": 123, "status": "completed", "result": "测试结果"}
+
         # 创建模拟响应和客户端
         mock_response = create_mock_response(json_data=task_data)
-        mock_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"get": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取任务
             client = AcolyteClient()
@@ -1276,7 +1259,7 @@ class TestAcolyteClient:
             assert result == task_data
             assert result["id"] == 123
             assert result["status"] == "completed"
-            
+
             # 验证调用了正确的端点，但不检查具体参数
             assert mock_client.get.call_count == 1
             call_args = mock_client.get.call_args
@@ -1287,20 +1270,20 @@ class TestAcolyteClient:
         """测试获取不存在的任务"""
         # 创建会抛出404错误的客户端
         mock_client = create_mock_client_instance()
-        mock_client.get = AsyncMock(side_effect=httpx.HTTPStatusError(
-            "任务不存在", 
-            request=MagicMock(), 
-            response=MagicMock(status_code=404)
-        ))
-        
+        mock_client.get = AsyncMock(
+            side_effect=httpx.HTTPStatusError(
+                "任务不存在", request=MagicMock(), response=MagicMock(status_code=404)
+            )
+        )
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并尝试获取不存在的任务
             client = AcolyteClient()
-            
+
             # 验证异常被正确抛出
             with pytest.raises(httpx.HTTPStatusError) as excinfo:
                 await client.get_task(999)
-            
+
             assert "任务不存在" in str(excinfo.value)
             assert mock_client.get.call_args[0][0] == "/tasks/999"
 
@@ -1312,13 +1295,11 @@ class TestAcolyteClient:
             {"llm_id": 1, "score": 0.9, "content": "结果1"},
             {"llm_id": 2, "score": 0.8, "content": "结果2"},
         ]
-        
+
         # 创建模拟响应和客户端
         mock_response = create_mock_response(json_data=results_data)
-        mock_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"get": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取任务结果
             client = AcolyteClient()
@@ -1328,7 +1309,7 @@ class TestAcolyteClient:
             assert result == results_data
             assert len(result) == 2
             assert result[0]["llm_id"] == 1
-            
+
             # 验证调用了正确的端点，但不检查具体参数
             assert mock_client.get.call_count == 1
             call_args = mock_client.get.call_args
@@ -1338,17 +1319,12 @@ class TestAcolyteClient:
     async def test_get_task_final_result(self):
         """测试获取任务最终结果"""
         # 准备模拟最终结果数据
-        final_result = {
-            "content": "最终分析结果",
-            "selected_llm_id": 1
-        }
-        
+        final_result = {"content": "最终分析结果", "selected_llm_id": 1}
+
         # 创建模拟响应和客户端
         mock_response = create_mock_response(json_data=final_result)
-        mock_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"get": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取最终结果
             client = AcolyteClient()
@@ -1357,7 +1333,7 @@ class TestAcolyteClient:
             # 验证结果
             assert result == final_result
             assert result["content"] == "最终分析结果"
-            
+
             # 验证调用了正确的端点，但不检查具体参数
             assert mock_client.get.call_count == 1
             call_args = mock_client.get.call_args
@@ -1371,13 +1347,11 @@ class TestAcolyteClient:
             {"id": 1, "name": "提示词1"},
             {"id": 2, "name": "提示词2"},
         ]
-        
+
         # 创建模拟响应和客户端
         mock_response = create_mock_response(json_data=prompts_data)
-        mock_client = create_mock_client_instance(
-            responses={"get": mock_response}
-        )
-        
+        mock_client = create_mock_client_instance(responses={"get": mock_response})
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并获取提示词列表
             client = AcolyteClient()
@@ -1386,7 +1360,7 @@ class TestAcolyteClient:
             # 验证结果
             assert result == prompts_data
             assert len(result) == 2
-            
+
             # 验证调用了正确的端点，但不检查具体参数
             assert mock_client.get.call_count == 1
             call_args = mock_client.get.call_args
@@ -1397,11 +1371,11 @@ class TestAcolyteClient:
         """测试关闭客户端"""
         # 创建模拟客户端
         mock_client = create_mock_client_instance()
-        
+
         with patch("acolyte.cli.commands.httpx.AsyncClient", return_value=mock_client):
             # 创建客户端并关闭
             client = AcolyteClient()
             await client.close()
-            
+
             # 验证aclose被调用
             mock_client.aclose.assert_called_once()
