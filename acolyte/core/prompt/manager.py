@@ -33,82 +33,16 @@ class PromptManager:
     - 示例：`prompt_v1.0.txt`、`prompt_v2.1_claude.txt`
     """
 
-    def __init__(self, prompt_dir: str = None):
-        """
-        初始化Prompt管理器
-
-        该方法初始化PromptManager实例，设置提示词模板目录路径。
-        如果未指定目录路径，它会尝试自动查找项目根目录下的prompt目录。
-        如果找不到，则创建一个新的prompt目录。
-
-        查找流程：
-        1. 如果指定了prompt_dir，直接使用
-        2. 否则，尝试查找项目根目录（包含.git目录或pyproject.toml文件）
-        3. 如果找到项目根目录，则在其下查找prompt目录
-        4. 如果找不到项目根目录，则使用当前目录的父目录
-        5. 如果找不到prompt目录，则创建一个新的prompt目录
-
-        Args:
-            prompt_dir: prompt模板目录路径，默认为项目根目录下的prompt目录
-        """
+    def __init__(self):
+        """初始化Prompt管理器"""
         logger.info("初始化Prompt管理器")
-
-        # 如果传入了prompt_dir，直接使用
-        if prompt_dir:
-            logger.info(f"使用传入的prompt目录: {prompt_dir}")
-        else:
-            # 否则尝试从其他来源获取
-            logger.debug("未提供prompt_dir参数，尝试从其他来源获取")
-            # 首先检查环境变量
-            env_prompt_dir = os.environ.get("ACOLYTE_PROMPT_DIR")
-            if env_prompt_dir:
-                logger.info(f"从环境变量获取prompt目录: {env_prompt_dir}")
-                prompt_dir = env_prompt_dir
-            # 如果没有从环境变量中找到prompt_dir，尝试自动查找
-            if not prompt_dir:
-                logger.debug("尝试自动查找prompt目录")
-                # 获取当前文件所在目录
-                current_dir = Path(__file__).resolve().parent
-                logger.debug(f"当前目录: {current_dir}")
-
-                # 向上查找，回到上层直到找到项目根目录
-                # 从父目录开始查找，避免将当前目录误认为prompt目录
-                root_dir = current_dir.parent
-                logger.debug(f"开始从父目录查找: {root_dir}")
-
-                # 向上一级一级查找直到找到项目根目录
-                # 首先查找项目根目录（包含.git目录或pyproject.toml文件）
-                project_root = None
-                search_dir = root_dir
-                while search_dir != search_dir.parent:
-                    # 检查是否是项目根目录
-                    if (search_dir / ".git").exists() or (search_dir / "pyproject.toml").exists():
-                        project_root = search_dir
-                        logger.debug(f"找到项目根目录: {project_root}")
-                        break
-                    # 否则继续向上查找
-                    search_dir = search_dir.parent
-                    logger.debug(f"向上查找项目根目录: {search_dir}")
-
-                # 如果找到项目根目录，则在项目根目录下查找prompt目录
-                if project_root:
-                    root_dir = project_root
-                    logger.debug(f"在项目根目录{root_dir}下查找prompt目录")
-                else:
-                    # 如果没有找到项目根目录，则使用当前目录的父目录
-                    logger.warning("未找到项目根目录，将使用当前目录的父目录")
-
-                # 检查项目根目录下是否存在prompt目录
-                if (root_dir / "prompt").exists():
-                    logger.info(f"找到prompt目录: {root_dir / 'prompt'}")
-                    prompt_dir = str(root_dir / "prompt")
-                else:
-                    logger.warning("未找到prompt目录，将使用默认目录并尝试创建")
-                    prompt_dir = str(root_dir / "prompt")  # 仍然使用这个路径，但会创建目录
-
-        logger.info(f"最终选择的prompt目录: {prompt_dir}")
-
-        self.prompt_dir = prompt_dir
+        
+        # 固定路径为项目根目录下的prompt子目录
+        # 从manager.py向上4级目录到达应用根目录
+        app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        self.prompt_dir = os.path.join(app_root, "prompt")
+        logger.info(f"使用固定prompt目录: {self.prompt_dir}")
+        
         self._ensure_prompt_dir_exists()
 
     def _ensure_prompt_dir_exists(self):

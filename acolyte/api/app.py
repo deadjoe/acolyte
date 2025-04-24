@@ -133,14 +133,10 @@ async def startup_event():
         db.create_tables()
         logger.info("数据库表初始化完成")
 
-        # 初始化Prompt管理器并同步Prompt文件到数据库
+        # 初始化Prompt管理器
         logger.info("正在初始化Prompt管理器...")
         prompt_manager = PromptManager()
         logger.info("Prompt管理器初始化完成")
-
-        logger.info("正在同步Prompt文件到数据库...")
-        prompt_manager.sync_prompt_files_to_db()
-        logger.info("Prompt文件同步完成")
 
         # 记录PID文件用于服务管理
         pid = os.getpid()
