@@ -28,11 +28,7 @@ class TestRetryConfig:
 
     def test_init_with_custom_values(self):
         """测试使用自定义值初始化"""
-        config = RetryConfig(
-            max_retries=5,
-            initial_delay=0.5,
-            retry_status_codes=[500, 502]
-        )
+        config = RetryConfig(max_retries=5, initial_delay=0.5, retry_status_codes=[500, 502])
 
         assert config.max_retries == 5
         assert config.initial_delay == 0.5
@@ -53,7 +49,7 @@ class TestRetryConfig:
             initial_delay=1.0,
             backoff_factor=2.0,
             max_delay=10.0,
-            jitter=False  # 关闭抖动以便于测试
+            jitter=False,  # 关闭抖动以便于测试
         )
 
         # 第一次重试 (attempt=0)
@@ -91,10 +87,7 @@ class TestErrorHandler:
         response = MagicMock()
         response.status_code = 429
         response.json.return_value = {
-            "error": {
-                "message": "Too many requests",
-                "type": "rate_limit_error"
-            }
+            "error": {"message": "Too many requests", "type": "rate_limit_error"}
         }
         response.headers = {"retry-after": "30"}
         response.text = '{"error": {"message": "Too many requests", "type": "rate_limit_error"}}'
@@ -103,11 +96,7 @@ class TestErrorHandler:
         request.url = "https://api.example.com/v1/chat/completions"
         request.method = "POST"
 
-        error = httpx.HTTPStatusError(
-            "Too many requests",
-            request=request,
-            response=response
-        )
+        error = httpx.HTTPStatusError("Too many requests", request=request, response=response)
 
         # 处理错误
         error_info = ErrorHandler.handle_httpx_error(error, provider="openai")
@@ -150,7 +139,9 @@ class TestErrorHandler:
     def test_handle_request_error_json_decode(self):
         """测试处理JSON解析错误"""
         # 创建JSON解析错误
-        error = json.JSONDecodeError("Expecting property name enclosed in double quotes", "{invalid", 1)
+        error = json.JSONDecodeError(
+            "Expecting property name enclosed in double quotes", "{invalid", 1
+        )
 
         # 处理错误
         error_info = ErrorHandler.handle_request_error(error, provider="deepseek")
@@ -169,11 +160,7 @@ class TestErrorHandler:
         response.headers = {}
         response.text = '{"error": {"message": "Rate limit exceeded"}}'
 
-        error = httpx.HTTPStatusError(
-            "Rate limit exceeded",
-            request=MagicMock(),
-            response=response
-        )
+        error = httpx.HTTPStatusError("Rate limit exceeded", request=MagicMock(), response=response)
 
         # 处理错误
         error_info = ErrorHandler.handle_httpx_error(error, provider="openai")
@@ -197,11 +184,7 @@ class TestErrorHandler:
         response.headers = {}
         response.text = '{"error": {"message": "Invalid API key"}}'
 
-        error = httpx.HTTPStatusError(
-            "Invalid API key",
-            request=MagicMock(),
-            response=response
-        )
+        error = httpx.HTTPStatusError("Invalid API key", request=MagicMock(), response=response)
 
         # 处理错误
         error_info = ErrorHandler.handle_httpx_error(error, provider="openai")

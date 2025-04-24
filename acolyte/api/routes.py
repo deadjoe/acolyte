@@ -29,11 +29,7 @@ async def health_check():
     from acolyte import __version__
     from datetime import datetime
 
-    return {
-        "status": "ok",
-        "version": __version__,
-        "timestamp": datetime.now()
-    }
+    return {"status": "ok", "version": __version__, "timestamp": datetime.now()}
 
 
 # 获取数据库会话依赖

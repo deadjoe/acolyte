@@ -46,7 +46,7 @@ class TestReviewProcessor:
             mock_instance.process.return_value = {
                 "success": True,
                 "task_id": 1,
-                "result_ids": [1, 2, 3]
+                "result_ids": [1, 2, 3],
             }
             # 设置类实例化返回模拟实例
             mock_class.return_value = mock_instance
@@ -60,7 +60,7 @@ class TestReviewProcessor:
             "content": "测试内容",
             "status": TaskStatus.PENDING.value,
             "created_at": time.time(),
-            "updated_at": time.time()
+            "updated_at": time.time(),
         }
 
     @pytest.fixture
@@ -74,7 +74,7 @@ class TestReviewProcessor:
                 "bias_index": 7.5,
                 "misleading_index": 6.2,
                 "hidden_intent_index": 4.8,
-                "credibility_score": 60.5
+                "credibility_score": 60.5,
             },
             {
                 "id": 2,
@@ -83,7 +83,7 @@ class TestReviewProcessor:
                 "bias_index": 6.8,
                 "misleading_index": 5.5,
                 "hidden_intent_index": 3.9,
-                "credibility_score": 65.2
+                "credibility_score": 65.2,
             },
             {
                 "id": 3,
@@ -92,8 +92,8 @@ class TestReviewProcessor:
                 "bias_index": 8.1,
                 "misleading_index": 7.0,
                 "hidden_intent_index": 5.2,
-                "credibility_score": 55.8
-            }
+                "credibility_score": 55.8,
+            },
         ]
 
     @pytest.fixture
@@ -106,7 +106,7 @@ class TestReviewProcessor:
                 "base_url": "https://api.test.com",
                 "model_name": "test-model-1",
                 "role": LlmRole.REVIEWER.value,
-                "is_default": False
+                "is_default": False,
             },
             {
                 "id": 5,
@@ -114,8 +114,8 @@ class TestReviewProcessor:
                 "base_url": "https://api.test.com",
                 "model_name": "test-model-2",
                 "role": LlmRole.REVIEWER.value,
-                "is_default": False
-            }
+                "is_default": False,
+            },
         ]
 
     @pytest.mark.asyncio
@@ -126,10 +126,9 @@ class TestReviewProcessor:
         error_message = "处理失败"
 
         # 模拟multiple_processor.process返回失败
-        processor.multiple_processor.process = AsyncMock(return_value={
-            "success": False,
-            "error": error_message
-        })
+        processor.multiple_processor.process = AsyncMock(
+            return_value={"success": False, "error": error_message}
+        )
 
         # 模拟_update_task_status返回成功
         processor._update_task_status = AsyncMock(return_value=True)
@@ -143,10 +142,10 @@ class TestReviewProcessor:
 
         # 验证方法调用
         assert processor._update_task_status.call_count == 2
-        processor._update_task_status.assert_has_calls([
-            call(task_id, TaskStatus.PROCESSING),
-            call(task_id, TaskStatus.FAILED)
-        ], any_order=False)
+        processor._update_task_status.assert_has_calls(
+            [call(task_id, TaskStatus.PROCESSING), call(task_id, TaskStatus.FAILED)],
+            any_order=False,
+        )
 
     @pytest.mark.asyncio
     async def test_process_with_no_reviewers(self, processor):
@@ -157,12 +156,14 @@ class TestReviewProcessor:
         results = [{"id": i} for i in result_ids]
 
         # 模拟multiple_processor.process返回成功
-        processor.multiple_processor.process = AsyncMock(return_value={
-            "success": True,
-            "task_id": task_id,
-            "result_ids": result_ids,
-            "results": results
-        })
+        processor.multiple_processor.process = AsyncMock(
+            return_value={
+                "success": True,
+                "task_id": task_id,
+                "result_ids": result_ids,
+                "results": results,
+            }
+        )
 
         # 模拟_get_reviewers_for_task返回空列表
         processor._get_reviewers_for_task = AsyncMock(return_value=[])
@@ -190,11 +191,9 @@ class TestReviewProcessor:
         task_id = 1
 
         # 模拟multiple_processor.process返回成功
-        processor.multiple_processor.process = AsyncMock(return_value={
-            "success": True,
-            "task_id": task_id,
-            "result_ids": [1, 2, 3]
-        })
+        processor.multiple_processor.process = AsyncMock(
+            return_value={"success": True, "task_id": task_id, "result_ids": [1, 2, 3]}
+        )
 
         # 模拟_get_reviewers_for_task返回单个评议者
         reviewer = {"id": 1, "name": "Reviewer 1"}
@@ -208,11 +207,9 @@ class TestReviewProcessor:
             mock_run_in_session.return_value = True
 
         # 模拟_single_reviewer_mode返回成功
-        processor._single_reviewer_mode = AsyncMock(return_value={
-            "success": True,
-            "task_id": task_id,
-            "final_result_id": 2
-        })
+        processor._single_reviewer_mode = AsyncMock(
+            return_value={"success": True, "task_id": task_id, "final_result_id": 2}
+        )
 
         # 执行测试
         result = await processor.process(task_id)
@@ -234,18 +231,17 @@ class TestReviewProcessor:
         results = [{"id": i} for i in result_ids]
 
         # 模拟multiple_processor.process返回成功
-        processor.multiple_processor.process = AsyncMock(return_value={
-            "success": True,
-            "task_id": task_id,
-            "result_ids": result_ids,
-            "results": results
-        })
+        processor.multiple_processor.process = AsyncMock(
+            return_value={
+                "success": True,
+                "task_id": task_id,
+                "result_ids": result_ids,
+                "results": results,
+            }
+        )
 
         # 模拟_get_reviewers_for_task返回多个评议者
-        reviewers = [
-            {"id": 1, "name": "Reviewer 1"},
-            {"id": 2, "name": "Reviewer 2"}
-        ]
+        reviewers = [{"id": 1, "name": "Reviewer 1"}, {"id": 2, "name": "Reviewer 2"}]
         processor._get_reviewers_for_task = AsyncMock(return_value=reviewers)
 
         # 模拟_multiple_reviewer_vote_mode返回成功
@@ -254,7 +250,7 @@ class TestReviewProcessor:
             "task_id": task_id,
             "final_result_id": 2,
             "vote_counts": {1: 1, 2: 2},
-            "valid_votes": 2
+            "valid_votes": 2,
         }
         processor._multiple_reviewer_vote_mode = AsyncMock(return_value=vote_result)
 
@@ -272,10 +268,7 @@ class TestReviewProcessor:
 
         # 验证方法调用
         processor._multiple_reviewer_vote_mode.assert_called_once_with(
-            task_id=task_id,
-            task_content="测试内容",
-            reviewers=reviewers,
-            result_ids=result_ids
+            task_id=task_id, task_content="测试内容", reviewers=reviewers, result_ids=result_ids
         )
 
     @pytest.mark.asyncio
@@ -291,7 +284,7 @@ class TestReviewProcessor:
             "base_url": "https://api.test.com",
             "model_name": "test-model",
             "role": LlmRole.REVIEWER,
-            "is_default": False
+            "is_default": False,
         }
         result_ids = [1, 2, 3]
 
@@ -311,24 +304,30 @@ class TestReviewProcessor:
 
         # 模拟LLM客户端
         mock_client = MagicMock()
-        mock_client.process_content = AsyncMock(return_value={
-            "success": True,
-            "raw_response": "评议结果原始响应",
-            "result": {
-                "content": "评议结果内容",
-                "scores": {
-                    "bias_index": 7.0,
-                    "misleading_index": 6.0,
-                    "hidden_intent_index": 5.0,
-                    "credibility_score": 65.0
-                }
+        mock_client.process_content = AsyncMock(
+            return_value={
+                "success": True,
+                "raw_response": "评议结果原始响应",
+                "result": {
+                    "content": "评议结果内容",
+                    "scores": {
+                        "bias_index": 7.0,
+                        "misleading_index": 6.0,
+                        "hidden_intent_index": 5.0,
+                        "credibility_score": 65.0,
+                    },
+                },
             }
-        })
+        )
 
         # 模拟get_client_for_llm函数
-        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
+        with patch(
+            "acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client
+        ):
             # 执行测试
-            result = await processor._single_reviewer_mode(task_id, task_content, reviewer, result_ids)
+            result = await processor._single_reviewer_mode(
+                task_id, task_content, reviewer, result_ids
+            )
 
             # 验证结果
             assert result["success"] is True
@@ -341,14 +340,13 @@ class TestReviewProcessor:
             processor._create_review_prompt.assert_called_once_with(mock_results)
             processor._rebuild_llm_config.assert_called_once_with(reviewer)
             mock_client.process_content.assert_called_once_with(
-                content=task_content,
-                prompt="测试评议提示词"
+                content=task_content, prompt="测试评议提示词"
             )
             processor._save_result.assert_called_once_with(
                 task_id=task_id,
                 llm_id=reviewer["id"],
                 result=mock_client.process_content.return_value,
-                is_review_result=True
+                is_review_result=True,
             )
             processor._update_task_status.assert_called_once_with(task_id, TaskStatus.COMPLETED)
 
@@ -365,16 +363,15 @@ class TestReviewProcessor:
             "base_url": "https://api.test.com",
             "model_name": "test-model",
             "role": LlmRole.REVIEWER,
-            "is_default": False
+            "is_default": False,
         }
         result_ids = [1, 2, 3]
 
         # 模拟方法
         processor._get_task_results = AsyncMock(return_value=[])
-        processor._handle_error = AsyncMock(return_value={
-            "success": False,
-            "error": "获取任务结果失败"
-        })
+        processor._handle_error = AsyncMock(
+            return_value={"success": False, "error": "获取任务结果失败"}
+        )
 
         # 执行测试
         result = await processor._single_reviewer_mode(task_id, task_content, reviewer, result_ids)
@@ -397,30 +394,37 @@ class TestReviewProcessor:
         result_ids = [1, 2, 3]
 
         # 模拟方法
-        with patch.object(processor, '_get_task_results', return_value=mock_results) as mock_get_results, \
-             patch.object(processor, '_create_vote_prompt', return_value="测试投票提示词") as mock_create_prompt, \
-             patch.object(processor, '_create_reviewer_task') as mock_create_task, \
-             patch.object(processor, '_save_votes') as mock_save_votes, \
-             patch.object(processor, '_count_votes', return_value={1: 0, 2: 2, 3: 0}) as mock_count_votes, \
-             patch.object(processor, '_set_final_result', return_value=True) as mock_set_final, \
-             patch.object(processor, '_update_task_status', return_value=True) as mock_update_status:
+        with (
+            patch.object(
+                processor, "_get_task_results", return_value=mock_results
+            ) as mock_get_results,
+            patch.object(
+                processor, "_create_vote_prompt", return_value="测试投票提示词"
+            ) as mock_create_prompt,
+            patch.object(processor, "_create_reviewer_task") as mock_create_task,
+            patch.object(processor, "_save_votes") as mock_save_votes,
+            patch.object(
+                processor, "_count_votes", return_value={1: 0, 2: 2, 3: 0}
+            ) as mock_count_votes,
+            patch.object(processor, "_set_final_result", return_value=True) as mock_set_final,
+            patch.object(processor, "_update_task_status", return_value=True) as mock_update_status,
+        ):
 
             # 模拟评议者处理结果
             vote_results = [
-                {
-                    "success": True,
-                    "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
-                },
-                {
-                    "success": True,
-                    "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."
-                }
+                {"success": True, "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."},
+                {"success": True, "raw_response": "我投票给 LLM 2 (ID: 2)，因为..."},
             ]
 
             # 模拟gather_with_concurrency
-            with patch("acolyte.core.task.processors.review.gather_with_concurrency", return_value=vote_results):
+            with patch(
+                "acolyte.core.task.processors.review.gather_with_concurrency",
+                return_value=vote_results,
+            ):
                 # 执行测试
-                result = await processor._multiple_reviewer_vote_mode(task_id, task_content, mock_reviewers, result_ids)
+                result = await processor._multiple_reviewer_vote_mode(
+                    task_id, task_content, mock_reviewers, result_ids
+                )
 
                 # 验证结果
                 assert result["success"] is True
@@ -447,16 +451,19 @@ class TestReviewProcessor:
         result_ids = [1, 2, 3]
 
         # 模拟方法
-        error_result = {
-            "success": False,
-            "error": "获取任务结果失败"
-        }
+        error_result = {"success": False, "error": "获取任务结果失败"}
 
-        with patch.object(processor, '_get_task_results', return_value=[]) as mock_get_results, \
-             patch.object(processor, '_handle_error', return_value=error_result) as mock_handle_error:
+        with (
+            patch.object(processor, "_get_task_results", return_value=[]) as mock_get_results,
+            patch.object(
+                processor, "_handle_error", return_value=error_result
+            ) as mock_handle_error,
+        ):
 
             # 执行测试
-            result = await processor._multiple_reviewer_vote_mode(task_id, task_content, mock_reviewers, result_ids)
+            result = await processor._multiple_reviewer_vote_mode(
+                task_id, task_content, mock_reviewers, result_ids
+            )
 
             # 验证结果
             assert result["success"] is False
@@ -476,7 +483,7 @@ class TestReviewProcessor:
             "name": "Reviewer 1",
             "api_key": "test_key",
             "base_url": "http://test.com",
-            "model_name": "test_model"
+            "model_name": "test_model",
         }
         task_content = "测试内容"
         prompt_content = "评议提示词"
@@ -489,7 +496,9 @@ class TestReviewProcessor:
         mock_client = AsyncMock()
         process_result = {"success": True, "result": "评议结果"}
         mock_client.process_content = AsyncMock(return_value=process_result)
-        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
+        with patch(
+            "acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client
+        ):
             # 执行测试
             task = await processor._create_reviewer_task(reviewer, task_content, prompt_content)
             result = await task
@@ -500,8 +509,7 @@ class TestReviewProcessor:
         # 验证方法调用
         processor._rebuild_llm_config.assert_called_once_with(reviewer)
         mock_client.process_content.assert_called_once_with(
-            content=task_content,
-            prompt=prompt_content
+            content=task_content, prompt=prompt_content
         )
 
     @pytest.mark.asyncio
@@ -513,7 +521,7 @@ class TestReviewProcessor:
             "name": "Reviewer 1",
             "api_key": "test_key",
             "base_url": "http://test.com",
-            "model_name": "test_model"
+            "model_name": "test_model",
         }
         task_content = "测试内容"
         prompt_content = "评议提示词"
@@ -525,7 +533,9 @@ class TestReviewProcessor:
         # 模拟get_client_for_llm返回客户端
         mock_client = AsyncMock()
         mock_client.process_content = AsyncMock(side_effect=Exception("处理失败"))
-        with patch("acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client):
+        with patch(
+            "acolyte.core.task.processors.review.get_client_for_llm", return_value=mock_client
+        ):
             # 执行测试
             task = await processor._create_reviewer_task(reviewer, task_content, prompt_content)
             with pytest.raises(Exception, match="处理失败"):
@@ -534,8 +544,7 @@ class TestReviewProcessor:
         # 验证方法调用
         processor._rebuild_llm_config.assert_called_once_with(reviewer)
         mock_client.process_content.assert_called_once_with(
-            content=task_content,
-            prompt=prompt_content
+            content=task_content, prompt=prompt_content
         )
 
     def test_rebuild_llm_config(self, processor):
@@ -546,7 +555,7 @@ class TestReviewProcessor:
             "api_key": "test_key",
             "base_url": "http://test.com",
             "model_name": "test_model",
-            "role": LlmRole.REVIEWER
+            "role": LlmRole.REVIEWER,
         }
 
         # 执行测试
@@ -571,7 +580,7 @@ class TestReviewProcessor:
                 "bias_index": 7.5,
                 "misleading_index": 6.2,
                 "hidden_intent_index": 4.8,
-                "credibility_score": 60.5
+                "credibility_score": 60.5,
             },
             {
                 "id": 2,
@@ -580,8 +589,8 @@ class TestReviewProcessor:
                 "bias_index": 6.8,
                 "misleading_index": 5.5,
                 "hidden_intent_index": 3.9,
-                "credibility_score": 65.2
-            }
+                "credibility_score": 65.2,
+            },
         ]
 
         # 执行测试
@@ -605,7 +614,7 @@ class TestReviewProcessor:
                 "bias_index": 7.5,
                 "misleading_index": 6.2,
                 "hidden_intent_index": 4.8,
-                "credibility_score": 60.5
+                "credibility_score": 60.5,
             },
             {
                 "id": 2,
@@ -614,8 +623,8 @@ class TestReviewProcessor:
                 "bias_index": 6.8,
                 "misleading_index": 5.5,
                 "hidden_intent_index": 3.9,
-                "credibility_score": 65.2
-            }
+                "credibility_score": 65.2,
+            },
         ]
 
         # 执行测试
@@ -635,11 +644,7 @@ class TestReviewProcessor:
         """测试_parse_vote_result方法"""
         # 准备测试数据
         raw_response = "我投票给 LLM 2 (ID: 2)，因为..."
-        results = [
-            {"id": 1, "llm_id": 1},
-            {"id": 2, "llm_id": 2},
-            {"id": 3, "llm_id": 3}
-        ]
+        results = [{"id": 1, "llm_id": 1}, {"id": 2, "llm_id": 2}, {"id": 3, "llm_id": 3}]
 
         # 执行测试
         result = processor._parse_vote_result(raw_response, results)
@@ -652,11 +657,7 @@ class TestReviewProcessor:
         """测试_parse_vote_result方法处理无匹配的情况"""
         # 准备测试数据
         raw_response = "我投票给 LLM 5 (ID: 5)，因为..."
-        results = [
-            {"id": 1, "llm_id": 1},
-            {"id": 2, "llm_id": 2},
-            {"id": 3, "llm_id": 3}
-        ]
+        results = [{"id": 1, "llm_id": 1}, {"id": 2, "llm_id": 2}, {"id": 3, "llm_id": 3}]
 
         # 执行测试
         result = processor._parse_vote_result(raw_response, results)
@@ -675,7 +676,7 @@ class TestReviewProcessor:
         mock_votes = [
             MagicMock(voted_result_id=2),
             MagicMock(voted_result_id=2),
-            MagicMock(voted_result_id=1)
+            MagicMock(voted_result_id=1),
         ]
 
         # 模拟session
@@ -686,7 +687,9 @@ class TestReviewProcessor:
         async def mock_run_in_session(func):
             return await func(mock_session)
 
-        with patch("acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session):
+        with patch(
+            "acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session
+        ):
             # 执行测试
             result = await processor._count_votes(task_id, result_ids)
 
@@ -699,10 +702,7 @@ class TestReviewProcessor:
         # 准备测试数据
         task_id = 1
         reviewer_id = 2
-        vote_results = [
-            {"id": 1, "vote": True},
-            {"id": 2, "vote": False}
-        ]
+        vote_results = [{"id": 1, "vote": True}, {"id": 2, "vote": False}]
 
         # 准备投票数据
         votes = [(reviewer_id, {"raw_response": "我投票给 LLM 1 (ID: 1)"})]
@@ -717,7 +717,9 @@ class TestReviewProcessor:
             await func(mock_session)
             await mock_session.commit()
 
-        with patch("acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session):
+        with patch(
+            "acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session
+        ):
             # 执行测试
             await processor._save_votes(task_id, vote_results, votes)
 
@@ -744,7 +746,9 @@ class TestReviewProcessor:
             await mock_session.commit()
             return result
 
-        with patch("acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session):
+        with patch(
+            "acolyte.core.task.processors.review.run_in_session", side_effect=mock_run_in_session
+        ):
             # 执行测试
             result = await processor._set_final_result(task_id, result_id)
 

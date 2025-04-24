@@ -134,7 +134,7 @@ class TestMultipleLlmProcessor:
             "name": "Test Normal LLM",
             "model_name": "test-model-1",
             "role": LlmRole.NORMAL.value,
-            "is_default": True
+            "is_default": True,
         }
 
         # 模拟_get_llms_for_task方法

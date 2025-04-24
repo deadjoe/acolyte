@@ -44,7 +44,7 @@ class TestPromptRoutes:
             "version": "1.0",
             "model_target": "general",
             "content": "Test prompt content",
-            "is_active": True
+            "is_active": True,
         }
 
         response = test_client.post("/api/prompts", json=prompt_data)
@@ -65,10 +65,7 @@ class TestPromptRoutes:
 
     def test_update_prompt(self, test_client, mock_prompt_service):
         """测试更新提示词"""
-        update_data = {
-            "version": "1.1",
-            "is_active": True
-        }
+        update_data = {"version": "1.1", "is_active": True}
 
         response = test_client.put("/api/prompts/1", json=update_data)
 
@@ -112,10 +109,7 @@ class TestPromptRoutes:
     def test_get_nonexistent_prompt(self, test_client, mock_prompt_service):
         """测试获取不存在的提示词"""
         # 模拟服务返回错误
-        mock_prompt_service.get_prompt.return_value = {
-            "success": False,
-            "error": "提示词不存在"
-        }
+        mock_prompt_service.get_prompt.return_value = {"success": False, "error": "提示词不存在"}
 
         response = test_client.get("/api/prompts/999")
 

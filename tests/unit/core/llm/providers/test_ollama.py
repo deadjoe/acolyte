@@ -79,7 +79,7 @@ class TestOllamaClient:
             隐藏意图指数: 4.8
             可信度分数: 60.5
             """,
-            "done": True
+            "done": True,
         }
         mock_make_request.return_value = mock_response
 
@@ -91,8 +91,8 @@ class TestOllamaClient:
                     "bias_index": 7.5,
                     "misleading_index": 6.2,
                     "hidden_intent_index": 4.8,
-                    "credibility_score": 60.5
-                }
+                    "credibility_score": 60.5,
+                },
             }
 
             # 调用方法
@@ -115,10 +115,7 @@ class TestOllamaClient:
         # 模拟无效响应（缺少response字段）
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "model": "llama2",
-            "done": True
-        }
+        mock_response.json.return_value = {"model": "llama2", "done": True}
         mock_make_request.return_value = mock_response
 
         # 调用方法
@@ -136,9 +133,7 @@ class TestOllamaClient:
         """测试HTTP错误"""
         # 模拟HTTP错误
         error = httpx.HTTPStatusError(
-            "Bad request",
-            request=MagicMock(),
-            response=MagicMock(status_code=400)
+            "Bad request", request=MagicMock(), response=MagicMock(status_code=400)
         )
         mock_make_request.side_effect = error
 
@@ -146,7 +141,7 @@ class TestOllamaClient:
         with patch("acolyte.core.llm.providers.ollama.ErrorHandler") as mock_error_handler:
             mock_error_handler.handle_request_error.return_value = {
                 "success": False,
-                "error": "Bad request"
+                "error": "Bad request",
             }
 
             # 调用方法
@@ -181,12 +176,7 @@ class TestOllamaClient:
         # 模拟成功响应，包含模型
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "models": [
-                {"name": "llama2"},
-                {"name": "mistral"}
-            ]
-        }
+        mock_response.json.return_value = {"models": [{"name": "llama2"}, {"name": "mistral"}]}
         mock_make_request.return_value = mock_response
 
         # 调用方法
@@ -205,12 +195,7 @@ class TestOllamaClient:
         # 模拟成功响应，但不包含所需模型
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "models": [
-                {"name": "mistral"},
-                {"name": "phi2"}
-            ]
-        }
+        mock_response.json.return_value = {"models": [{"name": "mistral"}, {"name": "phi2"}]}
         mock_make_request.return_value = mock_response
 
         # 调用方法
@@ -231,7 +216,7 @@ class TestOllamaClient:
         error = httpx.HTTPStatusError(
             "Not found",
             request=MagicMock(url="http://localhost:11434/api/tags"),
-            response=MagicMock(status_code=404)
+            response=MagicMock(status_code=404),
         )
         mock_make_request.side_effect = error
 

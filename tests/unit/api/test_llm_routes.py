@@ -47,7 +47,7 @@ class TestLlmRoutes:
             "base_url": "https://api.test.com",
             "model_name": "test-model",
             "role": LlmRole.NORMAL.value,
-            "is_default": True
+            "is_default": True,
         }
 
         # 设置模拟响应
@@ -58,7 +58,7 @@ class TestLlmRoutes:
             "base_url": "https://api.test.com",
             "model_name": "test-model",
             "role": "normal",
-            "is_default": True
+            "is_default": True,
         }
 
         response = test_client.post("/api/llms", json=llm_data)
@@ -78,9 +78,7 @@ class TestLlmRoutes:
 
     def test_update_llm(self, test_client, mock_llm_service):
         """测试更新LLM配置"""
-        update_data = {
-            "name": "Updated LLM"
-        }
+        update_data = {"name": "Updated LLM"}
 
         response = test_client.put("/api/llms/1", json=update_data)
 
@@ -151,10 +149,7 @@ class TestLlmRoutes:
     def test_get_nonexistent_llm(self, test_client, mock_llm_service):
         """测试获取不存在的LLM配置"""
         # 模拟服务返回错误
-        mock_llm_service.get_llm.return_value = {
-            "success": False,
-            "error": "LLM配置不存在"
-        }
+        mock_llm_service.get_llm.return_value = {"success": False, "error": "LLM配置不存在"}
 
         response = test_client.get("/api/llms/999")
 

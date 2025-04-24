@@ -143,7 +143,7 @@ class TestLlmManager:
                 model_name=model_name,
                 description=description,
                 role=role,
-                is_default=is_default
+                is_default=is_default,
             )
 
             # 验证结果
@@ -266,10 +266,12 @@ class TestLlmManager:
             with patch("acolyte.core.llm.client.get_client_for_llm") as mock_create_client:
                 # 模拟LLM客户端
                 mock_client = MagicMock()
-                mock_client._test_connection = AsyncMock(return_value={
-                    "success": True,
-                    "message": "Connection successful",
-                })
+                mock_client._test_connection = AsyncMock(
+                    return_value={
+                        "success": True,
+                        "message": "Connection successful",
+                    }
+                )
                 mock_create_client.return_value = mock_client
 
                 # 执行测试

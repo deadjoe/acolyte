@@ -129,27 +129,26 @@ class TestAnthropicClient:
                     误导性指数: 6.2
                     隐藏意图指数: 4.8
                     可信度分数: 60.5
-                    """
+                    """,
                 }
             ],
             "model": "claude-3-sonnet-20240229",
-            "usage": {
-                "input_tokens": 100,
-                "output_tokens": 200
-            }
+            "usage": {"input_tokens": 100, "output_tokens": 200},
         }
         mock_make_request.return_value = mock_response
 
         # 模拟ResponseParser
-        with patch("acolyte.core.llm.response.ResponseParser.parse_anthropic_response") as mock_parser:
+        with patch(
+            "acolyte.core.llm.response.ResponseParser.parse_anthropic_response"
+        ) as mock_parser:
             mock_parser.return_value = {
                 "content": "这是一个测试分析。",
                 "scores": {
                     "bias_index": 7.5,
                     "misleading_index": 6.2,
                     "hidden_intent_index": 4.8,
-                    "credibility_score": 60.5
-                }
+                    "credibility_score": 60.5,
+                },
             }
 
             # 调用方法
@@ -175,8 +174,8 @@ class TestAnthropicClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=400,
-                json=MagicMock(return_value={"error": {"message": "Invalid request"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid request"}}),
+            ),
         )
         mock_make_request.side_effect = error
 
@@ -186,7 +185,7 @@ class TestAnthropicClient:
                 message="Invalid request",
                 error_type="请求错误",
                 should_retry=False,
-                status_code=400
+                status_code=400,
             )
 
             # 调用方法
@@ -211,7 +210,7 @@ class TestAnthropicClient:
                 message="无法连接到Anthropic API: Connection error",
                 error_type="连接错误",
                 should_retry=True,
-                retry_after=5
+                retry_after=5,
             )
 
             # 调用方法
@@ -231,14 +230,8 @@ class TestAnthropicClient:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "models": [
-                {
-                    "name": "claude-3-sonnet-20240229",
-                    "description": "Claude 3 Sonnet"
-                },
-                {
-                    "name": "claude-3-opus-20240229",
-                    "description": "Claude 3 Opus"
-                }
+                {"name": "claude-3-sonnet-20240229", "description": "Claude 3 Sonnet"},
+                {"name": "claude-3-opus-20240229", "description": "Claude 3 Opus"},
             ]
         }
         mock_make_request.return_value = mock_response
@@ -262,8 +255,8 @@ class TestAnthropicClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=401,
-                json=MagicMock(return_value={"error": {"message": "Invalid API key"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid API key"}}),
+            ),
         )
         mock_make_request.side_effect = error
 
@@ -273,7 +266,7 @@ class TestAnthropicClient:
                 message="Anthropic API认证失败: Invalid API key",
                 error_type="认证错误",
                 should_retry=False,
-                status_code=401
+                status_code=401,
             )
 
             # 调用方法

@@ -148,17 +148,13 @@ class TestOpenAIClient:
                         误导性指数: 6.2
                         隐藏意图指数: 4.8
                         可信度分数: 60.5
-                        """
+                        """,
                     },
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 100,
-                "total_tokens": 110
-            }
+            "usage": {"prompt_tokens": 10, "completion_tokens": 100, "total_tokens": 110},
         }
         mock_make_request.return_value = mock_response
 
@@ -170,8 +166,8 @@ class TestOpenAIClient:
                     "bias_index": 7.5,
                     "misleading_index": 6.2,
                     "hidden_intent_index": 4.8,
-                    "credibility_score": 60.5
-                }
+                    "credibility_score": 60.5,
+                },
             }
 
             # 调用方法
@@ -212,19 +208,12 @@ class TestOpenAIClient:
             "model": "gpt-4",
             "choices": [
                 {
-                    "message": {
-                        "role": "assistant",
-                        "content": "这是一个测试分析。"
-                    },
+                    "message": {"role": "assistant", "content": "这是一个测试分析。"},
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 100,
-                "total_tokens": 110
-            }
+            "usage": {"prompt_tokens": 10, "completion_tokens": 100, "total_tokens": 110},
         }
         mock_make_request.return_value = mock_response
 
@@ -236,8 +225,8 @@ class TestOpenAIClient:
                     "bias_index": 7.5,
                     "misleading_index": 6.2,
                     "hidden_intent_index": 4.8,
-                    "credibility_score": 60.5
-                }
+                    "credibility_score": 60.5,
+                },
             }
 
             # 调用方法
@@ -259,8 +248,8 @@ class TestOpenAIClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=400,
-                json=MagicMock(return_value={"error": {"message": "Invalid request"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid request"}}),
+            ),
         )
         mock_make_request.side_effect = error
 
@@ -270,7 +259,7 @@ class TestOpenAIClient:
                 message="Invalid request",
                 error_type="请求错误",
                 should_retry=False,
-                status_code=400
+                status_code=400,
             )
 
             # 调用方法
@@ -295,7 +284,7 @@ class TestOpenAIClient:
                 message="无法连接到OpenAI API: Connection error",
                 error_type="连接错误",
                 should_retry=True,
-                retry_after=5
+                retry_after=5,
             )
 
             # 调用方法
@@ -315,18 +304,13 @@ class TestOpenAIClient:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "data": [
-                {
-                    "id": "gpt-4",
-                    "object": "model",
-                    "created": 1677610602,
-                    "owned_by": "openai"
-                },
+                {"id": "gpt-4", "object": "model", "created": 1677610602, "owned_by": "openai"},
                 {
                     "id": "gpt-3.5-turbo",
                     "object": "model",
                     "created": 1677610602,
-                    "owned_by": "openai"
-                }
+                    "owned_by": "openai",
+                },
             ]
         }
         mock_make_request.return_value = mock_response
@@ -350,8 +334,8 @@ class TestOpenAIClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=401,
-                json=MagicMock(return_value={"error": {"message": "Invalid API key"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid API key"}}),
+            ),
         )
         mock_make_request.side_effect = error
 
@@ -361,7 +345,7 @@ class TestOpenAIClient:
                 message="OpenAI API认证失败: Invalid API key",
                 error_type="认证错误",
                 should_retry=False,
-                status_code=401
+                status_code=401,
             )
 
             # 调用方法

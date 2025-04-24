@@ -41,6 +41,7 @@ class TestSingleLlmProcessor:
         # 模拟_get_llm方法
         # 创建一个模拟的LlmConfig对象而不是字典
         from acolyte.core.db.models import LlmConfig, LlmRole
+
         mock_llm = MagicMock(spec=LlmConfig)
         mock_llm.id = 2
         mock_llm.name = "Default LLM"
@@ -74,17 +75,19 @@ class TestSingleLlmProcessor:
             with patch("acolyte.core.task.processors.single.get_client_for_llm") as mock_get_client:
                 # 模拟LLM客户端
                 mock_client = MagicMock()
-                mock_client.process_content = AsyncMock(return_value={
-                    "success": True,
-                    "result": {
-                        "raw_response": "Test response",
-                        "processed_result": "Test processed result",
-                        "bias_index": 7.5,
-                        "misleading_index": 6.2,
-                        "hidden_intent_index": 4.8,
-                        "credibility_score": 60.5,
+                mock_client.process_content = AsyncMock(
+                    return_value={
+                        "success": True,
+                        "result": {
+                            "raw_response": "Test response",
+                            "processed_result": "Test processed result",
+                            "bias_index": 7.5,
+                            "misleading_index": 6.2,
+                            "hidden_intent_index": 4.8,
+                            "credibility_score": 60.5,
+                        },
                     }
-                })
+                )
                 mock_get_client.return_value = mock_client
 
                 # 模拟_save_result方法
@@ -152,7 +155,7 @@ class TestSingleLlmProcessor:
             "name": "Test Normal LLM",
             "model_name": "test-model-1",
             "role": LlmRole.NORMAL.value,
-            "is_default": True
+            "is_default": True,
         }
 
         # 模拟_get_llm方法

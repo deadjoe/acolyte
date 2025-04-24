@@ -20,34 +20,40 @@ class TestPromptService:
             mock_manager_class.return_value = mock_manager
 
             # 设置方法返回值
-            mock_manager.get_all_prompts = MagicMock(return_value=[
-                {
-                    "id": 1,
-                    "version": "1.0",
-                    "model_target": "general",
-                    "content": "Test prompt content",
-                    "is_active": True
-                }
-            ])
+            mock_manager.get_all_prompts = MagicMock(
+                return_value=[
+                    {
+                        "id": 1,
+                        "version": "1.0",
+                        "model_target": "general",
+                        "content": "Test prompt content",
+                        "is_active": True,
+                    }
+                ]
+            )
 
             # 添加get_prompts方法的模拟
-            mock_manager.get_prompts = MagicMock(return_value=[
-                {
+            mock_manager.get_prompts = MagicMock(
+                return_value=[
+                    {
+                        "id": 1,
+                        "version": "1.0",
+                        "model_target": "general",
+                        "content": "Test prompt content",
+                        "is_active": True,
+                    }
+                ]
+            )
+
+            mock_manager.get_prompt = MagicMock(
+                return_value={
                     "id": 1,
                     "version": "1.0",
                     "model_target": "general",
                     "content": "Test prompt content",
-                    "is_active": True
+                    "is_active": True,
                 }
-            ])
-
-            mock_manager.get_prompt = MagicMock(return_value={
-                "id": 1,
-                "version": "1.0",
-                "model_target": "general",
-                "content": "Test prompt content",
-                "is_active": True
-            })
+            )
 
             # 创建服务实例
             service = PromptService()
@@ -59,7 +65,9 @@ class TestPromptService:
     async def test_get_all_prompts(self, service):
         """测试获取所有提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             mock_run.return_value = service.prompt_manager.get_all_prompts()
 
             # 执行测试
@@ -78,7 +86,9 @@ class TestPromptService:
     async def test_get_prompt(self, service):
         """测试获取单个提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             mock_run.return_value = service.prompt_manager.get_prompt()
 
             # 执行测试
@@ -97,14 +107,16 @@ class TestPromptService:
     async def test_create_prompt(self, service):
         """测试创建提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟创建的提示词
             mock_run.return_value = {
                 "id": 1,
                 "version": "1.0",
                 "model_target": "general",
                 "is_active": True,
-                "content": "Test prompt content"
+                "content": "Test prompt content",
             }
 
             # 执行测试
@@ -112,7 +124,7 @@ class TestPromptService:
                 "version": "1.0",
                 "model_target": "general",
                 "content": "Test prompt content",
-                "is_active": True
+                "is_active": True,
             }
             result = await service.create_prompt(prompt_data)
 
@@ -128,20 +140,20 @@ class TestPromptService:
     async def test_update_prompt(self, service):
         """测试更新提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟更新的提示词
             mock_run.return_value = {
                 "id": 1,
                 "version": "1.1",
                 "model_target": "general",
                 "is_active": True,
-                "content": "Test prompt content"
+                "content": "Test prompt content",
             }
 
             # 执行测试
-            update_data = {
-                "version": "1.1"
-            }
+            update_data = {"version": "1.1"}
             result = await service.update_prompt(1, update_data)
 
             # 验证结果
@@ -156,13 +168,15 @@ class TestPromptService:
     async def test_delete_prompt(self, service):
         """测试删除提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟返回值
             mock_run.return_value = {
                 "file_path": "/path/to/prompt.md",
                 "id": 1,
                 "version": "1.0",
-                "model_target": "general"
+                "model_target": "general",
             }
 
             # 执行测试
@@ -179,7 +193,9 @@ class TestPromptService:
     async def test_get_nonexistent_prompt(self, service):
         """测试获取不存在的提示词"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.prompt_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             mock_run.return_value = None
 
             # 执行测试

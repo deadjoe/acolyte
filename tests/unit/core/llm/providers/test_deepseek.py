@@ -86,30 +86,28 @@ class TestDeepSeekClient:
                         误导性指数: 6.2
                         隐藏意图指数: 4.8
                         可信度分数: 60.5
-                        """
+                        """,
                     },
                     "finish_reason": "stop",
-                    "index": 0
+                    "index": 0,
                 }
             ],
-            "usage": {
-                "prompt_tokens": 10,
-                "completion_tokens": 100,
-                "total_tokens": 110
-            }
+            "usage": {"prompt_tokens": 10, "completion_tokens": 100, "total_tokens": 110},
         }
         mock_make_request.return_value = mock_response
 
         # 模拟ResponseParser
-        with patch("acolyte.core.llm.response.ResponseParser.parse_deepseek_response") as mock_parser:
+        with patch(
+            "acolyte.core.llm.response.ResponseParser.parse_deepseek_response"
+        ) as mock_parser:
             mock_parser.return_value = {
                 "content": "这是一个测试分析。",
                 "scores": {
                     "bias_index": 7.5,
                     "misleading_index": 6.2,
                     "hidden_intent_index": 4.8,
-                    "credibility_score": 60.5
-                }
+                    "credibility_score": 60.5,
+                },
             }
 
             # 调用方法
@@ -135,8 +133,8 @@ class TestDeepSeekClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=400,
-                json=MagicMock(return_value={"error": {"message": "Invalid request"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid request"}}),
+            ),
         )
         mock_make_request.side_effect = error
 
@@ -177,7 +175,7 @@ class TestDeepSeekClient:
             "id": "test-id",
             "object": "chat.completion",
             "choices": [{"message": {"content": "Hello"}}],
-            "usage": {"total_tokens": 10}
+            "usage": {"total_tokens": 10},
         }
         mock_make_request.return_value = mock_response
 
@@ -201,8 +199,8 @@ class TestDeepSeekClient:
             request=MagicMock(),
             response=MagicMock(
                 status_code=401,
-                json=MagicMock(return_value={"error": {"message": "Invalid API key"}})
-            )
+                json=MagicMock(return_value={"error": {"message": "Invalid API key"}}),
+            ),
         )
         mock_make_request.side_effect = error
 

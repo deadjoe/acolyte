@@ -21,7 +21,7 @@ class TestHttpClient:
             timeout=30.0,
             max_retries=5,
             retry_delay=2.0,
-            headers={"User-Agent": "Test"}
+            headers={"User-Agent": "Test"},
         )
 
         # 验证属性
@@ -38,8 +38,7 @@ class TestHttpClient:
     def test_init_defaults(self):
         """测试默认初始化"""
         # 使用模拟替换httpx.Client和httpx.AsyncClient
-        with patch('httpx.Client') as mock_client, \
-             patch('httpx.AsyncClient') as mock_async_client:
+        with patch("httpx.Client") as mock_client, patch("httpx.AsyncClient") as mock_async_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
             mock_async_client.return_value = MagicMock()
@@ -57,7 +56,7 @@ class TestHttpClient:
     def test_close(self):
         """测试关闭客户端"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
 
@@ -74,7 +73,7 @@ class TestHttpClient:
     async def test_aclose(self):
         """测试关闭异步客户端"""
         # 使用模拟替换httpx.AsyncClient
-        with patch('httpx.AsyncClient') as mock_async_client:
+        with patch("httpx.AsyncClient") as mock_async_client:
             # 设置模拟对象的返回值
             mock_async = MagicMock()
             mock_async.aclose = AsyncMock()
@@ -92,7 +91,7 @@ class TestHttpClient:
     def test_request_success(self):
         """测试成功请求"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -104,10 +103,7 @@ class TestHttpClient:
 
             # 发送请求
             response = client.request(
-                method="GET",
-                url="/test",
-                params={"q": "test"},
-                headers={"X-Test": "test"}
+                method="GET", url="/test", params={"q": "test"}, headers={"X-Test": "test"}
             )
 
             # 验证响应
@@ -121,16 +117,18 @@ class TestHttpClient:
             args, kwargs = call_args
 
             # 验证关键参数
-            assert kwargs.get('method') == 'GET' or (len(args) > 0 and args[0] == 'GET')
-            assert kwargs.get('url') == '/test' or (len(args) > 1 and args[1] == '/test')
-            assert kwargs.get('params') == {'q': 'test'}
-            assert kwargs.get('headers') == {'X-Test': 'test'}
+            assert kwargs.get("method") == "GET" or (len(args) > 0 and args[0] == "GET")
+            assert kwargs.get("url") == "/test" or (len(args) > 1 and args[1] == "/test")
+            assert kwargs.get("params") == {"q": "test"}
+            assert kwargs.get("headers") == {"X-Test": "test"}
 
     def test_request_retry(self):
         """测试请求重试"""
         # 使用模拟替换httpx.Client和time.sleep
-        with patch('httpx.Client') as mock_client, \
-             patch('time.sleep') as _:  # 模拟睡眠函数避免实际等待
+        with (
+            patch("httpx.Client") as mock_client,
+            patch("time.sleep") as _,
+        ):  # 模拟睡眠函数避免实际等待
             # 设置模拟对象的返回值
             error_response = MagicMock()
             error_response.status_code = 500
@@ -146,11 +144,7 @@ class TestHttpClient:
             client = HttpClient(base_url="", max_retries=2, retry_delay=0.01)
 
             # 发送请求
-            response = client.request(
-                method="GET",
-                url="/test",
-                retry_on_status=[500]
-            )
+            response = client.request(method="GET", url="/test", retry_on_status=[500])
 
             # 验证响应
             assert response.status_code == 200
@@ -161,8 +155,10 @@ class TestHttpClient:
     def test_request_max_retries_exceeded(self):
         """测试请求超过最大重试次数"""
         # 使用模拟替换httpx.Client和time.sleep
-        with patch('httpx.Client') as mock_client, \
-             patch('time.sleep') as _:  # 模拟睡眠函数避免实际等待
+        with (
+            patch("httpx.Client") as mock_client,
+            patch("time.sleep") as _,
+        ):  # 模拟睡眠函数避免实际等待
             # 设置模拟对象的返回值
             error_response = MagicMock()
             error_response.status_code = 500
@@ -175,11 +171,7 @@ class TestHttpClient:
             client = HttpClient(base_url="", max_retries=2, retry_delay=0.01)
 
             # 发送请求
-            response = client.request(
-                method="GET",
-                url="/test",
-                retry_on_status=[500]
-            )
+            response = client.request(method="GET", url="/test", retry_on_status=[500])
 
             # 验证响应
             assert response.status_code == 500
@@ -208,7 +200,7 @@ class TestHttpClient:
     def test_get(self):
         """测试GET请求"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
 
@@ -227,7 +219,7 @@ class TestHttpClient:
     def test_post(self):
         """测试POST请求"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
 
@@ -246,7 +238,7 @@ class TestHttpClient:
     def test_put(self):
         """测试PUT请求"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
 
@@ -265,7 +257,7 @@ class TestHttpClient:
     def test_delete(self):
         """测试DELETE请求"""
         # 使用模拟替换httpx.Client
-        with patch('httpx.Client') as mock_client:
+        with patch("httpx.Client") as mock_client:
             # 设置模拟对象的返回值
             mock_client.return_value = MagicMock()
 

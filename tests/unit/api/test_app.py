@@ -40,6 +40,7 @@ class TestApiApp:
 
     def test_custom_json_encoder_enum(self):
         """测试自定义JSON编码器处理枚举"""
+
         # 创建测试枚举
         class TestEnum(Enum):
             VALUE1 = "value1"
@@ -63,12 +64,7 @@ class TestApiApp:
         class TestEnum(Enum):
             VALUE1 = "value1"
 
-        test_data = {
-            "time": now,
-            "enum": TestEnum.VALUE1,
-            "string": "test",
-            "number": 123
-        }
+        test_data = {"time": now, "enum": TestEnum.VALUE1, "string": "test", "number": 123}
 
         # 创建响应
         response = FastAPICustomJSONResponse(content=test_data)

@@ -31,13 +31,13 @@ class PromptManager:
     提示词模板命名规范：
     - 格式：`prompt_v{version}[_{model_target}].txt`
     - 示例：`prompt_v1.0.txt`、`prompt_v2.1_claude.txt`
-    
+
     注意：该类实现了单例模式，确保整个应用中只有一个实例。
     """
-    
+
     # 单例实例
     _instance = None
-    
+
     def __new__(cls):
         """实现单例模式，确保只创建一个实例"""
         if cls._instance is None:
@@ -50,20 +50,22 @@ class PromptManager:
     def __init__(self):
         """初始化Prompt管理器，仅在首次创建实例时执行"""
         # 如果已经初始化过，直接返回
-        if hasattr(self, '_initialized') and self._initialized:
+        if hasattr(self, "_initialized") and self._initialized:
             logger.debug("PromptManager已初始化，跳过重复初始化")
             return
-            
+
         logger.info("初始化Prompt管理器")
-        
+
         # 固定路径为项目根目录下的prompt子目录
         # 从manager.py向上4级目录到达应用根目录
-        app_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        app_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         self.prompt_dir = os.path.join(app_root, "prompt")
         logger.info(f"使用固定prompt目录: {self.prompt_dir}")
-        
+
         self._ensure_prompt_dir_exists()
-        
+
         # 标记为已初始化
         self._initialized = True
 

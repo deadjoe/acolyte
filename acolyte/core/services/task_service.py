@@ -432,6 +432,7 @@ class TaskService:
 
             # 执行查询
             from sqlalchemy import text
+
             results = session.execute(text(sql), params).fetchall()
             logger.debug(f"找到 {len(results)} 个任务")
 
@@ -448,7 +449,7 @@ class TaskService:
                     "created_at": row.created_at,
                     "updated_at": row.updated_at,
                     "prompt_version": row.prompt_version,
-                    "prompt_target": row.prompt_target
+                    "prompt_target": row.prompt_target,
                 }
                 tasks.append(task_dict)
 

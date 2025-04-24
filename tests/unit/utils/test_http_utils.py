@@ -36,7 +36,7 @@ class TestHttpClientConfig:
             max_connections=50,
             verify_ssl=False,
             follow_redirects=False,
-            http2=True
+            http2=True,
         )
 
         # 验证自定义值
@@ -56,7 +56,7 @@ class TestHttpClientManager:
     @pytest.fixture
     def mock_client(self):
         """创建模拟HTTP客户端"""
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             # 创建模拟响应
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -108,10 +108,7 @@ class TestHttpClientManager:
         HttpClientManager._client_configs = {}
 
         # 创建自定义配置
-        config = HttpClientConfig(
-            timeout=30.0,
-            max_retries=5
-        )
+        config = HttpClientConfig(timeout=30.0, max_retries=5)
 
         # 获取客户端
         client = HttpClientManager.get_client(config=config)
@@ -166,7 +163,7 @@ async def test_fetch():
     mock_response.text = '{"success": true}'
 
     # 模拟HttpClientManager.get_client
-    with patch('acolyte.utils.http.HttpClientManager.get_client') as mock_get_client:
+    with patch("acolyte.utils.http.HttpClientManager.get_client") as mock_get_client:
         # 创建模拟客户端
         mock_client = MagicMock()
         mock_client.request = AsyncMock(return_value=mock_response)

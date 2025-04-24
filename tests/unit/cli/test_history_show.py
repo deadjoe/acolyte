@@ -18,8 +18,12 @@ from rich.table import Table
 def test_history_show_file_exists():
     """测试history_show文件存在"""
     # 检查文件是否存在
-    file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                            'acolyte', 'cli', 'history_show.py')
+    file_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+        "acolyte",
+        "cli",
+        "history_show.py",
+    )
     assert os.path.isfile(file_path), f"File not found: {file_path}"
 
 
@@ -28,29 +32,33 @@ def test_show_task_success():
     # 设置模拟客户端
     mock_client = MagicMock()
     mock_client.check_connection = AsyncMock(return_value=(True, None))
-    mock_client.get_task = AsyncMock(return_value={
-        "id": 1,
-        "content": "Test content",
-        "processing_mode": "single",
-        "status": "completed",
-        "created_at": "2023-01-01T00:00:00"
-    })
-    mock_client.get_task_results = AsyncMock(return_value={
-        "results": [
-            {
-                "id": 1,
-                "llm_id": 1,
-                "llm_name": "Test LLM",
-                "bias_index": 7.5,
-                "misleading_index": 6.2,
-                "hidden_intent_index": 4.8,
-                "credibility_score": 60.5,
-                "analysis": "Test analysis",
-                "is_review_result": False,
-                "is_final_result": True
-            }
-        ]
-    })
+    mock_client.get_task = AsyncMock(
+        return_value={
+            "id": 1,
+            "content": "Test content",
+            "processing_mode": "single",
+            "status": "completed",
+            "created_at": "2023-01-01T00:00:00",
+        }
+    )
+    mock_client.get_task_results = AsyncMock(
+        return_value={
+            "results": [
+                {
+                    "id": 1,
+                    "llm_id": 1,
+                    "llm_name": "Test LLM",
+                    "bias_index": 7.5,
+                    "misleading_index": 6.2,
+                    "hidden_intent_index": 4.8,
+                    "credibility_score": 60.5,
+                    "analysis": "Test analysis",
+                    "is_review_result": False,
+                    "is_final_result": True,
+                }
+            ]
+        }
+    )
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -97,30 +105,34 @@ def test_show_task_with_raw_response():
     # 设置模拟客户端
     mock_client = MagicMock()
     mock_client.check_connection = AsyncMock(return_value=(True, None))
-    mock_client.get_task = AsyncMock(return_value={
-        "id": 1,
-        "content": "Test content",
-        "processing_mode": "single",
-        "status": "completed",
-        "created_at": "2023-01-01T00:00:00"
-    })
-    mock_client.get_task_results = AsyncMock(return_value={
-        "results": [
-            {
-                "id": 1,
-                "llm_id": 1,
-                "llm_name": "Test LLM",
-                "bias_index": 7.5,
-                "misleading_index": 6.2,
-                "hidden_intent_index": 4.8,
-                "credibility_score": 60.5,
-                "analysis": "Test analysis",
-                "raw_response": "Raw response content",
-                "is_review_result": False,
-                "is_final_result": True
-            }
-        ]
-    })
+    mock_client.get_task = AsyncMock(
+        return_value={
+            "id": 1,
+            "content": "Test content",
+            "processing_mode": "single",
+            "status": "completed",
+            "created_at": "2023-01-01T00:00:00",
+        }
+    )
+    mock_client.get_task_results = AsyncMock(
+        return_value={
+            "results": [
+                {
+                    "id": 1,
+                    "llm_id": 1,
+                    "llm_name": "Test LLM",
+                    "bias_index": 7.5,
+                    "misleading_index": 6.2,
+                    "hidden_intent_index": 4.8,
+                    "credibility_score": 60.5,
+                    "analysis": "Test analysis",
+                    "raw_response": "Raw response content",
+                    "is_review_result": False,
+                    "is_final_result": True,
+                }
+            ]
+        }
+    )
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -152,21 +164,26 @@ async def test_show_task_async():
     # 模拟AcolyteClient
     mock_client = MagicMock()
     mock_client.check_connection = AsyncMock(return_value=(True, None))
-    mock_client.get_task = AsyncMock(return_value={
-        "id": 1,
-        "content": "Test content",
-        "processing_mode": "single",
-        "status": "completed",
-        "created_at": "2023-01-01T00:00:00Z"
-    })
+    mock_client.get_task = AsyncMock(
+        return_value={
+            "id": 1,
+            "content": "Test content",
+            "processing_mode": "single",
+            "status": "completed",
+            "created_at": "2023-01-01T00:00:00Z",
+        }
+    )
     mock_client.close = AsyncMock()
 
     # 模拟所需的所有函数和类
-    with patch.dict('sys.modules', {
-        'acolyte.cli.history_show': MagicMock(),
-        'acolyte.cli.history_show.AcolyteClient': MagicMock(return_value=mock_client),
-        'acolyte.cli.history_show.show_final_result': AsyncMock()
-    }):
+    with patch.dict(
+        "sys.modules",
+        {
+            "acolyte.cli.history_show": MagicMock(),
+            "acolyte.cli.history_show.AcolyteClient": MagicMock(return_value=mock_client),
+            "acolyte.cli.history_show.show_final_result": AsyncMock(),
+        },
+    ):
         # 创建模拟show_task函数
         async def mock_show_task(task_id, all_results, llm_id, raw_response, format_type):
             # 验证参数
@@ -196,13 +213,15 @@ async def test_show_task_all_results():
     # 模拟AcolyteClient
     mock_client = MagicMock()
     mock_client.check_connection = AsyncMock(return_value=(True, None))
-    mock_client.get_task = AsyncMock(return_value={
-        "id": 1,
-        "content": "Test content",
-        "processing_mode": "multiple",
-        "status": "completed",
-        "created_at": "2023-01-01T00:00:00Z"
-    })
+    mock_client.get_task = AsyncMock(
+        return_value={
+            "id": 1,
+            "content": "Test content",
+            "processing_mode": "multiple",
+            "status": "completed",
+            "created_at": "2023-01-01T00:00:00Z",
+        }
+    )
     mock_client.close = AsyncMock()
 
     # 模拟所需的所有函数和类
@@ -241,13 +260,15 @@ async def test_show_task_specific_llm():
     # 模拟AcolyteClient
     mock_client = MagicMock()
     mock_client.check_connection = AsyncMock(return_value=(True, None))
-    mock_client.get_task = AsyncMock(return_value={
-        "id": 1,
-        "content": "Test content",
-        "processing_mode": "multiple",
-        "status": "completed",
-        "created_at": "2023-01-01T00:00:00Z"
-    })
+    mock_client.get_task = AsyncMock(
+        return_value={
+            "id": 1,
+            "content": "Test content",
+            "processing_mode": "multiple",
+            "status": "completed",
+            "created_at": "2023-01-01T00:00:00Z",
+        }
+    )
     mock_client.close = AsyncMock()
 
     # 模拟所需的所有函数和类
@@ -356,24 +377,21 @@ async def test_show_specific_llm_result_success():
     """测试成功显示特定LLM结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_results = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "llm_id": 2,
-            "bias_index": 7.5,
-            "misleading_index": 6.2,
-            "hidden_intent_index": 4.8,
-            "credibility_score": 60.5,
-            "raw_response": "测试响应"
-        }
-    ])
+    mock_client.get_task_results = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "llm_id": 2,
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5,
+                "raw_response": "测试响应",
+            }
+        ]
+    )
 
-    mock_client.get_llms = AsyncMock(return_value=[
-        {
-            "id": 2,
-            "name": "Test LLM"
-        }
-    ])
+    mock_client.get_llms = AsyncMock(return_value=[{"id": 2, "name": "Test LLM"}])
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -414,20 +432,11 @@ async def test_show_specific_llm_result_not_found():
     """测试未找到特定LLM结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_results = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "llm_id": 1,
-            "bias_index": 7.5
-        }
-    ])
+    mock_client.get_task_results = AsyncMock(
+        return_value=[{"id": 1, "llm_id": 1, "bias_index": 7.5}]
+    )
 
-    mock_client.get_llms = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "name": "Test LLM"
-        }
-    ])
+    mock_client.get_llms = AsyncMock(return_value=[{"id": 1, "name": "Test LLM"}])
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -470,31 +479,32 @@ async def test_show_all_llm_results_table_format():
     """测试表格格式显示所有LLM结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_results = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "llm_id": 1,
-            "bias_index": 7.5,
-            "misleading_index": 6.2,
-            "hidden_intent_index": 4.8,
-            "credibility_score": 60.5,
-            "is_review_result": False
-        },
-        {
-            "id": 2,
-            "llm_id": 2,
-            "bias_index": 6.8,
-            "misleading_index": 5.5,
-            "hidden_intent_index": 3.9,
-            "credibility_score": 65.2,
-            "is_review_result": True
-        }
-    ])
+    mock_client.get_task_results = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "llm_id": 1,
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5,
+                "is_review_result": False,
+            },
+            {
+                "id": 2,
+                "llm_id": 2,
+                "bias_index": 6.8,
+                "misleading_index": 5.5,
+                "hidden_intent_index": 3.9,
+                "credibility_score": 65.2,
+                "is_review_result": True,
+            },
+        ]
+    )
 
-    mock_client.get_llms = AsyncMock(return_value=[
-        {"id": 1, "name": "LLM 1"},
-        {"id": 2, "name": "LLM 2"}
-    ])
+    mock_client.get_llms = AsyncMock(
+        return_value=[{"id": 1, "name": "LLM 1"}, {"id": 2, "name": "LLM 2"}]
+    )
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -534,20 +544,20 @@ async def test_show_all_llm_results_summary_format():
     """测试概要格式显示所有LLM结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_results = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "llm_id": 1,
-            "bias_index": 7.5,
-            "misleading_index": 6.2,
-            "hidden_intent_index": 4.8,
-            "credibility_score": 60.5
-        }
-    ])
+    mock_client.get_task_results = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "llm_id": 1,
+                "bias_index": 7.5,
+                "misleading_index": 6.2,
+                "hidden_intent_index": 4.8,
+                "credibility_score": 60.5,
+            }
+        ]
+    )
 
-    mock_client.get_llms = AsyncMock(return_value=[
-        {"id": 1, "name": "LLM 1"}
-    ])
+    mock_client.get_llms = AsyncMock(return_value=[{"id": 1, "name": "LLM 1"}])
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -595,7 +605,7 @@ async def test_show_all_llm_results_json_format():
             "bias_index": 7.5,
             "misleading_index": 6.2,
             "hidden_intent_index": 4.8,
-            "credibility_score": 60.5
+            "credibility_score": 60.5,
         }
     ]
     mock_client = MagicMock()
@@ -635,19 +645,19 @@ async def test_show_final_result_success():
     """测试成功显示最终结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_final_result = AsyncMock(return_value={
-        "id": 1,
-        "llm_id": 1,
-        "bias_index": 7.5,
-        "misleading_index": 6.2,
-        "hidden_intent_index": 4.8,
-        "credibility_score": 60.5,
-        "raw_response": "测试响应"
-    })
+    mock_client.get_task_final_result = AsyncMock(
+        return_value={
+            "id": 1,
+            "llm_id": 1,
+            "bias_index": 7.5,
+            "misleading_index": 6.2,
+            "hidden_intent_index": 4.8,
+            "credibility_score": 60.5,
+            "raw_response": "测试响应",
+        }
+    )
 
-    mock_client.get_llms = AsyncMock(return_value=[
-        {"id": 1, "name": "LLM 1"}
-    ])
+    mock_client.get_llms = AsyncMock(return_value=[{"id": 1, "name": "LLM 1"}])
 
     # 模拟控制台
     mock_console = MagicMock()
@@ -689,11 +699,11 @@ async def test_show_final_result_not_found():
     """测试未找到最终结果"""
     # 模拟客户端和数据
     mock_client = MagicMock()
-    mock_client.get_task_final_result = AsyncMock(side_effect=httpx.HTTPStatusError(
-        message="Not Found",
-        request=MagicMock(),
-        response=MagicMock(status_code=404)
-    ))
+    mock_client.get_task_final_result = AsyncMock(
+        side_effect=httpx.HTTPStatusError(
+            message="Not Found", request=MagicMock(), response=MagicMock(status_code=404)
+        )
+    )
 
     # 模拟控制台
     mock_console = MagicMock()

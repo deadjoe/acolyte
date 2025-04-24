@@ -42,8 +42,8 @@ uv.lock
 *.sqlite3
 
 # Logs
-logs/
-*.log
+# logs/
+# *.log
 
 # OS specific
 .DS_Store

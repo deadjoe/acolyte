@@ -11,7 +11,16 @@ from sqlalchemy.orm import clear_mappers, sessionmaker
 # 确保可以导入项目模块
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from acolyte.core.db.models import Base, LlmConfig, LlmRole, Prompt, Task, TaskResult, TaskStatus, ProcessingMode
+from acolyte.core.db.models import (
+    Base,
+    LlmConfig,
+    LlmRole,
+    Prompt,
+    Task,
+    TaskResult,
+    TaskStatus,
+    ProcessingMode,
+)
 
 
 @pytest.fixture(scope="function")

@@ -24,6 +24,7 @@ class TestTaskRoutes:
 
     def test_create_task(self, test_client, mock_task_service):
         """测试创建任务"""
+
         # 添加创建任务的API路由
         @test_client.app.post("/api/tasks")
         async def create_task(task_data: TaskCreate):
@@ -36,11 +37,7 @@ class TestTaskRoutes:
 
             return result
 
-        task_data = {
-            "content": "Test content",
-            "processing_mode": "single",
-            "llm_ids": [1]
-        }
+        task_data = {"content": "Test content", "processing_mode": "single", "llm_ids": [1]}
 
         # 设置模拟响应
         mock_task_service.create_task.return_value = {
@@ -48,7 +45,7 @@ class TestTaskRoutes:
             "id": 1,
             "content": "Test content",
             "processing_mode": "single",
-            "status": "pending"
+            "status": "pending",
         }
 
         response = test_client.post("/api/tasks", json=task_data)
@@ -114,6 +111,7 @@ class TestTaskRoutes:
 
     def test_process_task(self, test_client, mock_task_service):
         """测试处理任务"""
+
         # 添加处理任务的API路由
         @test_client.app.post("/api/tasks/{task_id}/process")
         async def process_task(task_id: int):
@@ -123,7 +121,9 @@ class TestTaskRoutes:
 
             if not result.get("success", False):
                 status_code = 400 if "already" in result.get("error", "").lower() else 500
-                raise HTTPException(status_code=status_code, detail=result.get("error", "处理任务失败"))
+                raise HTTPException(
+                    status_code=status_code, detail=result.get("error", "处理任务失败")
+                )
 
             return result
 
@@ -170,10 +170,7 @@ class TestTaskRoutes:
     def test_get_nonexistent_task(self, test_client, mock_task_service):
         """测试获取不存在的任务"""
         # 模拟服务返回错误
-        mock_task_service.get_task.return_value = {
-            "success": False,
-            "error": "任务不存在"
-        }
+        mock_task_service.get_task.return_value = {"success": False, "error": "任务不存在"}
 
         response = test_client.get("/api/tasks/999")
 
@@ -190,7 +187,7 @@ class TestTaskRoutes:
         # 模拟服务返回错误
         mock_task_service.process_task_async.return_value = {
             "success": False,
-            "error": "任务已完成，无法再次处理"
+            "error": "任务已完成，无法再次处理",
         }
 
         # 验证返回值

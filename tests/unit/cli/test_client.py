@@ -51,7 +51,7 @@ class TestAcolyteClient:
         client = AcolyteClient()
 
         # 模拟 httpx.AsyncClient
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             # 模拟响应
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -76,7 +76,7 @@ class TestAcolyteClient:
         client = AcolyteClient()
 
         # 模拟 httpx.AsyncClient
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             # 设置模拟客户端
             mock_client = AsyncMock()
             mock_client.get = AsyncMock(side_effect=httpx.ConnectError("Connection error"))
@@ -96,7 +96,7 @@ class TestAcolyteClient:
         client = AcolyteClient()
 
         # 模拟 httpx.AsyncClient
-        with patch('httpx.AsyncClient') as mock_client_class:
+        with patch("httpx.AsyncClient") as mock_client_class:
             # 模拟响应
             mock_response = MagicMock()
             mock_response.status_code = 500
@@ -104,9 +104,7 @@ class TestAcolyteClient:
 
             # 创建一个带有响应的HTTPStatusError
             http_error = httpx.HTTPStatusError(
-                "HTTP Error",
-                request=MagicMock(),
-                response=mock_response
+                "HTTP Error", request=MagicMock(), response=mock_response
             )
 
             # 设置模拟客户端

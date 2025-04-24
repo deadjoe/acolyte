@@ -68,7 +68,7 @@ class TestGeminiClient:
         assert client.full_model_name == "models/gemini-pro"
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._make_request')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._make_request")
     async def test_process_with_gemini_api(self, mock_make_request, client):
         """测试使用Gemini API处理内容"""
         # 准备测试数据
@@ -97,7 +97,7 @@ class TestGeminiClient:
                             }
                         ]
                     },
-                    "finishReason": "STOP"
+                    "finishReason": "STOP",
                 }
             ]
         }
@@ -125,7 +125,7 @@ class TestGeminiClient:
         assert "safetySettings" in json_data
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api")
     async def test_process_content_success(self, mock_process_with_gemini_api, client):
         """测试内容处理成功"""
         # 模拟成功响应
@@ -140,7 +140,7 @@ class TestGeminiClient:
             误导性指数: 6.2
             隐藏意图指数: 4.8
             可信度分数: 60.5
-            """
+            """,
         }
 
         # 调用方法
@@ -152,14 +152,11 @@ class TestGeminiClient:
         assert result["success"] is True
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api")
     async def test_process_content_error(self, mock_process_with_gemini_api, client):
         """测试内容处理错误"""
         # 模拟错误响应
-        mock_process_with_gemini_api.return_value = {
-            "success": False,
-            "error": "Invalid request"
-        }
+        mock_process_with_gemini_api.return_value = {"success": False, "error": "Invalid request"}
 
         # 调用方法
         result = await client.process_content("测试内容", "系统提示词")
@@ -172,7 +169,7 @@ class TestGeminiClient:
         assert "Invalid request" in result["error"]
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._process_with_gemini_api")
     async def test_process_content_network_error(self, mock_process_with_gemini_api, client):
         """测试网络错误"""
         # 模拟网络错误
@@ -221,7 +218,7 @@ class TestGeminiClient:
         assert client._check_api_key() is True  # 仍然返回true，但会记录警告
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._make_request')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._make_request")
     async def test_test_connection_success(self, mock_make_request, client):
         """测试连接测试成功"""
         # 模拟成功响应
@@ -237,7 +234,7 @@ class TestGeminiClient:
         assert result["success"] is True
 
     @pytest.mark.asyncio
-    @patch('acolyte.core.llm.providers.gemini.GeminiClient._make_request')
+    @patch("acolyte.core.llm.providers.gemini.GeminiClient._make_request")
     async def test_test_connection_error(self, mock_make_request, client):
         """测试连接测试失败"""
         # 模拟错误响应

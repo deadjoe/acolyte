@@ -48,7 +48,7 @@ class TestMain:
                 "ACOLYTE_PORT": "9000",
                 "ACOLYTE_LOG_LEVEL": "debug",
                 "ACOLYTE_LOG_TO_FILE": "1",
-                "ACOLYTE_LOG_DIR": "/tmp/logs"
+                "ACOLYTE_LOG_DIR": "/tmp/logs",
             }
             with patch.dict(os.environ, env_vars, clear=True):
                 # 模拟日志
@@ -71,9 +71,7 @@ class TestMain:
         # 模拟uvicorn.run
         with patch("acolyte.main.uvicorn.run") as mock_run:
             # 模拟环境变量
-            env_vars = {
-                "ACOLYTE_LOG_LEVEL": "invalid"
-            }
+            env_vars = {"ACOLYTE_LOG_LEVEL": "invalid"}
             with patch.dict(os.environ, env_vars, clear=True):
                 # 模拟stderr
                 with patch("sys.stderr") as mock_stderr:
@@ -98,16 +96,17 @@ class TestMain:
         # 模拟uvicorn.run
         with patch("acolyte.main.uvicorn.run") as mock_run:
             # 模拟环境变量
-            env_vars = {
-                "ACOLYTE_PORT": "invalid"
-            }
+            env_vars = {"ACOLYTE_PORT": "invalid"}
             with patch.dict(os.environ, env_vars, clear=True):
                 # 模拟日志
                 with patch("acolyte.main.logger") as mock_logger:
                     # 模拟int函数
                     with patch("acolyte.main.int") as mock_int:
                         # 设置模拟对象的返回值
-                        mock_int.side_effect = [ValueError("invalid literal for int() with base 10: 'invalid'"), 8000]
+                        mock_int.side_effect = [
+                            ValueError("invalid literal for int() with base 10: 'invalid'"),
+                            8000,
+                        ]
 
                         # 执行主函数
                         main()

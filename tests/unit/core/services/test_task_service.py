@@ -39,13 +39,15 @@ class TestTaskService:
     async def test_get_tasks(self, service):
         """测试获取任务列表"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟任务列表
             mock_task = {
                 "id": 1,
                 "content": "Test content",
                 "processing_mode": ProcessingMode.SINGLE.value.lower(),
-                "status": TaskStatus.COMPLETED.value.lower()
+                "status": TaskStatus.COMPLETED.value.lower(),
             }
 
             mock_run.return_value = [mock_task]
@@ -67,13 +69,15 @@ class TestTaskService:
     async def test_get_task(self, service):
         """测试获取单个任务"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟任务
             mock_task = {
                 "id": 1,
                 "content": "Test content",
                 "processing_mode": ProcessingMode.SINGLE.value.lower(),
-                "status": TaskStatus.COMPLETED.value.lower()
+                "status": TaskStatus.COMPLETED.value.lower(),
             }
 
             mock_run.return_value = mock_task
@@ -94,7 +98,9 @@ class TestTaskService:
     async def test_get_task_results(self, service):
         """测试获取任务结果"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             # 模拟任务结果
             mock_result = {
                 "id": 1,
@@ -104,7 +110,7 @@ class TestTaskService:
                 "misleading_index": 3.0,
                 "hidden_intent_index": 2.0,
                 "credibility_score": 80.0,
-                "is_review_result": False
+                "is_review_result": False,
             }
 
             mock_run.return_value = [mock_result]
@@ -134,7 +140,9 @@ class TestTaskService:
     async def test_delete_task(self, service):
         """测试删除任务"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             mock_run.return_value = True
 
             # 执行测试
@@ -151,7 +159,9 @@ class TestTaskService:
     async def test_get_nonexistent_task(self, service):
         """测试获取不存在的任务"""
         # 模拟run_in_session
-        with patch("acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "acolyte.core.services.task_service.run_in_session", new_callable=AsyncMock
+        ) as mock_run:
             mock_run.return_value = None
 
             # 执行测试

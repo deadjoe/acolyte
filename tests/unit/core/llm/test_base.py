@@ -29,10 +29,7 @@ class TestLlmClientImpl(LlmClient):
 
     def _get_headers(self):
         """获取请求头"""
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         return headers
 
     def _prepare_request(self, prompt, system_prompt=None):
@@ -40,9 +37,9 @@ class TestLlmClientImpl(LlmClient):
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": system_prompt or ""},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
-            "temperature": 0.7  # 使用固定值而不是从不存在的parameters属性获取
+            "temperature": 0.7,  # 使用固定值而不是从不存在的parameters属性获取
         }
 
     def _process_response(self, response_data):
@@ -50,10 +47,7 @@ class TestLlmClientImpl(LlmClient):
             raise ValueError("Invalid response format")
 
         content = response_data["choices"][0]["message"]["content"]
-        return {
-            "content": content,
-            "scores": self.response_parser.extract_scores(content)
-        }
+        return {"content": content, "scores": self.response_parser.extract_scores(content)}
 
     def _parse_response(self, response_data):
         return self._process_response(response_data)
@@ -75,7 +69,7 @@ class TestLlmClientImpl(LlmClient):
         return {
             "success": True,
             "raw_response": response_data["choices"][0]["message"]["content"],
-            "result": result
+            "result": result,
         }
 
 
@@ -172,8 +166,8 @@ class TestLlmClient:
             "model": "test-model",
             "messages": [
                 {"role": "system", "content": "系统提示词"},
-                {"role": "user", "content": "用户提示词"}
-            ]
+                {"role": "user", "content": "用户提示词"},
+            ],
         }
 
         # 调用方法
@@ -192,11 +186,7 @@ class TestLlmClient:
         # 模拟错误响应
         mock_response = MagicMock()
         mock_response.status_code = 400
-        mock_response.json.return_value = {
-            "error": {
-                "message": "Invalid request"
-            }
-        }
+        mock_response.json.return_value = {"error": {"message": "Invalid request"}}
         mock_post.return_value = mock_response
 
         # 准备请求数据
@@ -204,8 +194,8 @@ class TestLlmClient:
             "model": "test-model",
             "messages": [
                 {"role": "system", "content": "系统提示词"},
-                {"role": "user", "content": "用户提示词"}
-            ]
+                {"role": "user", "content": "用户提示词"},
+            ],
         }
 
         # 调用方法并验证异常
@@ -284,12 +274,13 @@ class TestRetryDecorator:
         return RetryConfig(
             max_retries=3,
             initial_delay=0.01,  # 修改为initial_delay
-            retry_status_codes=[429, 500, 502, 503, 504]
+            retry_status_codes=[429, 500, 502, 503, 504],
         )
 
     @pytest.fixture
     def test_class(self, retry_config):
         """创建测试类"""
+
         class TestClass:
             def __init__(self):
                 self.retry_config = retry_config
@@ -304,9 +295,7 @@ class TestRetryDecorator:
                     mock_response.status_code = 503
                     mock_response.headers = {}
                     raise httpx.HTTPStatusError(
-                        "Service unavailable",
-                        request=MagicMock(),
-                        response=mock_response
+                        "Service unavailable", request=MagicMock(), response=mock_response
                     )
                 return "success"
 
@@ -317,9 +306,7 @@ class TestRetryDecorator:
                 mock_response.status_code = 400
                 mock_response.headers = {}
                 raise httpx.HTTPStatusError(
-                    "Bad request",
-                    request=MagicMock(),
-                    response=mock_response
+                    "Bad request", request=MagicMock(), response=mock_response
                 )
 
             @retry_on_error(config=retry_config)

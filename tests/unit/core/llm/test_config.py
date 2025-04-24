@@ -136,8 +136,10 @@ class TestLlmConfig:
                 mock_session_scope.return_value.__enter__.return_value = mock_session
 
                 # 模拟LlmManager
-                with patch("acolyte.core.llm.manager.LlmManager"), \
-                     patch("acolyte.core.llm.config.LlmConfig") as mock_llm_config_model:
+                with (
+                    patch("acolyte.core.llm.manager.LlmManager"),
+                    patch("acolyte.core.llm.config.LlmConfig") as mock_llm_config_model,
+                ):
                     # 设置模拟属性
                     mock_llm_config_model.name = MagicMock()
                     # 执行测试
