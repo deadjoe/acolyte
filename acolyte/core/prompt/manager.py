@@ -31,10 +31,29 @@ class PromptManager:
     提示词模板命名规范：
     - 格式：`prompt_v{version}[_{model_target}].txt`
     - 示例：`prompt_v1.0.txt`、`prompt_v2.1_claude.txt`
+    
+    注意：该类实现了单例模式，确保整个应用中只有一个实例。
     """
+    
+    # 单例实例
+    _instance = None
+    
+    def __new__(cls):
+        """实现单例模式，确保只创建一个实例"""
+        if cls._instance is None:
+            logger.debug("创建PromptManager单例实例")
+            cls._instance = super(PromptManager, cls).__new__(cls)
+            # 标记为未初始化
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self):
-        """初始化Prompt管理器"""
+        """初始化Prompt管理器，仅在首次创建实例时执行"""
+        # 如果已经初始化过，直接返回
+        if hasattr(self, '_initialized') and self._initialized:
+            logger.debug("PromptManager已初始化，跳过重复初始化")
+            return
+            
         logger.info("初始化Prompt管理器")
         
         # 固定路径为项目根目录下的prompt子目录
@@ -44,6 +63,9 @@ class PromptManager:
         logger.info(f"使用固定prompt目录: {self.prompt_dir}")
         
         self._ensure_prompt_dir_exists()
+        
+        # 标记为已初始化
+        self._initialized = True
 
     def _ensure_prompt_dir_exists(self):
         """确保prompt目录存在"""
