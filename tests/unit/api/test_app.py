@@ -3,12 +3,10 @@ API应用测试
 """
 
 import json
-import pytest
 from datetime import datetime
 from enum import Enum
-from fastapi.testclient import TestClient
 
-from acolyte.api.app import app, CustomJSONEncoder, FastAPICustomJSONResponse
+from acolyte.api.app import CustomJSONEncoder, FastAPICustomJSONResponse
 
 
 class TestApiApp:

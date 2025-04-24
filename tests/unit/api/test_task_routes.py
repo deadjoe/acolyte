@@ -2,12 +2,10 @@
 任务API路由测试
 """
 
-import json
-import pytest
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
-from pydantic import BaseModel
 from typing import List, Optional
+
+from fastapi import HTTPException
+from pydantic import BaseModel
 
 from acolyte.core.db.models import ProcessingMode
 

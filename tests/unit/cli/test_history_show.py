@@ -2,17 +2,12 @@
 CLI历史显示测试
 """
 
-import asyncio
 import json
 import os
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.table import Table
 
 
 def test_history_show_file_exists():
@@ -579,7 +574,7 @@ async def test_show_all_llm_results_summary_format():
         if format_type == "summary":
             for llm in llms:
                 if any(r.get("llm_id") == llm["id"] for r in results):
-                    mock_console.print(f"\n[bold cyan]LLM 1 (ID=1):[/]")
+                    mock_console.print("\n[bold cyan]LLM 1 (ID=1):[/]")
 
         return None
 

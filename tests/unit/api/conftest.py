@@ -2,20 +2,12 @@
 API测试的共享测试夹具
 """
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+from fastapi.testclient import TestClient
+
 from acolyte.api.app import app
-from acolyte.core.db.models import (
-    LlmConfig,
-    LlmRole,
-    Prompt,
-    Task,
-    TaskResult,
-    ProcessingMode,
-    TaskStatus,
-)
 
 
 @pytest.fixture

@@ -2,9 +2,9 @@
 HTTP工具测试
 """
 
-import pytest
-import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from acolyte.utils.http import HttpClientConfig, HttpClientManager, fetch
 

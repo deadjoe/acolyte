@@ -3,9 +3,10 @@ CLI客户端测试
 """
 
 import os
-import pytest
-import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+import pytest
 
 from acolyte.cli.commands import AcolyteClient
 

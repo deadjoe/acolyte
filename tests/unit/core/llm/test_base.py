@@ -4,15 +4,13 @@ LLM客户端基类单元测试
 测试LlmClient基类的功能和行为。
 """
 
-import json
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
-import pytest
 import httpx
+import pytest
 
 from acolyte.core.db.models import LlmConfig
 from acolyte.core.llm.base import LlmClient, retry_on_error
-from acolyte.core.llm.constants import DEFAULT_TIMEOUT, MAX_RETRIES, RETRY_DELAY, RETRY_STATUS_CODES
 from acolyte.core.llm.retry import RetryConfig
 
 

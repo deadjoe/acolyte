@@ -197,7 +197,6 @@ class TestSingleLlmProcessor:
     async def test_update_task_status(self, processor):
         """测试_update_task_status方法"""
         # 使用模拟方法测试
-        from acolyte.core.db.models import TaskStatus
 
         # 模拟_update_task_status方法
         original_method = processor._update_task_status

@@ -10,11 +10,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from acolyte.config.settings import get_config_path, load_config
 from acolyte.core.llm.config import (
     export_llm_config_to_file,
     import_llm_config_from_file,
 )
-from acolyte.config.settings import get_config_path, load_config
 
 
 class TestLlmConfig:

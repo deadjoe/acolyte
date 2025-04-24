@@ -2,9 +2,6 @@
 提示词API路由测试
 """
 
-import json
-import pytest
-from fastapi.testclient import TestClient
 
 
 class TestPromptRoutes:

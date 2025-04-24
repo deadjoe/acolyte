@@ -6,12 +6,12 @@ Ollama LLM客户端单元测试
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import httpx
+import pytest
 
 from acolyte.core.db.models import LlmConfig
-from acolyte.core.llm.providers.ollama import OllamaClient
 from acolyte.core.llm.constants import PROVIDER_OLLAMA
+from acolyte.core.llm.providers.ollama import OllamaClient
 
 
 class TestOllamaClient:

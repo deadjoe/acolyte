@@ -3,14 +3,8 @@
 """
 
 import os
-import sys
-import socket
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
-import uvicorn
-
-from acolyte import __version__
 from acolyte.main import main
 
 

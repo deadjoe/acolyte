@@ -4,12 +4,12 @@ LLM重试机制单元测试
 测试ErrorHandler和RetryConfig类的功能和行为。
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-import httpx
 import asyncio
 import json
+from unittest.mock import MagicMock
+
+import httpx
+import pytest
 
 from acolyte.core.llm.retry import ErrorHandler, RetryConfig, calculate_delay
 

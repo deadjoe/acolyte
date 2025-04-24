@@ -6,12 +6,12 @@ DeepSeek LLM客户端单元测试
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import httpx
+import pytest
 
 from acolyte.core.db.models import LlmConfig
-from acolyte.core.llm.providers.deepseek import DeepSeekClient
 from acolyte.core.llm.constants import PROVIDER_DEEPSEEK
+from acolyte.core.llm.providers.deepseek import DeepSeekClient
 
 
 class TestDeepSeekClient:

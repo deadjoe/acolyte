@@ -15,11 +15,11 @@ from acolyte.core.db.models import (
     Base,
     LlmConfig,
     LlmRole,
+    ProcessingMode,
     Prompt,
     Task,
     TaskResult,
     TaskStatus,
-    ProcessingMode,
 )
 
 

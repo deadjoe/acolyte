@@ -26,8 +26,9 @@ router = APIRouter()
 @router.get("/health")
 async def health_check():
     """健康检查端点"""
-    from acolyte import __version__
     from datetime import datetime
+
+    from acolyte import __version__
 
     return {"status": "ok", "version": __version__, "timestamp": datetime.now()}
 

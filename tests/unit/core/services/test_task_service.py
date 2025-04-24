@@ -2,8 +2,9 @@
 任务服务测试
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from acolyte.core.db.models import ProcessingMode, TaskStatus
 from acolyte.core.services.task_service import TaskService

@@ -10,13 +10,6 @@ import pytest
 
 from acolyte.core.db.models import LlmConfig
 from acolyte.core.llm.client import get_client_for_llm
-from acolyte.core.llm.constants import (
-    PROVIDER_ANTHROPIC,
-    PROVIDER_DEEPSEEK,
-    PROVIDER_GEMINI,
-    PROVIDER_OLLAMA,
-    PROVIDER_OPENAI,
-)
 
 
 class TestGetClientForLlm:
