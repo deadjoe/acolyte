@@ -137,9 +137,7 @@ class ResponseParser:
         logger.info("开始从文本中提取JSON格式的评分数据")
 
         # 1. 找到"6. 量化评分"章节
-        section_pattern = (
-            r"(?:6\.|六、|6\.\s*量化评分|量化评分)[\s\S]*?(?:7\.|七、|7\.\s*分析局限|分析局限|$)"
-        )
+        section_pattern = r"(?:6\.|六、|6\.\s*量化评分|量化评分)[\s\S]*?(?:<JSON_OUTPUT>[\s\S]*?</JSON_OUTPUT>)[\s\S]*?(?:7\.|七、|7\.\s*分析局限|分析局限|$)"
         section_match = re.search(section_pattern, text, re.DOTALL | re.IGNORECASE)
 
         if not section_match:
@@ -148,13 +146,15 @@ class ResponseParser:
 
         section_text = section_match.group(0)
         logger.debug(f"找到量化评分章节，长度: {len(section_text)} 字符")
+        logger.debug(f"完整的量化评分章节内容:\n{section_text}")
 
         # 2. 尝试从代码块中提取JSON
-        code_block_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
+        code_block_pattern = r"<JSON_OUTPUT>\s*({[\s\S]*?})\s*</JSON_OUTPUT>"
         code_match = re.search(code_block_pattern, section_text, re.DOTALL)
 
         json_str = None
         if code_match:
+            logger.debug(f"找到的JSON匹配内容:\n{code_match.group(1)}")
             code_content = code_match.group(1).strip()
             # 确保内容以{开始，}结束，这是有效JSON的基本要求
             if code_content.startswith("{") and code_content.endswith("}"):
@@ -162,7 +162,6 @@ class ResponseParser:
                 logger.debug("从代码块中提取到JSON")
             else:
                 logger.warning("代码块内容不是有效的JSON对象")
-
         # 3. 如果没有找到代码块中的JSON，尝试直接提取JSON对象
         if not json_str:
             logger.debug("未从代码块中找到JSON，尝试直接提取JSON对象")
