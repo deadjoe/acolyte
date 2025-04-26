@@ -25,37 +25,98 @@ export function HistoryPage() {
 
       console.log('开始获取任务列表, 状态过滤:', statusFilter);
 
+      // 添加硬编码的测试数据，以便验证渲染逻辑是否正常
+      const testData = [
+        {
+          id: 999,
+          content: "测试任务内容 - 这是一个硬编码的测试数据，用于验证渲染逻辑",
+          processing_mode: "SINGLE",
+          status: "completed",
+          prompt_id: 1,
+          created_at: "2025-04-26 20:00:00",
+          updated_at: "2025-04-26 20:01:00"
+        },
+        {
+          id: 998,
+          content: "另一个测试任务 - 处理中状态",
+          processing_mode: "multiple",
+          status: "processing",
+          prompt_id: 1,
+          created_at: "2025-04-26 19:50:00",
+          updated_at: "2025-04-26 19:51:00"
+        },
+        {
+          id: 997,
+          content: "第三个测试任务 - 评议模式",
+          processing_mode: "multiple_with_review",
+          status: "completed",
+          prompt_id: 1,
+          created_at: "2025-04-26 19:40:00",
+          updated_at: "2025-04-26 19:41:00"
+        },
+        {
+          id: 996,
+          content: "第四个测试任务 - 失败状态",
+          processing_mode: "single",
+          status: "failed",
+          prompt_id: 1,
+          created_at: "2025-04-26 19:30:00",
+          updated_at: "2025-04-26 19:31:00"
+        },
+        {
+          id: 995,
+          content: "第五个测试任务 - 等待中状态",
+          processing_mode: "multiple",
+          status: "pending",
+          prompt_id: 1,
+          created_at: "2025-04-26 19:20:00",
+          updated_at: "2025-04-26 19:21:00"
+        }
+      ];
+
+      console.log('使用测试数据:', testData);
+      setTasks(testData);
+      dispatch({ type: 'SET_TASKS', payload: testData });
+
+      // 显示成功通知
+      toast.success(`已加载测试数据`);
+
       // 直接使用fetch API获取数据
-      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
       console.log('请求URL:', apiUrl);
 
-      // 使用不同的方式尝试获取数据
+      // 尝试从API获取真实数据
       try {
-        // 方式1: 使用fetch API
-        console.log('尝试方式1: 使用fetch API');
+        console.log('尝试从API获取真实数据');
         const response = await fetch(apiUrl);
-        console.log('fetch响应状态:', response.status);
+        console.log('API响应状态:', response.status);
 
         if (!response.ok) {
           console.error(`HTTP error! status: ${response.status}`);
+          toast.error(`API请求失败: ${response.status}`);
         } else {
           const responseText = await response.text();
-          console.log('响应文本:', responseText);
+          console.log('API响应文本:', responseText);
 
           try {
-            const data = JSON.parse(responseText);
-            console.log('解析后的数据:', data);
+            if (responseText.trim()) {
+              const data = JSON.parse(responseText);
+              console.log('解析后的数据:', data);
 
-            if (Array.isArray(data)) {
-              console.log('数据是数组, 长度:', data.length);
-              setTasks(data);
-              dispatch({ type: 'SET_TASKS', payload: data });
+              if (Array.isArray(data)) {
+                console.log('数据是数组, 长度:', data.length);
+                setTasks(data);
+                dispatch({ type: 'SET_TASKS', payload: data });
 
-              // 显示成功通知
-              toast.success(`成功获取${data.length}条任务记录`);
+                // 显示成功通知
+                toast.success(`成功获取${data.length}条任务记录`);
+              } else {
+                console.error('数据不是数组:', data);
+                toast.error('获取的数据格式不正确');
+              }
             } else {
-              console.error('数据不是数组:', data);
-              toast.error('获取的数据格式不正确');
+              console.warn('API响应为空');
+              toast.warning('API响应为空');
             }
           } catch (parseError) {
             console.error('解析JSON失败:', parseError);
@@ -64,41 +125,8 @@ export function HistoryPage() {
         }
       } catch (fetchError) {
         console.error('fetch请求失败:', fetchError);
+        toast.error(`API请求失败: ${fetchError.message}`);
       }
-
-      // 方式2: 使用XMLHttpRequest
-      try {
-        console.log('尝试方式2: 使用XMLHttpRequest');
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', apiUrl, true);
-        xhr.onload = function() {
-          console.log('XHR响应状态:', xhr.status);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            console.log('XHR响应文本:', xhr.responseText);
-            try {
-              const data = JSON.parse(xhr.responseText);
-              console.log('XHR解析后的数据:', data);
-
-              if (Array.isArray(data) && tasks.length === 0) {
-                console.log('XHR数据是数组, 长度:', data.length);
-                setTasks(data);
-                dispatch({ type: 'SET_TASKS', payload: data });
-              }
-            } catch (parseError) {
-              console.error('XHR解析JSON失败:', parseError);
-            }
-          } else {
-            console.error('XHR请求失败:', xhr.status, xhr.statusText);
-          }
-        };
-        xhr.onerror = function() {
-          console.error('XHR网络错误');
-        };
-        xhr.send();
-      } catch (xhrError) {
-        console.error('XHR请求失败:', xhrError);
-      }
-
     } catch (error) {
       console.error('获取任务列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
@@ -126,7 +154,14 @@ export function HistoryPage() {
   }, [statusFilter]);
 
   // 过滤任务
-  const filteredTasks = tasks.filter(task =>
+  console.log('当前任务列表:', tasks);
+  console.log('Context中的任务列表:', state.tasks);
+
+  // 如果本地任务列表为空但Context中有任务，则使用Context中的任务
+  const tasksToUse = tasks.length > 0 ? tasks : state.tasks;
+  console.log('使用的任务列表:', tasksToUse);
+
+  const filteredTasks = tasksToUse.filter(task =>
     task.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -176,7 +211,8 @@ export function HistoryPage() {
 
   // 获取处理模式中文名称
   const getModeName = (mode: string) => {
-    switch (mode) {
+    const normalizedMode = mode.toLowerCase();
+    switch (normalizedMode) {
       case 'single':
         return '单LLM';
       case 'multiple':
