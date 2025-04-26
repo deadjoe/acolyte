@@ -17,9 +17,51 @@ export function HomePage() {
       try {
         setLoading(true);
 
-        // 获取最近5个已完成的任务
-        const tasks = await getTasks('completed', 0, 5);
-        dispatch({ type: 'SET_TASKS', payload: tasks });
+        // 添加硬编码的测试数据，以便验证渲染逻辑是否正常
+        const testData = [
+          {
+            id: 999,
+            content: "测试任务内容 - 这是一个硬编码的测试数据，用于验证渲染逻辑",
+            processing_mode: "SINGLE",
+            status: "completed",
+            prompt_id: 1,
+            created_at: "2025-04-26 20:00:00",
+            updated_at: "2025-04-26 20:01:00"
+          },
+          {
+            id: 998,
+            content: "另一个测试任务 - 处理中状态",
+            processing_mode: "multiple",
+            status: "completed",
+            prompt_id: 1,
+            created_at: "2025-04-26 19:50:00",
+            updated_at: "2025-04-26 19:51:00"
+          },
+          {
+            id: 997,
+            content: "第三个测试任务 - 评议模式",
+            processing_mode: "multiple_with_review",
+            status: "completed",
+            prompt_id: 1,
+            created_at: "2025-04-26 19:40:00",
+            updated_at: "2025-04-26 19:41:00"
+          }
+        ];
+
+        console.log('使用测试数据:', testData);
+        dispatch({ type: 'SET_TASKS', payload: testData });
+
+        // 尝试从API获取真实数据
+        try {
+          // 获取最近5个已完成的任务
+          const tasks = await getTasks('completed', 0, 5);
+          if (tasks && tasks.length > 0) {
+            console.log('获取到真实数据:', tasks);
+            dispatch({ type: 'SET_TASKS', payload: tasks });
+          }
+        } catch (apiError) {
+          console.error('API获取最近任务失败:', apiError);
+        }
 
       } catch (error) {
         console.error('获取最近任务失败:', error);
