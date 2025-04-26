@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getTasks } from '@/api';
+import { TaskResponse } from '@/api';
 import { useTask } from '@/context/TaskContext';
 
 export function HistoryPage() {
@@ -15,43 +15,35 @@ export function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
 
+  // 任务列表状态
+  const [tasks, setTasks] = useState<TaskResponse[]>([]);
+
   // 加载任务列表
   const loadTasks = async () => {
     try {
-      // 只在第一次加载或手动刷新时显示加载状态
-      if (state.tasks.length === 0 || loading) {
-        setLoading(true);
-        dispatch({ type: 'SET_LOADING', payload: true });
-      }
+      setLoading(true);
 
       console.log('开始获取任务列表, 状态过滤:', statusFilter);
 
-      // 直接使用fetch API尝试获取数据，以排除axios配置问题
+      // 直接使用fetch API获取数据
       const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
       console.log('请求URL:', apiUrl);
 
-      try {
-        const fetchResponse = await fetch(apiUrl);
-        const fetchData = await fetchResponse.json();
-        console.log('Fetch API 响应:', fetchData);
-      } catch (fetchError) {
-        console.error('Fetch API 请求失败:', fetchError);
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // 继续使用原来的API客户端
-      const tasks = await getTasks(statusFilter);
-      console.log('获取到的任务列表:', tasks);
+      const data = await response.json();
+      console.log('获取到的任务列表:', data);
 
-      if (JSON.stringify(tasks) !== JSON.stringify(state.tasks)) {
-        console.log('任务列表已更新, 旧列表:', state.tasks, '新列表:', tasks);
-        dispatch({ type: 'SET_TASKS', payload: tasks });
+      // 更新本地状态和Context状态
+      setTasks(data);
+      dispatch({ type: 'SET_TASKS', payload: data });
 
-        // 如果是自动刷新且有新任务，显示通知
-        if (state.tasks.length > 0 && tasks.length > state.tasks.length) {
-          toast.info('发现新的任务');
-        }
-      } else {
-        console.log('任务列表未变化');
+      // 如果是自动刷新且有新任务，显示通知
+      if (state.tasks.length > 0 && data.length > state.tasks.length) {
+        toast.info('发现新的任务');
       }
 
     } catch (error) {
@@ -81,7 +73,7 @@ export function HistoryPage() {
   }, [statusFilter]);
 
   // 过滤任务
-  const filteredTasks = state.tasks.filter(task =>
+  const filteredTasks = tasks.filter(task =>
     task.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

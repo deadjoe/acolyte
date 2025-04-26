@@ -5,7 +5,7 @@ import { Loader2, ArrowLeft, FileText, BarChart, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getTask, getTaskResults, getLlm } from '@/api';
+import { TaskResponse, TaskResultResponse } from '@/api';
 import { useTask } from '@/context/TaskContext';
 
 export function TaskResultPage() {
@@ -16,6 +16,8 @@ export function TaskResultPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [llmNames, setLlmNames] = useState<Record<number, string>>({});
+  const [task, setTask] = useState<TaskResponse | null>(null);
+  const [results, setResults] = useState<TaskResultResponse[]>([]);
 
   // 加载任务和结果
   useEffect(() => {
@@ -26,28 +28,46 @@ export function TaskResultPage() {
         setLoading(true);
 
         // 获取任务信息
-        const task = await getTask(taskId);
-        dispatch({ type: 'SET_CURRENT_TASK', payload: task });
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+        console.log('请求任务URL:', apiUrl);
+
+        const taskResponse = await fetch(apiUrl);
+        if (!taskResponse.ok) {
+          throw new Error(`HTTP error! status: ${taskResponse.status}`);
+        }
+
+        const taskData = await taskResponse.json();
+        console.log('获取到的任务:', taskData);
+
+        // 更新本地状态和Context状态
+        setTask(taskData);
+        dispatch({ type: 'SET_CURRENT_TASK', payload: taskData });
 
         // 获取任务结果
-        const results = await getTaskResults(taskId, true);
+        const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+        console.log('请求结果URL:', resultsUrl);
+
+        const resultsResponse = await fetch(resultsUrl);
+        if (!resultsResponse.ok) {
+          throw new Error(`HTTP error! status: ${resultsResponse.status}`);
+        }
+
+        const resultsData = await resultsResponse.json();
+        console.log('获取到的结果:', resultsData);
+
+        // 更新本地状态和Context状态
+        setResults(resultsData);
         dispatch({
           type: 'SET_TASK_RESULTS',
-          payload: { taskId, results },
+          payload: { taskId, results: resultsData },
         });
 
         // 获取LLM名称
-        const llmIds = [...new Set(results.map(result => result.llm_id))];
+        const llmIds = [...new Set(resultsData.map((result: TaskResultResponse) => result.llm_id))];
         const llmNamesMap: Record<number, string> = {};
 
         for (const llmId of llmIds) {
-          try {
-            const llm = await getLlm(llmId);
-            llmNamesMap[llmId] = llm.name;
-          } catch (error) {
-            console.error(`获取LLM信息失败 (ID: ${llmId}):`, error);
-            llmNamesMap[llmId] = `LLM #${llmId}`;
-          }
+          llmNamesMap[llmId] = `LLM #${llmId}`;
         }
 
         setLlmNames(llmNamesMap);
@@ -64,38 +84,42 @@ export function TaskResultPage() {
 
     // 如果任务未完成，设置自动刷新
     const refreshInterval = setInterval(async () => {
+      if (!task || task.status === 'completed' || task.status === 'failed') {
+        return;
+      }
+
       try {
         // 获取最新任务状态
-        const task = await getTask(taskId);
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+        const taskResponse = await fetch(apiUrl);
+        if (!taskResponse.ok) {
+          return;
+        }
+
+        const taskData = await taskResponse.json();
 
         // 如果任务状态已更新，重新加载结果
-        if (task.status !== state.currentTask?.status) {
-          dispatch({ type: 'SET_CURRENT_TASK', payload: task });
+        if (taskData.status !== task.status) {
+          setTask(taskData);
+          dispatch({ type: 'SET_CURRENT_TASK', payload: taskData });
 
-          if (task.status === 'completed') {
+          if (taskData.status === 'completed') {
             toast.success('任务处理完成');
-            const results = await getTaskResults(taskId, true);
-            dispatch({
-              type: 'SET_TASK_RESULTS',
-              payload: { taskId, results },
-            });
 
-            // 获取LLM名称
-            const llmIds = [...new Set(results.map(result => result.llm_id))];
-            const llmNamesMap: Record<number, string> = {};
-
-            for (const llmId of llmIds) {
-              try {
-                const llm = await getLlm(llmId);
-                llmNamesMap[llmId] = llm.name;
-              } catch (error) {
-                console.error(`获取LLM信息失败 (ID: ${llmId}):`, error);
-                llmNamesMap[llmId] = `LLM #${llmId}`;
-              }
+            const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+            const resultsResponse = await fetch(resultsUrl);
+            if (!resultsResponse.ok) {
+              return;
             }
 
-            setLlmNames(llmNamesMap);
-          } else if (task.status === 'failed') {
+            const resultsData = await resultsResponse.json();
+
+            setResults(resultsData);
+            dispatch({
+              type: 'SET_TASK_RESULTS',
+              payload: { taskId, results: resultsData },
+            });
+          } else if (taskData.status === 'failed') {
             toast.error('任务处理失败');
           }
         }
@@ -105,7 +129,7 @@ export function TaskResultPage() {
     }, 5000); // 每5秒刷新一次
 
     return () => clearInterval(refreshInterval);
-  }, [taskId, dispatch, state.currentTask?.status]);
+  }, [taskId, dispatch, task?.status]);
 
   // 获取处理模式中文名称
   const getModeName = (mode: string) => {
@@ -232,8 +256,7 @@ export function TaskResultPage() {
     );
   };
 
-  const task = state.currentTask;
-  const results = state.taskResults[taskId] || [];
+  // 使用本地状态而不是Context状态
 
   return (
     <div className="space-y-6">
@@ -253,13 +276,30 @@ export function TaskResultPage() {
           onClick={async () => {
             try {
               setRefreshing(true);
-              const task = await getTask(taskId);
-              dispatch({ type: 'SET_CURRENT_TASK', payload: task });
 
-              const results = await getTaskResults(taskId, true);
+              // 获取任务信息
+              const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+              const taskResponse = await fetch(apiUrl);
+              if (!taskResponse.ok) {
+                throw new Error(`HTTP error! status: ${taskResponse.status}`);
+              }
+
+              const taskData = await taskResponse.json();
+              setTask(taskData);
+              dispatch({ type: 'SET_CURRENT_TASK', payload: taskData });
+
+              // 获取任务结果
+              const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+              const resultsResponse = await fetch(resultsUrl);
+              if (!resultsResponse.ok) {
+                throw new Error(`HTTP error! status: ${resultsResponse.status}`);
+              }
+
+              const resultsData = await resultsResponse.json();
+              setResults(resultsData);
               dispatch({
                 type: 'SET_TASK_RESULTS',
-                payload: { taskId, results },
+                payload: { taskId, results: resultsData },
               });
 
               toast.success('刷新成功');
