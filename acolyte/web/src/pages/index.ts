@@ -5,3 +5,4 @@ export * from './LlmConfigPage';
 export * from './PromptConfigPage';
 export * from './TaskResultPage';
 export * from './SystemConfigPage';
+export * from './TestApiPage';

@@ -29,21 +29,74 @@ export function HistoryPage() {
       const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
       console.log('请求URL:', apiUrl);
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // 使用不同的方式尝试获取数据
+      try {
+        // 方式1: 使用fetch API
+        console.log('尝试方式1: 使用fetch API');
+        const response = await fetch(apiUrl);
+        console.log('fetch响应状态:', response.status);
+
+        if (!response.ok) {
+          console.error(`HTTP error! status: ${response.status}`);
+        } else {
+          const responseText = await response.text();
+          console.log('响应文本:', responseText);
+
+          try {
+            const data = JSON.parse(responseText);
+            console.log('解析后的数据:', data);
+
+            if (Array.isArray(data)) {
+              console.log('数据是数组, 长度:', data.length);
+              setTasks(data);
+              dispatch({ type: 'SET_TASKS', payload: data });
+
+              // 显示成功通知
+              toast.success(`成功获取${data.length}条任务记录`);
+            } else {
+              console.error('数据不是数组:', data);
+              toast.error('获取的数据格式不正确');
+            }
+          } catch (parseError) {
+            console.error('解析JSON失败:', parseError);
+            toast.error('解析响应数据失败');
+          }
+        }
+      } catch (fetchError) {
+        console.error('fetch请求失败:', fetchError);
       }
 
-      const data = await response.json();
-      console.log('获取到的任务列表:', data);
+      // 方式2: 使用XMLHttpRequest
+      try {
+        console.log('尝试方式2: 使用XMLHttpRequest');
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', apiUrl, true);
+        xhr.onload = function() {
+          console.log('XHR响应状态:', xhr.status);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('XHR响应文本:', xhr.responseText);
+            try {
+              const data = JSON.parse(xhr.responseText);
+              console.log('XHR解析后的数据:', data);
 
-      // 更新本地状态和Context状态
-      setTasks(data);
-      dispatch({ type: 'SET_TASKS', payload: data });
-
-      // 如果是自动刷新且有新任务，显示通知
-      if (state.tasks.length > 0 && data.length > state.tasks.length) {
-        toast.info('发现新的任务');
+              if (Array.isArray(data) && tasks.length === 0) {
+                console.log('XHR数据是数组, 长度:', data.length);
+                setTasks(data);
+                dispatch({ type: 'SET_TASKS', payload: data });
+              }
+            } catch (parseError) {
+              console.error('XHR解析JSON失败:', parseError);
+            }
+          } else {
+            console.error('XHR请求失败:', xhr.status, xhr.statusText);
+          }
+        };
+        xhr.onerror = function() {
+          console.error('XHR网络错误');
+        };
+        xhr.send();
+      } catch (xhrError) {
+        console.error('XHR请求失败:', xhrError);
       }
 
     } catch (error) {
@@ -51,7 +104,7 @@ export function HistoryPage() {
       dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
 
       // 只在第一次加载失败时显示错误通知
-      if (state.tasks.length === 0) {
+      if (tasks.length === 0) {
         toast.error('获取任务列表失败');
       }
     } finally {

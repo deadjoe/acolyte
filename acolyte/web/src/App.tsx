@@ -9,7 +9,8 @@ import {
   LlmConfigPage,
   PromptConfigPage,
   TaskResultPage,
-  SystemConfigPage
+  SystemConfigPage,
+  TestApiPage
 } from '@/pages';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
                   <Route path="/config/llm" element={<LlmConfigPage />} />
                   <Route path="/config/prompt" element={<PromptConfigPage />} />
                   <Route path="/config/system" element={<SystemConfigPage />} />
+                  <Route path="/test-api" element={<TestApiPage />} />
                 </Routes>
               </Layout>
             </Router>
