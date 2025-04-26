@@ -247,14 +247,14 @@ export function HistoryPage() {
           />
         </div>
         <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value || undefined)}
+          value={statusFilter || "all"}
+          onValueChange={(value) => setStatusFilter(value === "all" ? undefined : value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="所有状态" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">所有状态</SelectItem>
+            <SelectItem value="all">所有状态</SelectItem>
             <SelectItem value="completed">已完成</SelectItem>
             <SelectItem value="processing">处理中</SelectItem>
             <SelectItem value="pending">等待中</SelectItem>
