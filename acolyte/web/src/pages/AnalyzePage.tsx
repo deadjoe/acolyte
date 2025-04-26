@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -20,25 +20,26 @@ interface AnalyzeFormData {
 }
 
 export function AnalyzePage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('mode') as 'single' | 'multiple' | 'multiple_with_review' || 'single';
-  
+
   const { state: llmState, dispatch: llmDispatch } = useLlm();
   const { state: promptState, dispatch: promptDispatch } = usePrompt();
-  
+
   const [loading, setLoading] = useState(false);
   const [selectedLlms, setSelectedLlms] = useState<number[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<number | undefined>(undefined);
-  
+
   const { register, handleSubmit, setValue, watch } = useForm<AnalyzeFormData>({
     defaultValues: {
       content: '',
       processing_mode: initialMode,
     },
   });
-  
+
   const processingMode = watch('processing_mode');
-  
+
   // 加载LLM列表
   useEffect(() => {
     const fetchLlms = async () => {
@@ -46,7 +47,7 @@ export function AnalyzePage() {
         llmDispatch({ type: 'SET_LOADING', payload: true });
         const llms = await getLlms();
         llmDispatch({ type: 'SET_LLMS', payload: llms });
-        
+
         // 设置默认LLM
         const defaultLlm = llms.find(llm => llm.is_default);
         if (defaultLlm) {
@@ -60,10 +61,10 @@ export function AnalyzePage() {
         llmDispatch({ type: 'SET_LOADING', payload: false });
       }
     };
-    
+
     fetchLlms();
   }, [llmDispatch]);
-  
+
   // 加载提示词列表
   useEffect(() => {
     const fetchPrompts = async () => {
@@ -71,7 +72,7 @@ export function AnalyzePage() {
         promptDispatch({ type: 'SET_LOADING', payload: true });
         const prompts = await getPrompts();
         promptDispatch({ type: 'SET_PROMPTS', payload: prompts });
-        
+
         // 获取最新提示词
         const latestPrompt = await getLatestPrompt();
         promptDispatch({ type: 'SET_CURRENT_PROMPT', payload: latestPrompt });
@@ -83,10 +84,10 @@ export function AnalyzePage() {
         promptDispatch({ type: 'SET_LOADING', payload: false });
       }
     };
-    
+
     fetchPrompts();
   }, [promptDispatch]);
-  
+
   // 处理LLM选择
   const handleLlmSelect = (llmId: number) => {
     if (processingMode === 'single') {
@@ -99,34 +100,73 @@ export function AnalyzePage() {
       }
     }
   };
-  
+
   // 处理提交
   const onSubmit = async (data: AnalyzeFormData) => {
     if (!data.content.trim()) {
       toast.error('请输入要分析的内容');
       return;
     }
-    
+
     if (processingMode !== 'single' && selectedLlms.length < 2) {
       toast.error('多LLM模式下请至少选择两个LLM');
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       const taskData: AnalyzeFormData = {
         content: data.content,
         processing_mode: data.processing_mode,
         prompt_id: selectedPromptId,
         llm_ids: selectedLlms.length > 0 ? selectedLlms : undefined,
       };
-      
+
       const result = await createTask(taskData);
       toast.success(`任务创建成功，ID: ${result.id}`);
-      
-      // 这里可以添加导航到结果页面的逻辑
-      
+
+      // 创建任务后，添加轮询逻辑检查任务状态
+      let taskCompleted = false;
+      let attempts = 0;
+      const maxAttempts = 30; // 最多轮询30次
+      const pollInterval = 2000; // 每2秒轮询一次
+
+      const pollTaskStatus = async () => {
+        try {
+          if (attempts >= maxAttempts) {
+            toast.info(`任务正在后台处理，您可以稍后在历史记录中查看结果`);
+            navigate(`/history`);
+            return;
+          }
+
+          attempts++;
+
+          // 获取任务状态
+          const taskStatus = await fetch(`${import.meta.env.VITE_API_URL}/tasks/${result.id}`).then(res => res.json());
+
+          if (taskStatus.status === 'completed') {
+            taskCompleted = true;
+            toast.success('任务处理完成');
+            navigate(`/result/${result.id}`);
+          } else if (taskStatus.status === 'failed') {
+            taskCompleted = true;
+            toast.error('任务处理失败');
+            navigate(`/history`);
+          } else {
+            // 继续轮询
+            setTimeout(pollTaskStatus, pollInterval);
+          }
+        } catch (error) {
+          console.error('轮询任务状态失败:', error);
+          toast.error('获取任务状态失败，请在历史记录中查看结果');
+          navigate(`/history`);
+        }
+      };
+
+      // 开始轮询
+      setTimeout(pollTaskStatus, pollInterval);
+
     } catch (error) {
       console.error('创建任务失败:', error);
       toast.error('创建任务失败');
@@ -134,13 +174,13 @@ export function AnalyzePage() {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">内容分析</h1>
       </div>
-      
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader>
@@ -152,8 +192,8 @@ export function AnalyzePage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">处理模式</label>
-              <Tabs 
-                defaultValue={initialMode} 
+              <Tabs
+                defaultValue={initialMode}
                 onValueChange={(value) => setValue('processing_mode', value as any)}
                 className="w-full"
               >
@@ -179,7 +219,7 @@ export function AnalyzePage() {
                 </TabsContent>
               </Tabs>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">选择LLM</label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -199,11 +239,11 @@ export function AnalyzePage() {
                 ))}
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">提示词模板</label>
-              <Select 
-                value={selectedPromptId?.toString()} 
+              <Select
+                value={selectedPromptId?.toString()}
                 onValueChange={(value) => setSelectedPromptId(parseInt(value))}
               >
                 <SelectTrigger>
@@ -218,7 +258,7 @@ export function AnalyzePage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">内容</label>
               <Textarea

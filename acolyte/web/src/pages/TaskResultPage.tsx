@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, FileText, BarChart } from 'lucide-react';
+import { Loader2, ArrowLeft, FileText, BarChart, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,33 +12,34 @@ export function TaskResultPage() {
   const { id } = useParams<{ id: string }>();
   const taskId = parseInt(id || '0');
   const { state, dispatch } = useTask();
-  
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [llmNames, setLlmNames] = useState<Record<number, string>>({});
-  
+
   // 加载任务和结果
   useEffect(() => {
     const loadTaskAndResults = async () => {
       if (!taskId) return;
-      
+
       try {
         setLoading(true);
-        
+
         // 获取任务信息
         const task = await getTask(taskId);
         dispatch({ type: 'SET_CURRENT_TASK', payload: task });
-        
+
         // 获取任务结果
         const results = await getTaskResults(taskId, true);
         dispatch({
           type: 'SET_TASK_RESULTS',
           payload: { taskId, results },
         });
-        
+
         // 获取LLM名称
         const llmIds = [...new Set(results.map(result => result.llm_id))];
         const llmNamesMap: Record<number, string> = {};
-        
+
         for (const llmId of llmIds) {
           try {
             const llm = await getLlm(llmId);
@@ -48,9 +49,9 @@ export function TaskResultPage() {
             llmNamesMap[llmId] = `LLM #${llmId}`;
           }
         }
-        
+
         setLlmNames(llmNamesMap);
-        
+
       } catch (error) {
         console.error('加载任务和结果失败:', error);
         toast.error('加载任务和结果失败');
@@ -58,10 +59,54 @@ export function TaskResultPage() {
         setLoading(false);
       }
     };
-    
+
     loadTaskAndResults();
-  }, [taskId, dispatch]);
-  
+
+    // 如果任务未完成，设置自动刷新
+    const refreshInterval = setInterval(async () => {
+      try {
+        // 获取最新任务状态
+        const task = await getTask(taskId);
+
+        // 如果任务状态已更新，重新加载结果
+        if (task.status !== state.currentTask?.status) {
+          dispatch({ type: 'SET_CURRENT_TASK', payload: task });
+
+          if (task.status === 'completed') {
+            toast.success('任务处理完成');
+            const results = await getTaskResults(taskId, true);
+            dispatch({
+              type: 'SET_TASK_RESULTS',
+              payload: { taskId, results },
+            });
+
+            // 获取LLM名称
+            const llmIds = [...new Set(results.map(result => result.llm_id))];
+            const llmNamesMap: Record<number, string> = {};
+
+            for (const llmId of llmIds) {
+              try {
+                const llm = await getLlm(llmId);
+                llmNamesMap[llmId] = llm.name;
+              } catch (error) {
+                console.error(`获取LLM信息失败 (ID: ${llmId}):`, error);
+                llmNamesMap[llmId] = `LLM #${llmId}`;
+              }
+            }
+
+            setLlmNames(llmNamesMap);
+          } else if (task.status === 'failed') {
+            toast.error('任务处理失败');
+          }
+        }
+      } catch (error) {
+        console.error('自动刷新任务状态失败:', error);
+      }
+    }, 5000); // 每5秒刷新一次
+
+    return () => clearInterval(refreshInterval);
+  }, [taskId, dispatch, state.currentTask?.status]);
+
   // 获取处理模式中文名称
   const getModeName = (mode: string) => {
     switch (mode) {
@@ -75,7 +120,7 @@ export function TaskResultPage() {
         return mode;
     }
   };
-  
+
   // 获取状态中文名称
   const getStatusName = (status: string) => {
     switch (status) {
@@ -91,7 +136,7 @@ export function TaskResultPage() {
         return status;
     }
   };
-  
+
   // 格式化日期
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -103,21 +148,21 @@ export function TaskResultPage() {
       minute: '2-digit',
     });
   };
-  
+
   // 获取结果类型名称
   const getResultTypeName = (isReviewResult: boolean) => {
     return isReviewResult ? '评议结果' : '分析结果';
   };
-  
+
   // 渲染评分卡片
   const renderScoreCard = (title: string, score: number | undefined, description: string) => {
     if (score === undefined) return null;
-    
+
     let color = 'bg-gray-100 text-gray-800';
     if (score < 30) color = 'bg-green-100 text-green-800';
     else if (score < 60) color = 'bg-yellow-100 text-yellow-800';
     else color = 'bg-red-100 text-red-800';
-    
+
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -147,16 +192,16 @@ export function TaskResultPage() {
       </Card>
     );
   };
-  
+
   // 渲染可信度评分卡片
   const renderCredibilityCard = (score: number | undefined) => {
     if (score === undefined) return null;
-    
+
     let color = 'bg-gray-100 text-gray-800';
     if (score > 70) color = 'bg-green-100 text-green-800';
     else if (score > 40) color = 'bg-yellow-100 text-yellow-800';
     else color = 'bg-red-100 text-red-800';
-    
+
     return (
       <Card className="col-span-full">
         <CardHeader className="pb-2">
@@ -186,22 +231,56 @@ export function TaskResultPage() {
       </Card>
     );
   };
-  
+
   const task = state.currentTask;
   const results = state.taskResults[taskId] || [];
-  
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center">
-        <Link to="/history">
-          <Button variant="ghost" size="sm" className="mr-2">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回历史记录
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight">任务结果</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Link to="/history">
+            <Button variant="ghost" size="sm" className="mr-2">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回历史记录
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">任务结果</h1>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            try {
+              setRefreshing(true);
+              const task = await getTask(taskId);
+              dispatch({ type: 'SET_CURRENT_TASK', payload: task });
+
+              const results = await getTaskResults(taskId, true);
+              dispatch({
+                type: 'SET_TASK_RESULTS',
+                payload: { taskId, results },
+              });
+
+              toast.success('刷新成功');
+            } catch (error) {
+              console.error('刷新失败:', error);
+              toast.error('刷新失败');
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          刷新
+        </Button>
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -236,7 +315,7 @@ export function TaskResultPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {results.length > 0 ? (
             <Tabs defaultValue="results" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
@@ -249,7 +328,7 @@ export function TaskResultPage() {
                   原始响应
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="results" className="space-y-4">
                 {results.map((result) => (
                   <Card key={result.id} className="overflow-hidden">
@@ -286,7 +365,7 @@ export function TaskResultPage() {
                   </Card>
                 ))}
               </TabsContent>
-              
+
               <TabsContent value="raw" className="space-y-4">
                 {results.map((result) => (
                   <Card key={`raw-${result.id}`}>

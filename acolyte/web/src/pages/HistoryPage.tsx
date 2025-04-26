@@ -14,36 +14,58 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  
+
   // 加载任务列表
   const loadTasks = async () => {
     try {
-      setLoading(true);
-      dispatch({ type: 'SET_LOADING', payload: true });
-      
+      // 只在第一次加载或手动刷新时显示加载状态
+      if (state.tasks.length === 0 || loading) {
+        setLoading(true);
+        dispatch({ type: 'SET_LOADING', payload: true });
+      }
+
       const tasks = await getTasks(statusFilter);
-      dispatch({ type: 'SET_TASKS', payload: tasks });
-      
+
+      if (JSON.stringify(tasks) !== JSON.stringify(state.tasks)) {
+        dispatch({ type: 'SET_TASKS', payload: tasks });
+
+        // 如果是自动刷新且有新任务，显示通知
+        if (state.tasks.length > 0 && tasks.length > state.tasks.length) {
+          toast.info('发现新的任务');
+        }
+      }
+
     } catch (error) {
       console.error('获取任务列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
-      toast.error('获取任务列表失败');
+
+      // 只在第一次加载失败时显示错误通知
+      if (state.tasks.length === 0) {
+        toast.error('获取任务列表失败');
+      }
     } finally {
       setLoading(false);
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
-  
-  // 初始加载
+
+  // 初始加载和自动刷新
   useEffect(() => {
     loadTasks();
+
+    // 设置自动刷新（每30秒刷新一次）
+    const refreshInterval = setInterval(() => {
+      loadTasks();
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   }, [statusFilter]);
-  
+
   // 过滤任务
-  const filteredTasks = state.tasks.filter(task => 
+  const filteredTasks = state.tasks.filter(task =>
     task.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   // 格式化日期
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -55,7 +77,7 @@ export function HistoryPage() {
       minute: '2-digit',
     });
   };
-  
+
   // 获取状态标签样式
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -71,7 +93,7 @@ export function HistoryPage() {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
-  
+
   // 获取状态中文名称
   const getStatusName = (status: string) => {
     switch (status) {
@@ -87,7 +109,7 @@ export function HistoryPage() {
         return status;
     }
   };
-  
+
   // 获取处理模式中文名称
   const getModeName = (mode: string) => {
     switch (mode) {
@@ -101,7 +123,7 @@ export function HistoryPage() {
         return mode;
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -110,7 +132,7 @@ export function HistoryPage() {
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
-      
+
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -138,7 +160,7 @@ export function HistoryPage() {
           </SelectContent>
         </Select>
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
