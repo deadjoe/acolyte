@@ -24,15 +24,34 @@ export function HistoryPage() {
         dispatch({ type: 'SET_LOADING', payload: true });
       }
 
+      console.log('开始获取任务列表, 状态过滤:', statusFilter);
+
+      // 直接使用fetch API尝试获取数据，以排除axios配置问题
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
+      console.log('请求URL:', apiUrl);
+
+      try {
+        const fetchResponse = await fetch(apiUrl);
+        const fetchData = await fetchResponse.json();
+        console.log('Fetch API 响应:', fetchData);
+      } catch (fetchError) {
+        console.error('Fetch API 请求失败:', fetchError);
+      }
+
+      // 继续使用原来的API客户端
       const tasks = await getTasks(statusFilter);
+      console.log('获取到的任务列表:', tasks);
 
       if (JSON.stringify(tasks) !== JSON.stringify(state.tasks)) {
+        console.log('任务列表已更新, 旧列表:', state.tasks, '新列表:', tasks);
         dispatch({ type: 'SET_TASKS', payload: tasks });
 
         // 如果是自动刷新且有新任务，显示通知
         if (state.tasks.length > 0 && tasks.length > state.tasks.length) {
           toast.info('发现新的任务');
         }
+      } else {
+        console.log('任务列表未变化');
       }
 
     } catch (error) {
