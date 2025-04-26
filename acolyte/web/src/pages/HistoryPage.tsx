@@ -76,7 +76,9 @@ export function HistoryPage() {
 
       console.log('使用测试数据:', testData);
       setTasks(testData);
-      dispatch({ type: 'SET_TASKS', payload: testData });
+
+      // 直接更新本地状态，不使用Context
+      // dispatch({ type: 'SET_TASKS', payload: testData });
 
       // 显示成功通知
       toast.success(`已加载测试数据`);
@@ -106,7 +108,7 @@ export function HistoryPage() {
               if (Array.isArray(data)) {
                 console.log('数据是数组, 长度:', data.length);
                 setTasks(data);
-                dispatch({ type: 'SET_TASKS', payload: data });
+                // dispatch({ type: 'SET_TASKS', payload: data });
 
                 // 显示成功通知
                 toast.success(`成功获取${data.length}条任务记录`);
@@ -129,7 +131,7 @@ export function HistoryPage() {
       }
     } catch (error) {
       console.error('获取任务列表失败:', error);
-      dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
+      // dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
 
       // 只在第一次加载失败时显示错误通知
       if (tasks.length === 0) {
@@ -137,7 +139,7 @@ export function HistoryPage() {
       }
     } finally {
       setLoading(false);
-      dispatch({ type: 'SET_LOADING', payload: false });
+      // dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -157,8 +159,8 @@ export function HistoryPage() {
   console.log('当前任务列表:', tasks);
   console.log('Context中的任务列表:', state.tasks);
 
-  // 如果本地任务列表为空但Context中有任务，则使用Context中的任务
-  const tasksToUse = tasks.length > 0 ? tasks : state.tasks;
+  // 使用本地任务列表，不使用Context
+  const tasksToUse = tasks;
   console.log('使用的任务列表:', tasksToUse);
 
   const filteredTasks = tasksToUse.filter(task =>
