@@ -1,9 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { getTasks } from '@/api';
+import { TaskCard } from '@/components/tasks';
+import { LoadingSpinner } from '@/components/common';
+import { useTask } from '@/context/TaskContext';
 
 export function HomePage() {
+  const { state, dispatch } = useTask();
+  const [loading, setLoading] = useState(false);
+
+  // 加载最近任务
+  useEffect(() => {
+    const loadRecentTasks = async () => {
+      try {
+        setLoading(true);
+
+        // 获取最近5个已完成的任务
+        const tasks = await getTasks('completed', 0, 5);
+        dispatch({ type: 'SET_TASKS', payload: tasks });
+
+      } catch (error) {
+        console.error('获取最近任务失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRecentTasks();
+  }, [dispatch]);
+
   return (
     <div className="space-y-8">
       <section className="py-12 md:py-16 lg:py-20">
@@ -73,6 +100,35 @@ export function HomePage() {
               </CardFooter>
             </Card>
           </div>
+        </div>
+      </section>
+
+      <section className="py-8 md:py-12">
+        <div className="container px-4 md:px-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold tracking-tight">最近分析</h2>
+            <Link to="/history">
+              <Button variant="ghost" size="sm">查看全部</Button>
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner text="加载最近任务..." />
+            </div>
+          ) : state.tasks.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {state.tasks.map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                没有找到最近的分析任务
+              </CardContent>
+            </Card>
+          )}
         </div>
       </section>
     </div>

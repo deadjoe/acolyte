@@ -2,7 +2,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { Layout } from '@/components/layout';
 import { AppProvider, TaskProvider, LlmProvider, PromptProvider } from '@/context';
-import { HomePage, AnalyzePage, HistoryPage, LlmConfigPage } from '@/pages';
+import {
+  HomePage,
+  AnalyzePage,
+  HistoryPage,
+  LlmConfigPage,
+  PromptConfigPage,
+  TaskResultPage,
+  SystemConfigPage
+} from '@/pages';
 
 function App() {
   return (
@@ -16,8 +24,10 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/analyze" element={<AnalyzePage />} />
                   <Route path="/history" element={<HistoryPage />} />
+                  <Route path="/result/:id" element={<TaskResultPage />} />
                   <Route path="/config/llm" element={<LlmConfigPage />} />
-                  {/* 添加更多路由 */}
+                  <Route path="/config/prompt" element={<PromptConfigPage />} />
+                  <Route path="/config/system" element={<SystemConfigPage />} />
                 </Routes>
               </Layout>
             </Router>
