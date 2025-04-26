@@ -1,8 +1,11 @@
 import axios from 'axios';
 
 // 创建axios实例
+const baseURL = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api`;
+console.log('API基础URL:', baseURL);
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL,
   timeout: 30000, // 30秒超时
   headers: {
     'Content-Type': 'application/json',

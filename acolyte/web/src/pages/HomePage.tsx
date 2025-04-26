@@ -19,7 +19,7 @@ export function HomePage() {
 
         // 获取最近5个已完成的任务
         try {
-          const apiUrl = `${import.meta.env.VITE_API_URL}/api/tasks?status=completed&limit=5`;
+          const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks?status=completed&limit=5`;
           console.log('请求URL:', apiUrl);
 
           const response = await fetch(apiUrl);

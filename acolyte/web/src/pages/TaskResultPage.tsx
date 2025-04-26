@@ -28,7 +28,7 @@ export function TaskResultPage() {
         setLoading(true);
 
         // 获取任务信息
-        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}`;
         console.log('请求任务URL:', apiUrl);
 
         const taskResponse = await fetch(apiUrl);
@@ -44,7 +44,7 @@ export function TaskResultPage() {
         dispatch({ type: 'SET_CURRENT_TASK', payload: taskData });
 
         // 获取任务结果
-        const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+        const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}/results?include_raw_response=true`;
         console.log('请求结果URL:', resultsUrl);
 
         const resultsResponse = await fetch(resultsUrl);
@@ -144,7 +144,7 @@ export function TaskResultPage() {
 
       try {
         // 获取最新任务状态
-        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+        const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}`;
         const taskResponse = await fetch(apiUrl);
         if (!taskResponse.ok) {
           return;
@@ -160,7 +160,7 @@ export function TaskResultPage() {
           if (taskData.status === 'completed') {
             toast.success('任务处理完成');
 
-            const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+            const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}/results?include_raw_response=true`;
             const resultsResponse = await fetch(resultsUrl);
             if (!resultsResponse.ok) {
               return;
@@ -347,7 +347,7 @@ export function TaskResultPage() {
               setRefreshing(true);
 
               // 获取任务信息
-              const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}`;
+              const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}`;
               const taskResponse = await fetch(apiUrl);
               if (!taskResponse.ok) {
                 throw new Error(`HTTP error! status: ${taskResponse.status}`);
@@ -358,7 +358,7 @@ export function TaskResultPage() {
               dispatch({ type: 'SET_CURRENT_TASK', payload: taskData });
 
               // 获取任务结果
-              const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks/${taskId}/results?include_raw_response=true`;
+              const resultsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${taskId}/results?include_raw_response=true`;
               const resultsResponse = await fetch(resultsUrl);
               if (!resultsResponse.ok) {
                 throw new Error(`HTTP error! status: ${resultsResponse.status}`);
