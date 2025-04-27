@@ -194,9 +194,15 @@ export function HistoryPage() {
       // 显示详细错误信息
       let errorMessage = '删除任务失败';
       if (error && typeof error === 'object') {
-        if ('response' in error && error.response && typeof error.response === 'object' &&
-            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
-            'detail' in error.response.data) {
+        if (
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'data' in error.response &&
+          error.response.data &&
+          typeof error.response.data === 'object' &&
+          'detail' in error.response.data
+        ) {
           errorMessage = String(error.response.data.detail);
         } else if ('message' in error && error.message) {
           errorMessage = String(error.message);
@@ -232,9 +238,15 @@ export function HistoryPage() {
       // 显示详细错误信息
       let errorMessage = '批量删除任务失败';
       if (error && typeof error === 'object') {
-        if ('response' in error && error.response && typeof error.response === 'object' &&
-            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
-            'detail' in error.response.data) {
+        if (
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'data' in error.response &&
+          error.response.data &&
+          typeof error.response.data === 'object' &&
+          'detail' in error.response.data
+        ) {
           errorMessage = String(error.response.data.detail);
         } else if ('message' in error && error.message) {
           errorMessage = String(error.message);
@@ -264,9 +276,15 @@ export function HistoryPage() {
       // 显示详细错误信息
       let errorMessage = '清空历史记录失败';
       if (error && typeof error === 'object') {
-        if ('response' in error && error.response && typeof error.response === 'object' &&
-            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
-            'detail' in error.response.data) {
+        if (
+          'response' in error &&
+          error.response &&
+          typeof error.response === 'object' &&
+          'data' in error.response &&
+          error.response.data &&
+          typeof error.response.data === 'object' &&
+          'detail' in error.response.data
+        ) {
           errorMessage = String(error.response.data.detail);
         } else if ('message' in error && error.message) {
           errorMessage = String(error.message);

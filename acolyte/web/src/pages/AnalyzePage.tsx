@@ -299,7 +299,10 @@ export function AnalyzePage() {
                 defaultValue={initialMode}
                 onValueChange={value => {
                   console.log(`切换处理模式: ${value}`);
-                  setValue('processing_mode', value as 'single' | 'multiple' | 'multiple_with_review');
+                  setValue(
+                    'processing_mode',
+                    value as 'single' | 'multiple' | 'multiple_with_review'
+                  );
 
                   // 切换到单LLM模式时，如果有选中的LLM，则保留第一个；否则使用默认LLM
                   if (value === 'single') {

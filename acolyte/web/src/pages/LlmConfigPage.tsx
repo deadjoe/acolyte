@@ -27,13 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  getLlms,
-  createLlm,
-  deleteLlm,
-  setDefaultLlm,
-  LlmConfigCreateRequest,
-} from '@/api';
+import { getLlms, createLlm, deleteLlm, setDefaultLlm, LlmConfigCreateRequest } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 
 export function LlmConfigPage() {
