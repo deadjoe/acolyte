@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { getLlms, createLlm, deleteLlm, setDefaultLlm, LlmConfigCreateRequest } from '@/api';
 import { useLlm } from '@/context/LlmContext';
+import { PageTitle } from '@/components/common';
 
 export function LlmConfigPage() {
   const { state, dispatch } = useLlm();
@@ -176,9 +177,10 @@ export function LlmConfigPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">LLM配置管理</h1>
-        <div className="flex space-x-2">
+      <PageTitle
+        title="LLM配置管理"
+        actions={
+          <div className="flex space-x-2">
           <Button onClick={loadLlms} variant="outline" size="icon">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -307,8 +309,9 @@ export function LlmConfigPage() {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="flex justify-center py-8">

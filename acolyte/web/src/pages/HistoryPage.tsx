@@ -32,6 +32,7 @@ import {
 import { TaskResponse, getTasks, deleteTask, deleteTasks, clearAllTasks } from '@/api';
 import { useTask } from '@/context/TaskContext';
 import { formatDateTime } from '@/utils/date';
+import { PageTitle } from '@/components/common';
 
 export function HistoryPage() {
   const { state } = useTask();
@@ -298,9 +299,10 @@ export function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">历史记录</h1>
-        <div className="flex space-x-2">
+      <PageTitle
+        title="历史记录"
+        actions={
+          <div className="flex space-x-2">
           {selectMode ? (
             <>
               <Button
@@ -357,8 +359,9 @@ export function HistoryPage() {
               </Button>
             </>
           )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">

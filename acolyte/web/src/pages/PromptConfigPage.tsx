@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { getPrompts, syncPrompts, getPrompt } from '@/api';
 import { usePrompt } from '@/context/PromptContext';
+import { PageTitle } from '@/components/common';
 
 export function PromptConfigPage() {
   const { state, dispatch } = usePrompt();
@@ -110,17 +111,19 @@ export function PromptConfigPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">提示词管理</h1>
-        <div className="flex space-x-2">
+      <PageTitle
+        title="提示词管理"
+        actions={
+          <div className="flex space-x-2">
           <Button onClick={loadPrompts} variant="outline" size="icon">
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={handleSyncPrompts} disabled={syncing}>
             {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : '同步提示词'}
           </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="flex justify-center py-8">

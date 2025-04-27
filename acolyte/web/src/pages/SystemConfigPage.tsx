@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/api';
+import { PageTitle } from '@/components/common';
 
 export function SystemConfigPage() {
   const [exportLoading, setExportLoading] = useState(false);
@@ -102,9 +103,7 @@ export function SystemConfigPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">系统配置</h1>
-      </div>
+      <PageTitle title="系统配置" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>

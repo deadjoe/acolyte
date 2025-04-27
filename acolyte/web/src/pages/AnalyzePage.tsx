@@ -25,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { createTask, getLlms, getPrompts, getLatestPrompt, setDefaultLlm } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 import { usePrompt } from '@/context/PromptContext';
+import { PageTitle } from '@/components/common';
 
 interface AnalyzeFormData {
   content: string;
@@ -282,9 +283,7 @@ export function AnalyzePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">内容分析</h1>
-      </div>
+      <PageTitle title="内容分析" />
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Card>

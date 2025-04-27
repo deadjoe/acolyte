@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { PageTitle } from '@/components/common';
 
 export function TestApiPage() {
   const [apiUrl, setApiUrl] = useState(
@@ -52,9 +53,7 @@ export function TestApiPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">API测试</h1>
-      </div>
+      <PageTitle title="API测试" />
 
       <Card>
         <CardHeader>
