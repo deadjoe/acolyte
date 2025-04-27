@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createTask, getLlms, getPrompts, getLatestPrompt } from '@/api';
+import { createTask, getLlms, getPrompts, getLatestPrompt, updateLlm } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 import { usePrompt } from '@/context/PromptContext';
 
@@ -89,13 +89,42 @@ export function AnalyzePage() {
   }, [promptDispatch]);
 
   // 处理LLM选择
-  const handleLlmSelect = (llmId: number) => {
+  const handleLlmSelect = async (llmId: number) => {
     console.log(`选择LLM ID: ${llmId}, 当前处理模式: ${processingMode}`);
 
     if (processingMode === 'single') {
       // 在单LLM模式下，只选择一个LLM
       console.log(`单LLM模式: 设置选中的LLM为 [${llmId}]`);
       setSelectedLlms([llmId]);
+
+      // 获取选中的LLM和当前默认LLM
+      const selectedLlm = llmState.llms.find(llm => llm.id === llmId);
+      const defaultLlm = llmState.llms.find(llm => llm.is_default);
+
+      // 如果选中的LLM不是当前默认LLM，则将其设置为默认LLM
+      if (selectedLlm && defaultLlm && llmId !== defaultLlm.id) {
+        try {
+          // 显示加载状态
+          toast.loading('正在设置默认LLM...');
+
+          // 先将当前默认LLM的is_default设置为false
+          await updateLlm(defaultLlm.id, { is_default: false });
+          console.log(`已将原默认LLM ${defaultLlm.name} (ID=${defaultLlm.id}) 的is_default设置为false`);
+
+          // 再将选中的LLM的is_default设置为true
+          const updatedLlm = await updateLlm(llmId, { is_default: true });
+          console.log(`已将选中的LLM ${selectedLlm.name} (ID=${llmId}) 的is_default设置为true`);
+
+          // 更新Context中的默认LLM
+          llmDispatch({ type: 'SET_DEFAULT_LLM', payload: updatedLlm });
+
+          // 显示成功消息
+          toast.success(`已将 ${selectedLlm.name} 设置为默认LLM`);
+        } catch (error) {
+          console.error('设置默认LLM失败:', error);
+          toast.error('设置默认LLM失败');
+        }
+      }
     } else {
       // 在多LLM模式下，可以选择多个LLM
       if (selectedLlms.includes(llmId)) {
@@ -232,9 +261,16 @@ export function AnalyzePage() {
                   <TabsTrigger value="multiple_with_review">多LLM评议</TabsTrigger>
                 </TabsList>
                 <TabsContent value="single" className="mt-2">
-                  <p className="text-sm text-muted-foreground">
-                    使用单个LLM进行内容分析，通常是默认的LLM。
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      使用单个LLM进行内容分析。
+                    </p>
+                    <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-md">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>提示：</strong> 在单LLM模式下，选择LLM时会自动将其设置为默认LLM。
+                      </p>
+                    </div>
+                  </div>
                 </TabsContent>
                 <TabsContent value="multiple" className="mt-2">
                   <p className="text-sm text-muted-foreground">
