@@ -64,18 +64,39 @@ export const getTaskResults = async (taskId: number, includeRawResponse = false)
 
 // 删除特定任务
 export const deleteTask = async (taskId: number) => {
-  const response = await apiClient.delete(`/tasks/${taskId}`);
-  return response.data;
+  try {
+    console.log(`删除任务: ID=${taskId}`);
+    const response = await apiClient.delete(`/tasks/${taskId}`);
+    console.log(`删除任务成功: ID=${taskId}`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`删除任务失败: ID=${taskId}`, error);
+    throw error;
+  }
 };
 
 // 批量删除任务
 export const deleteTasks = async (taskIds: number[]) => {
-  const response = await apiClient.post('/tasks/batch-delete', { task_ids: taskIds });
-  return response.data;
+  try {
+    console.log(`批量删除任务: IDs=${taskIds.join(',')}`);
+    const response = await apiClient.post('/tasks/batch-delete', { task_ids: taskIds });
+    console.log(`批量删除任务成功: 数量=${taskIds.length}`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`批量删除任务失败: IDs=${taskIds.join(',')}`, error);
+    throw error;
+  }
 };
 
 // 清空所有历史记录
 export const clearAllTasks = async () => {
-  const response = await apiClient.post('/tasks/clear-all');
-  return response.data;
+  try {
+    console.log('清空所有历史记录');
+    const response = await apiClient.post('/tasks/clear-all');
+    console.log('清空所有历史记录成功', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('清空所有历史记录失败', error);
+    throw error;
+  }
 };

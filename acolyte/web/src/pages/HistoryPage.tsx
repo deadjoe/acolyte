@@ -20,6 +20,7 @@ export function HistoryPage() {
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   // 任务列表状态
@@ -158,14 +159,23 @@ export function HistoryPage() {
   const handleDeleteTask = async (taskId: number) => {
     try {
       setDeleteLoading(true);
-      await deleteTask(taskId);
+      setDeletingTaskId(taskId);
+      console.log(`开始删除任务: ID=${taskId}`);
+
+      const result = await deleteTask(taskId);
+      console.log(`删除任务API返回结果:`, result);
+
       toast.success('任务删除成功');
-      loadTasks();
-    } catch (error) {
+      await loadTasks();
+    } catch (error: any) {
       console.error('删除任务失败:', error);
-      toast.error('删除任务失败');
+
+      // 显示详细错误信息
+      const errorMessage = error.response?.data?.detail || error.message || '删除任务失败';
+      toast.error(`删除任务失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);
+      setDeletingTaskId(null);
     }
   };
 
@@ -178,13 +188,20 @@ export function HistoryPage() {
 
     try {
       setDeleteLoading(true);
-      await deleteTasks(selectedTasks);
+      console.log(`开始批量删除任务: IDs=${selectedTasks.join(',')}`);
+
+      const result = await deleteTasks(selectedTasks);
+      console.log(`批量删除任务API返回结果:`, result);
+
       toast.success(`成功删除${selectedTasks.length}条任务记录`);
       setSelectedTasks([]);
-      loadTasks();
-    } catch (error) {
+      await loadTasks();
+    } catch (error: any) {
       console.error('批量删除任务失败:', error);
-      toast.error('批量删除任务失败');
+
+      // 显示详细错误信息
+      const errorMessage = error.response?.data?.detail || error.message || '批量删除任务失败';
+      toast.error(`批量删除任务失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);
     }
@@ -194,13 +211,20 @@ export function HistoryPage() {
   const handleClearAll = async () => {
     try {
       setDeleteLoading(true);
-      await clearAllTasks();
+      console.log('开始清空所有历史记录');
+
+      const result = await clearAllTasks();
+      console.log('清空所有历史记录API返回结果:', result);
+
       toast.success('所有历史记录已清空');
       setClearDialogOpen(false);
-      loadTasks();
-    } catch (error) {
+      await loadTasks();
+    } catch (error: any) {
       console.error('清空历史记录失败:', error);
-      toast.error('清空历史记录失败');
+
+      // 显示详细错误信息
+      const errorMessage = error.response?.data?.detail || error.message || '清空历史记录失败';
+      toast.error(`清空历史记录失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);
     }
@@ -363,10 +387,14 @@ export function HistoryPage() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteTask(task.id)}
-                            disabled={deleteLoading}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleDeleteTask(task.id);
+                            }}
+                            disabled={deleteLoading && (deletingTaskId === task.id || deletingTaskId === null)}
                           >
-                            {deleteLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                            {deleteLoading && deletingTaskId === task.id && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                             删除
                           </Button>
                         )}
