@@ -25,7 +25,9 @@ describe('LLMs API', () => {
     await getLlms();
 
     // 验证API调用
-    expect(apiClient.get).toHaveBeenCalledWith('/llms');
+    expect(apiClient.get).toHaveBeenCalledWith('/llms', {
+      params: { role: undefined, is_default: undefined }
+    });
   });
 
   it('should call getLlm with correct parameters', async () => {

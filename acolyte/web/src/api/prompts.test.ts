@@ -23,7 +23,9 @@ describe('Prompts API', () => {
     await getPrompts();
 
     // 验证API调用
-    expect(apiClient.get).toHaveBeenCalledWith('/prompts');
+    expect(apiClient.get).toHaveBeenCalledWith('/prompts', {
+      params: { model_target: undefined, version: undefined }
+    });
   });
 
   it('should call getPrompt with correct parameters', async () => {
@@ -45,6 +47,6 @@ describe('Prompts API', () => {
     await syncPrompts();
 
     // 验证API调用
-    expect(apiClient.post).toHaveBeenCalledWith('/prompts/sync');
+    expect(apiClient.post).toHaveBeenCalledWith('/prompts/sync', {});
   });
 });

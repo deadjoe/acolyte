@@ -24,8 +24,8 @@ describe('Header', () => {
     expect(screen.getByText('Acolyte')).toBeInTheDocument();
 
     // 验证导航链接存在
-    expect(screen.getByText('分析')).toBeInTheDocument();
-    expect(screen.getByText('历史')).toBeInTheDocument();
-    expect(screen.getByText('配置')).toBeInTheDocument();
+    expect(screen.getByText('内容分析')).toBeInTheDocument();
+    expect(screen.getByText('历史记录')).toBeInTheDocument();
+    expect(screen.getByText('配置管理')).toBeInTheDocument();
   });
 });

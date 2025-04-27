@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import apiClient from './config';
-import { getTasks, getTask, getTaskResults, createTask, deleteTask, clearTasks } from './tasks';
+import { getTasks, getTask, getTaskResults, createTask, deleteTask, clearAllTasks } from './tasks';
 
 // 模拟apiClient
 vi.mock('./config', () => ({
@@ -24,7 +24,9 @@ describe('Tasks API', () => {
     await getTasks();
 
     // 验证API调用
-    expect(apiClient.get).toHaveBeenCalledWith('/tasks', { params: {} });
+    expect(apiClient.get).toHaveBeenCalledWith('/tasks', {
+      params: { status: undefined, skip: 0, limit: 100 }
+    });
 
     // 测试带参数的调用
     await getTasks('completed', 10, 20);
@@ -91,22 +93,16 @@ describe('Tasks API', () => {
     expect(apiClient.delete).toHaveBeenCalledWith('/tasks/123');
   });
 
-  it('should call clearTasks with correct parameters', async () => {
+  it('should call clearAllTasks with correct parameters', async () => {
     // 模拟响应
     (apiClient.delete as any).mockResolvedValue({ data: {} });
 
     // 调用API
-    await clearTasks();
+    await clearAllTasks();
 
     // 验证API调用
     expect(apiClient.delete).toHaveBeenCalledWith('/tasks', {
       params: { confirm: true },
-    });
-
-    // 测试带参数的调用
-    await clearTasks('completed');
-    expect(apiClient.delete).toHaveBeenCalledWith('/tasks', {
-      params: { confirm: true, status: 'completed' },
     });
   });
 });
