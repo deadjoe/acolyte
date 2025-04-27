@@ -1,7 +1,25 @@
 import axios from 'axios';
 
 // 创建axios实例
-const baseURL = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api`;
+// 检测当前环境，如果是通过IP地址访问，则使用相同的IP地址访问API
+const getApiBaseUrl = () => {
+  // 优先使用环境变量中的API URL
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`;
+  }
+
+  // 如果没有环境变量，则尝试使用当前页面的主机名
+  const currentHost = window.location.hostname;
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+    // 如果不是localhost，则使用当前主机名
+    return `http://${currentHost}:8000/api`;
+  }
+
+  // 默认使用localhost
+  return 'http://localhost:8000/api';
+};
+
+const baseURL = getApiBaseUrl();
 console.log('API基础URL:', baseURL);
 
 const apiClient = axios.create({
