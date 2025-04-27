@@ -12,6 +12,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!acolyte/web/src/lib/
 lib64/
 parts/
 sdist/
