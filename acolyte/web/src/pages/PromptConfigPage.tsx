@@ -181,19 +181,17 @@ export function PromptConfigPage() {
 
       {/* 查看提示词内容对话框 */}
       <Dialog open={!!viewPrompt} onOpenChange={(open) => !open && setViewPrompt(null)}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>提示词内容</DialogTitle>
             <DialogDescription>
               ID: {viewPrompt?.id}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
-            <Textarea
-              value={viewPrompt?.content || ''}
-              readOnly
-              className="min-h-[300px] font-mono text-sm"
-            />
+          <div className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <div className="border rounded-md overflow-auto h-[400px] p-4 font-mono text-sm whitespace-pre-wrap">
+              {viewPrompt?.content || ''}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
