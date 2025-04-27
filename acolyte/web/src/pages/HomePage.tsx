@@ -19,43 +19,13 @@ export function HomePage() {
       try {
         setLoading(true);
 
-        // 添加硬编码的测试数据，以便验证渲染逻辑是否正常
-        const testData = [
-          {
-            id: 999,
-            content: "测试任务内容 - 这是一个硬编码的测试数据，用于验证渲染逻辑",
-            processing_mode: "SINGLE",
-            status: "completed",
-            prompt_id: 1,
-            created_at: "2025-04-26 20:00:00",
-            updated_at: "2025-04-26 20:01:00"
-          },
-          {
-            id: 998,
-            content: "另一个测试任务 - 处理中状态",
-            processing_mode: "multiple",
-            status: "completed",
-            prompt_id: 1,
-            created_at: "2025-04-26 19:50:00",
-            updated_at: "2025-04-26 19:51:00"
-          },
-          {
-            id: 997,
-            content: "第三个测试任务 - 评议模式",
-            processing_mode: "multiple_with_review",
-            status: "completed",
-            prompt_id: 1,
-            created_at: "2025-04-26 19:40:00",
-            updated_at: "2025-04-26 19:41:00"
-          }
-        ];
-
-        console.log('使用测试数据:', testData);
-        setLocalTasks(testData);
-        dispatch({ type: 'SET_TASKS', payload: testData });
+        // 初始化空数组，等待API返回真实数据
+        setLocalTasks([]);
+        dispatch({ type: 'SET_TASKS', payload: [] });
 
         // 获取最近5个已完成的任务
         try {
+          // 使用API模块中的getTasks函数获取任务列表
           const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks?status=completed&limit=5`;
           console.log('请求URL:', apiUrl);
 
@@ -72,12 +42,17 @@ export function HomePage() {
               const data = JSON.parse(responseText);
               console.log('解析后的数据:', data);
 
-              if (Array.isArray(data) && data.length > 0) {
-                setLocalTasks(data);
-                dispatch({ type: 'SET_TASKS', payload: data });
-                console.log('成功获取并设置任务列表');
+              if (Array.isArray(data)) {
+                if (data.length > 0) {
+                  // 设置本地状态和Context状态
+                  setLocalTasks(data);
+                  dispatch({ type: 'SET_TASKS', payload: data });
+                  console.log('成功获取并设置任务列表, 数量:', data.length);
+                } else {
+                  console.warn('API返回的数据是空数组');
+                }
               } else {
-                console.warn('API返回的数据不是数组或为空数组');
+                console.warn('API返回的数据不是数组');
               }
             } else {
               console.warn('API响应为空');
