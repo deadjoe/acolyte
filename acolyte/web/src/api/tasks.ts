@@ -81,10 +81,13 @@ export const deleteTasks = async (taskIds: number[]) => {
     console.log(`批量删除任务: IDs=${taskIds.join(',')}`);
 
     // 使用正确的端点和方法，添加confirm=true参数
+    // 根据API文档，confirm参数应该在查询参数中，而不是请求体中
     const response = await apiClient.delete('/tasks', {
-      data: {
-        task_ids: taskIds,
+      params: {
         confirm: true
+      },
+      data: {
+        task_ids: taskIds
       }
     });
 
@@ -101,9 +104,11 @@ export const clearAllTasks = async () => {
   try {
     console.log('清空所有历史记录');
 
-    // 使用正确的端点和方法，添加confirm=true参数
-    const response = await apiClient.post('/tasks/clear-all', {
-      confirm: true
+    // 根据API文档，清空所有任务应该使用DELETE /tasks端点，并且confirm参数应该在查询参数中
+    const response = await apiClient.delete('/tasks', {
+      params: {
+        confirm: true
+      }
     });
 
     console.log('清空所有历史记录成功', response.data);
