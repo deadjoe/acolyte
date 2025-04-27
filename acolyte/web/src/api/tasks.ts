@@ -81,8 +81,8 @@ export const deleteTasks = async (taskIds: number[]) => {
     console.log(`批量删除任务: IDs=${taskIds.join(',')}`);
 
     // 使用正确的端点和方法
-    const response = await apiClient.post('/tasks/batch-delete', {
-      task_ids: taskIds
+    const response = await apiClient.delete('/tasks', {
+      data: { task_ids: taskIds }
     });
 
     console.log(`批量删除任务成功: 数量=${taskIds.length}`, response.data);
