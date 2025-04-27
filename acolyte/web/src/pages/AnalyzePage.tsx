@@ -90,13 +90,24 @@ export function AnalyzePage() {
 
   // 处理LLM选择
   const handleLlmSelect = (llmId: number) => {
+    console.log(`选择LLM ID: ${llmId}, 当前处理模式: ${processingMode}`);
+
     if (processingMode === 'single') {
+      // 在单LLM模式下，只选择一个LLM
+      console.log(`单LLM模式: 设置选中的LLM为 [${llmId}]`);
       setSelectedLlms([llmId]);
     } else {
+      // 在多LLM模式下，可以选择多个LLM
       if (selectedLlms.includes(llmId)) {
-        setSelectedLlms(selectedLlms.filter(id => id !== llmId));
+        // 如果已经选中，则取消选择
+        const newSelectedLlms = selectedLlms.filter(id => id !== llmId);
+        console.log(`多LLM模式: 取消选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`);
+        setSelectedLlms(newSelectedLlms);
       } else {
-        setSelectedLlms([...selectedLlms, llmId]);
+        // 如果未选中，则添加到选中列表
+        const newSelectedLlms = [...selectedLlms, llmId];
+        console.log(`多LLM模式: 添加选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`);
+        setSelectedLlms(newSelectedLlms);
       }
     }
   };
@@ -116,12 +127,15 @@ export function AnalyzePage() {
     try {
       setLoading(true);
 
+      // 确保在单LLM模式下也发送选定的LLM ID
       const taskData: AnalyzeFormData = {
         content: data.content,
         processing_mode: data.processing_mode,
         prompt_id: selectedPromptId,
-        llm_ids: selectedLlms.length > 0 ? selectedLlms : undefined,
+        llm_ids: selectedLlms,
       };
+
+      console.log('提交任务数据:', JSON.stringify(taskData, null, 2));
 
       const result = await createTask(taskData);
       toast.success(`任务创建成功，ID: ${result.id}`);
@@ -143,7 +157,7 @@ export function AnalyzePage() {
           attempts++;
 
           // 获取任务状态
-          const taskStatus = await fetch(`${import.meta.env.VITE_API_URL}/tasks/${result.id}`).then(res => res.json());
+          const taskStatus = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${result.id}`).then(res => res.json());
 
           if (taskStatus.status === 'completed') {
             taskCompleted = true;
@@ -194,7 +208,22 @@ export function AnalyzePage() {
               <label className="text-sm font-medium">处理模式</label>
               <Tabs
                 defaultValue={initialMode}
-                onValueChange={(value) => setValue('processing_mode', value as any)}
+                onValueChange={(value) => {
+                  console.log(`切换处理模式: ${value}`);
+                  setValue('processing_mode', value as any);
+
+                  // 切换到单LLM模式时，如果有选中的LLM，则保留第一个；否则使用默认LLM
+                  if (value === 'single') {
+                    const defaultLlm = llmState.llms.find(llm => llm.is_default);
+                    if (selectedLlms.length > 0) {
+                      console.log(`切换到单LLM模式: 保留第一个选中的LLM ${selectedLlms[0]}`);
+                      setSelectedLlms([selectedLlms[0]]);
+                    } else if (defaultLlm) {
+                      console.log(`切换到单LLM模式: 使用默认LLM ${defaultLlm.id}`);
+                      setSelectedLlms([defaultLlm.id]);
+                    }
+                  }
+                }}
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-3">
