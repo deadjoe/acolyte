@@ -432,12 +432,6 @@ export function TaskResultPage() {
                   <p>{formatDate(task.created_at)}</p>
                 </div>
               </div>
-              <div>
-                <h3 className="text-sm font-medium">内容</h3>
-                <p className="mt-1 whitespace-pre-wrap rounded-md border p-4 text-sm">
-                  {task.content}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
@@ -524,6 +518,17 @@ export function TaskResultPage() {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>原始分析内容</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap rounded-md border p-4 text-sm">
+                {task.content}
+              </p>
+            </CardContent>
+          </Card>
         </>
       ) : (
         <Card>
