@@ -12,7 +12,6 @@ import { useLlm } from '@/context/LlmContext';
 export function LlmConfigPage() {
   const { state, dispatch } = useLlm();
   const [loading, setLoading] = useState(false);
-  const [testingId, setTestingId] = useState<number | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState<LlmConfigCreateRequest>({
     name: '',
@@ -133,41 +132,7 @@ export function LlmConfigPage() {
     }
   };
 
-  // 测试LLM连接
-  const handleTestConnection = async (llmId: number) => {
-    try {
-      setTestingId(llmId);
-
-      // 获取LLM信息，用于显示正确的API URL
-      const llm = state.llms.find(l => l.id === llmId);
-      const llmName = llm ? llm.name : `ID为${llmId}的LLM`;
-
-      // 显示正确的API URL
-      console.log(`测试LLM连接: ${llmName}, API端点: ${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/llms/${llmId}/test`);
-
-      // 先获取最新的LLM列表，确保数据是最新的
-      try {
-        await loadLlms();
-      } catch (refreshError) {
-        console.warn('刷新LLM列表失败，继续使用当前数据:', refreshError);
-      }
-
-      // 使用专用的测试连接API
-      const result = await testLlmConnection(llmId);
-
-      if (result.success) {
-        toast.success(`连接测试成功: ${result.message || '连接正常'}`);
-      } else {
-        toast.error(`连接测试失败: ${result.message || '未知错误'}`);
-      }
-
-    } catch (error) {
-      console.error('测试LLM连接失败:', error);
-      toast.error('测试LLM连接失败');
-    } finally {
-      setTestingId(null);
-    }
-  };
+  // 测试LLM连接功能已移除
 
   // 删除LLM配置
   const handleDelete = async (llmId: number) => {
@@ -327,7 +292,7 @@ export function LlmConfigPage() {
         </div>
       </div>
 
-      {loading && !testingId ? (
+      {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -369,18 +334,6 @@ export function LlmConfigPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleTestConnection(llm.id)}
-                          disabled={testingId === llm.id}
-                        >
-                          {testingId === llm.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            '测试'
-                          )}
-                        </Button>
                         {!llm.is_default && (
                           <Button
                             variant="outline"

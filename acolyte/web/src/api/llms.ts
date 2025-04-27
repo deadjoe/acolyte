@@ -61,12 +61,7 @@ export const deleteLlm = async (llmId: number) => {
   return response.data;
 };
 
-// 测试LLM连接
-export const testLlmConnection = async (llmId: number) => {
-  // 使用正确的API端点，并传递refresh=true参数，确保后端刷新LLM配置
-  const response = await apiClient.post(`/llms/${llmId}/test`, { refresh: true });
-  return response.data;
-};
+// 测试LLM连接功能已移除
 
 // 设置默认LLM
 export const setDefaultLlm = async (llmId: number) => {
