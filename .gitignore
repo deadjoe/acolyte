@@ -55,8 +55,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/web/build/
-/web/dist/
+/acolyte/web/build/
+/acolyte/web/dist/
 .vite/
 
 # Testing
