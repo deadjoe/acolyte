@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { createTask, getLlms, getPrompts, getLatestPrompt, setDefaultLlm } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 import { usePrompt } from '@/context/PromptContext';
@@ -30,6 +31,9 @@ export function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [selectedLlms, setSelectedLlms] = useState<number[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<number | undefined>(undefined);
+  const [taskProgress, setTaskProgress] = useState(0);
+  const [taskId, setTaskId] = useState<number | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const { register, handleSubmit, setValue, watch } = useForm<AnalyzeFormData>({
     defaultValues: {
@@ -170,6 +174,8 @@ export function AnalyzePage() {
 
     try {
       setLoading(true);
+      setAnalyzing(true);
+      setTaskProgress(0);
 
       // 确保在单LLM模式下也发送选定的LLM ID
       const taskData: AnalyzeFormData = {
@@ -181,53 +187,73 @@ export function AnalyzePage() {
 
       console.log('提交任务数据:', JSON.stringify(taskData, null, 2));
 
-      const result = await createTask(taskData);
-      toast.success(`任务创建成功，ID: ${result.id}`);
+      try {
+        const result = await createTask(taskData);
+        setTaskId(result.id);
+        toast.success(`任务创建成功，ID: ${result.id}`);
+        setTaskProgress(10); // 任务创建成功，进度设为10%
 
-      // 创建任务后，添加轮询逻辑检查任务状态
-      let taskCompleted = false;
-      let attempts = 0;
-      const maxAttempts = 30; // 最多轮询30次
-      const pollInterval = 2000; // 每2秒轮询一次
+        // 创建任务后，添加轮询逻辑检查任务状态
+        let taskCompleted = false;
+        let attempts = 0;
+        const maxAttempts = 30; // 最多轮询30次
+        const pollInterval = 2000; // 每2秒轮询一次
 
-      const pollTaskStatus = async () => {
-        try {
-          if (attempts >= maxAttempts) {
-            toast.info(`任务正在后台处理，您可以稍后在历史记录中查看结果`);
+        const pollTaskStatus = async () => {
+          try {
+            if (attempts >= maxAttempts) {
+              setAnalyzing(false);
+              toast.info(`任务正在后台处理，您可以稍后在历史记录中查看结果`);
+              navigate(`/history`);
+              return;
+            }
+
+            attempts++;
+            // 计算进度，从10%到90%，根据尝试次数线性增加
+            const progressIncrement = 80 / maxAttempts;
+            const newProgress = Math.min(10 + attempts * progressIncrement, 90);
+            setTaskProgress(newProgress);
+
+            // 获取任务状态
+            const taskStatus = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${result.id}`).then(res => res.json());
+
+            if (taskStatus.status === 'completed') {
+              taskCompleted = true;
+              setTaskProgress(100); // 任务完成，进度设为100%
+              setAnalyzing(false);
+              toast.success('任务处理完成');
+              navigate(`/result/${result.id}`);
+            } else if (taskStatus.status === 'failed') {
+              taskCompleted = true;
+              setTaskProgress(0); // 任务失败，进度重置为0
+              setAnalyzing(false);
+              toast.error('任务处理失败');
+              navigate(`/history`);
+            } else {
+              // 继续轮询
+              setTimeout(pollTaskStatus, pollInterval);
+            }
+          } catch (error) {
+            console.error('轮询任务状态失败:', error);
+            setAnalyzing(false);
+            toast.error('获取任务状态失败，请在历史记录中查看结果');
             navigate(`/history`);
-            return;
           }
+        };
 
-          attempts++;
-
-          // 获取任务状态
-          const taskStatus = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${result.id}`).then(res => res.json());
-
-          if (taskStatus.status === 'completed') {
-            taskCompleted = true;
-            toast.success('任务处理完成');
-            navigate(`/result/${result.id}`);
-          } else if (taskStatus.status === 'failed') {
-            taskCompleted = true;
-            toast.error('任务处理失败');
-            navigate(`/history`);
-          } else {
-            // 继续轮询
-            setTimeout(pollTaskStatus, pollInterval);
-          }
-        } catch (error) {
-          console.error('轮询任务状态失败:', error);
-          toast.error('获取任务状态失败，请在历史记录中查看结果');
-          navigate(`/history`);
-        }
-      };
-
-      // 开始轮询
-      setTimeout(pollTaskStatus, pollInterval);
+        // 开始轮询
+        setTimeout(pollTaskStatus, pollInterval);
+      } catch (error) {
+        console.error('创建任务失败:', error);
+        setAnalyzing(false);
+        toast.error('创建任务失败');
+      }
 
     } catch (error) {
       console.error('创建任务失败:', error);
       toast.error('创建任务失败');
+      setAnalyzing(false);
+      setTaskProgress(0);
     } finally {
       setLoading(false);
     }
@@ -348,11 +374,31 @@ export function AnalyzePage() {
               />
             </div>
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              开始分析
-            </Button>
+          <CardFooter className="flex flex-col space-y-4">
+            {analyzing && (
+              <div className="w-full space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>分析进度</span>
+                  <span>{Math.round(taskProgress)}%</span>
+                </div>
+                <Progress value={taskProgress} className="h-2" />
+              </div>
+            )}
+            <div className="flex justify-between w-full">
+              <Button type="submit" disabled={loading || analyzing}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                开始分析
+              </Button>
+              {analyzing && taskId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/history`)}
+                >
+                  在后台处理
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
       </form>
