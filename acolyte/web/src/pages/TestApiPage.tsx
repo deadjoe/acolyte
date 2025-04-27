@@ -7,32 +7,32 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export function TestApiPage() {
-  const [apiUrl, setApiUrl] = useState(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/tasks`);
+  const [apiUrl, setApiUrl] = useState(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks`);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
-  
+
   const testApi = async () => {
     try {
       setLoading(true);
       setResponse('');
-      
+
       console.log('测试API URL:', apiUrl);
-      
+
       // 使用fetch API
       const fetchResponse = await fetch(apiUrl);
       const responseText = await fetchResponse.text();
-      
+
       console.log('响应状态:', fetchResponse.status);
       console.log('响应文本:', responseText);
-      
+
       setResponse(`状态码: ${fetchResponse.status}\n\n${responseText}`);
-      
+
       if (fetchResponse.ok) {
         toast.success('API请求成功');
       } else {
         toast.error(`API请求失败: ${fetchResponse.status}`);
       }
-      
+
     } catch (error) {
       console.error('API请求失败:', error);
       setResponse(`错误: ${error instanceof Error ? error.message : String(error)}`);
@@ -41,13 +41,13 @@ export function TestApiPage() {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">API测试</h1>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>测试API调用</CardTitle>
@@ -64,7 +64,7 @@ export function TestApiPage() {
               placeholder="输入API URL"
             />
           </div>
-          
+
           <Button onClick={testApi} disabled={loading}>
             {loading ? (
               <>
