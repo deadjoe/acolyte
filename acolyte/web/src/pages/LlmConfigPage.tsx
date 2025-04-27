@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getLlms, createLlm, updateLlm, deleteLlm, testLlmConnection, LlmConfigCreateRequest, LlmConfigUpdateRequest } from '@/api';
+import { getLlms, createLlm, updateLlm, deleteLlm, testLlmConnection, setDefaultLlm, LlmConfigCreateRequest, LlmConfigUpdateRequest } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 
 export function LlmConfigPage() {
@@ -23,22 +23,22 @@ export function LlmConfigPage() {
     role: 'normal',
     is_default: false,
   });
-  
+
   // 加载LLM列表
   const loadLlms = async () => {
     try {
       setLoading(true);
       dispatch({ type: 'SET_LOADING', payload: true });
-      
+
       const llms = await getLlms();
       dispatch({ type: 'SET_LLMS', payload: llms });
-      
+
       // 设置默认LLM
       const defaultLlm = llms.find(llm => llm.is_default);
       if (defaultLlm) {
         dispatch({ type: 'SET_DEFAULT_LLM', payload: defaultLlm });
       }
-      
+
     } catch (error) {
       console.error('获取LLM列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取LLM列表失败' });
@@ -48,39 +48,39 @@ export function LlmConfigPage() {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
-  
+
   // 初始加载
   useEffect(() => {
     loadLlms();
   }, []);
-  
+
   // 处理表单输入变化
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-  
+
   // 处理选择框变化
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
   };
-  
+
   // 处理复选框变化
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, checked } = e.target;
     setFormData({ ...formData, [name]: checked });
   };
-  
+
   // 提交表单
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
+
       const result = await createLlm(formData);
       dispatch({ type: 'ADD_LLM', payload: result });
-      
+
       toast.success('LLM配置创建成功');
       setOpenDialog(false);
       setFormData({
@@ -92,7 +92,7 @@ export function LlmConfigPage() {
         role: 'normal',
         is_default: false,
       });
-      
+
     } catch (error) {
       console.error('创建LLM配置失败:', error);
       toast.error('创建LLM配置失败');
@@ -100,23 +100,31 @@ export function LlmConfigPage() {
       setLoading(false);
     }
   };
-  
+
   // 设置默认LLM
   const handleSetDefault = async (llmId: number) => {
     try {
       setLoading(true);
-      
-      const updateData: LlmConfigUpdateRequest = { is_default: true };
-      const result = await updateLlm(llmId, updateData);
-      
-      // 更新状态
-      dispatch({ type: 'UPDATE_LLM', payload: result });
-      
-      // 更新其他LLM的默认状态
-      await loadLlms();
-      
-      toast.success(`已将 ${result.name} 设为默认LLM`);
-      
+
+      // 使用专门的setDefaultLlm函数
+      const result = await setDefaultLlm(llmId);
+
+      // 获取LLM名称
+      const llm = state.llms.find(l => l.id === llmId);
+      const llmName = llm ? llm.name : `ID为${llmId}的LLM`;
+
+      // 立即更新状态
+      const updatedLlms = await getLlms();
+      dispatch({ type: 'SET_LLMS', payload: updatedLlms });
+
+      // 设置新的默认LLM
+      const newDefaultLlm = updatedLlms.find(l => l.is_default);
+      if (newDefaultLlm) {
+        dispatch({ type: 'SET_DEFAULT_LLM', payload: newDefaultLlm });
+      }
+
+      toast.success(`已将 ${llmName} 设为默认LLM`);
+
     } catch (error) {
       console.error('设置默认LLM失败:', error);
       toast.error('设置默认LLM失败');
@@ -124,20 +132,20 @@ export function LlmConfigPage() {
       setLoading(false);
     }
   };
-  
+
   // 测试LLM连接
   const handleTestConnection = async (llmId: number) => {
     try {
       setTestingId(llmId);
-      
+
       const result = await testLlmConnection(llmId);
-      
+
       if (result.success) {
         toast.success(`连接测试成功: ${result.message || '连接正常'}`);
       } else {
         toast.error(`连接测试失败: ${result.message || '未知错误'}`);
       }
-      
+
     } catch (error) {
       console.error('测试LLM连接失败:', error);
       toast.error('测试LLM连接失败');
@@ -145,21 +153,21 @@ export function LlmConfigPage() {
       setTestingId(null);
     }
   };
-  
+
   // 删除LLM配置
   const handleDelete = async (llmId: number) => {
     if (!confirm('确定要删除此LLM配置吗？')) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       await deleteLlm(llmId);
       dispatch({ type: 'REMOVE_LLM', payload: llmId });
-      
+
       toast.success('LLM配置已删除');
-      
+
     } catch (error) {
       console.error('删除LLM配置失败:', error);
       toast.error('删除LLM配置失败');
@@ -167,7 +175,7 @@ export function LlmConfigPage() {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -303,7 +311,7 @@ export function LlmConfigPage() {
           </Dialog>
         </div>
       </div>
-      
+
       {loading && !testingId ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
