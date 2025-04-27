@@ -34,7 +34,7 @@ import { useTask } from '@/context/TaskContext';
 import { formatDateTime } from '@/utils/date';
 
 export function HistoryPage() {
-  const { state, dispatch } = useTask();
+  const { state } = useTask();
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
@@ -86,6 +86,7 @@ export function HistoryPage() {
     }, 30000);
 
     return () => clearInterval(refreshInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   // 过滤任务
@@ -187,11 +188,20 @@ export function HistoryPage() {
 
       toast.success('任务删除成功');
       await loadTasks();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('删除任务失败:', error);
 
       // 显示详细错误信息
-      const errorMessage = error.response?.data?.detail || error.message || '删除任务失败';
+      let errorMessage = '删除任务失败';
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object' &&
+            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
+            'detail' in error.response.data) {
+          errorMessage = String(error.response.data.detail);
+        } else if ('message' in error && error.message) {
+          errorMessage = String(error.message);
+        }
+      }
       toast.error(`删除任务失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);
@@ -216,11 +226,20 @@ export function HistoryPage() {
       toast.success(`成功删除${selectedTasks.length}条任务记录`);
       setSelectedTasks([]);
       await loadTasks();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('批量删除任务失败:', error);
 
       // 显示详细错误信息
-      const errorMessage = error.response?.data?.detail || error.message || '批量删除任务失败';
+      let errorMessage = '批量删除任务失败';
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object' &&
+            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
+            'detail' in error.response.data) {
+          errorMessage = String(error.response.data.detail);
+        } else if ('message' in error && error.message) {
+          errorMessage = String(error.message);
+        }
+      }
       toast.error(`批量删除任务失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);
@@ -239,11 +258,20 @@ export function HistoryPage() {
       toast.success('所有历史记录已清空');
       setClearDialogOpen(false);
       await loadTasks();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('清空历史记录失败:', error);
 
       // 显示详细错误信息
-      const errorMessage = error.response?.data?.detail || error.message || '清空历史记录失败';
+      let errorMessage = '清空历史记录失败';
+      if (error && typeof error === 'object') {
+        if ('response' in error && error.response && typeof error.response === 'object' &&
+            'data' in error.response && error.response.data && typeof error.response.data === 'object' &&
+            'detail' in error.response.data) {
+          errorMessage = String(error.response.data.detail);
+        } else if ('message' in error && error.message) {
+          errorMessage = String(error.message);
+        }
+      }
       toast.error(`清空历史记录失败: ${errorMessage}`);
     } finally {
       setDeleteLoading(false);

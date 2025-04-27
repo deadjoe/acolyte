@@ -212,7 +212,9 @@ export function AnalyzePage() {
         setTaskProgress(10); // 任务创建成功，进度设为10%
 
         // 创建任务后，添加轮询逻辑检查任务状态
-        let taskCompleted = false;
+        // 使用下划线前缀表示有意未使用的变量，保留以便跟踪任务状态
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        let _taskCompleted = false;
         let attempts = 0;
         const maxAttempts = 30; // 最多轮询30次
         const pollInterval = 2000; // 每2秒轮询一次
@@ -238,13 +240,13 @@ export function AnalyzePage() {
             ).then(res => res.json());
 
             if (taskStatus.status === 'completed') {
-              taskCompleted = true;
+              _taskCompleted = true;
               setTaskProgress(100); // 任务完成，进度设为100%
               setAnalyzing(false);
               toast.success('任务处理完成');
               navigate(`/result/${result.id}`);
             } else if (taskStatus.status === 'failed') {
-              taskCompleted = true;
+              _taskCompleted = true;
               setTaskProgress(0); // 任务失败，进度重置为0
               setAnalyzing(false);
               toast.error('任务处理失败');
@@ -297,7 +299,7 @@ export function AnalyzePage() {
                 defaultValue={initialMode}
                 onValueChange={value => {
                   console.log(`切换处理模式: ${value}`);
-                  setValue('processing_mode', value as any);
+                  setValue('processing_mode', value as 'single' | 'multiple' | 'multiple_with_review');
 
                   // 切换到单LLM模式时，如果有选中的LLM，则保留第一个；否则使用默认LLM
                   if (value === 'single') {

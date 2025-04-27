@@ -132,7 +132,7 @@ export function LlmConfigPage() {
       setLoading(true);
 
       // 使用专门的setDefaultLlm函数
-      const result = await setDefaultLlm(llmId);
+      await setDefaultLlm(llmId);
 
       // 获取LLM名称
       const llm = state.llms.find(l => l.id === llmId);

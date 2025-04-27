@@ -14,7 +14,7 @@ import { formatDateTime } from '@/utils/date';
 export function TaskResultPage() {
   const { id } = useParams<{ id: string }>();
   const taskId = parseInt(id || '0');
-  const { state, dispatch } = useTask();
+  const { dispatch } = useTask();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -240,6 +240,7 @@ export function TaskResultPage() {
     }, 5000); // 每5秒刷新一次
 
     return () => clearInterval(refreshInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, dispatch, task?.status]);
 
   // 获取处理模式中文名称
