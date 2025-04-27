@@ -5,7 +5,9 @@ import { Loader2, ArrowLeft, FileText, BarChart, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { TaskResponse, TaskResultResponse } from '@/api';
+import { LlmConfigResponse, getLlms } from '@/api/llms';
 import { useTask } from '@/context/TaskContext';
 import { formatDateTime } from '@/utils/date';
 
@@ -16,7 +18,7 @@ export function TaskResultPage() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [llmNames, setLlmNames] = useState<Record<number, string>>({});
+  const [llmInfoMap, setLlmInfoMap] = useState<Record<number, LlmConfigResponse>>({});
   const [task, setTask] = useState<TaskResponse | null>(null);
   const [results, setResults] = useState<TaskResultResponse[]>([]);
 
@@ -117,15 +119,42 @@ export function TaskResultPage() {
           payload: { taskId, results: resultsData },
         });
 
-        // 获取LLM名称
+        // 获取LLM信息
         const llmIds = [...new Set(resultsData.map((result: TaskResultResponse) => result.llm_id))];
-        const llmNamesMap: Record<number, string> = {};
 
-        for (const llmId of llmIds) {
-          llmNamesMap[llmId] = `LLM #${llmId}`;
+        try {
+          // 获取所有LLM配置
+          const llmsData = await getLlms();
+          console.log('获取到的LLM配置:', llmsData);
+
+          // 创建LLM ID到LLM信息的映射
+          const llmInfoMap: Record<number, LlmConfigResponse> = {};
+
+          // 填充映射
+          for (const llm of llmsData) {
+            llmInfoMap[llm.id] = llm;
+          }
+
+          setLlmInfoMap(llmInfoMap);
+        } catch (llmError) {
+          console.error('获取LLM信息失败:', llmError);
+          toast.error('获取LLM信息失败');
+
+          // 如果获取LLM信息失败，使用默认名称
+          const defaultLlmInfoMap: Record<number, LlmConfigResponse> = {};
+          for (const llmId of llmIds) {
+            defaultLlmInfoMap[llmId] = {
+              id: llmId,
+              name: `LLM #${llmId}`,
+              base_url: '',
+              model_name: '',
+              role: 'unknown',
+              is_default: false
+            };
+          }
+
+          setLlmInfoMap(defaultLlmInfoMap);
         }
-
-        setLlmNames(llmNamesMap);
 
       } catch (error) {
         console.error('加载任务和结果失败:', error);
@@ -188,6 +217,20 @@ export function TaskResultPage() {
               type: 'SET_TASK_RESULTS',
               payload: { taskId, results: resultsData },
             });
+
+            // 更新LLM信息
+            try {
+              const llmsData = await getLlms();
+              const newLlmInfoMap: Record<number, LlmConfigResponse> = {};
+
+              for (const llm of llmsData) {
+                newLlmInfoMap[llm.id] = llm;
+              }
+
+              setLlmInfoMap(newLlmInfoMap);
+            } catch (llmError) {
+              console.error('自动刷新获取LLM信息失败:', llmError);
+            }
           } else if (taskData.status === 'failed') {
             toast.error('任务处理失败');
           }
@@ -378,6 +421,20 @@ export function TaskResultPage() {
                 payload: { taskId, results: resultsData },
               });
 
+              // 更新LLM信息
+              try {
+                const llmsData = await getLlms();
+                const newLlmInfoMap: Record<number, LlmConfigResponse> = {};
+
+                for (const llm of llmsData) {
+                  newLlmInfoMap[llm.id] = llm;
+                }
+
+                setLlmInfoMap(newLlmInfoMap);
+              } catch (llmError) {
+                console.error('手动刷新获取LLM信息失败:', llmError);
+              }
+
               toast.success('刷新成功');
             } catch (error) {
               console.error('刷新失败:', error);
@@ -444,8 +501,17 @@ export function TaskResultPage() {
                   <Card key={result.id} className="overflow-hidden">
                     <CardHeader className="bg-muted/50">
                       <div className="flex items-center justify-between">
-                        <CardTitle>
-                          {llmNames[result.llm_id] || `LLM #${result.llm_id}`}
+                        <CardTitle className="flex items-center gap-2">
+                          {llmInfoMap[result.llm_id] ? (
+                            <>
+                              {llmInfoMap[result.llm_id].name}
+                              <Badge variant="outline" className="ml-2">
+                                {llmInfoMap[result.llm_id].role === 'reviewer' ? '评议者' : '分析者'}
+                              </Badge>
+                            </>
+                          ) : (
+                            `LLM #${result.llm_id}`
+                          )}
                         </CardTitle>
                         <span className="text-sm text-muted-foreground">
                           {getResultTypeName(result.is_review_result)}
@@ -481,8 +547,17 @@ export function TaskResultPage() {
                   <Card key={`raw-${result.id}`}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>
-                          {llmNames[result.llm_id] || `LLM #${result.llm_id}`}
+                        <CardTitle className="flex items-center gap-2">
+                          {llmInfoMap[result.llm_id] ? (
+                            <>
+                              {llmInfoMap[result.llm_id].name}
+                              <Badge variant="outline" className="ml-2">
+                                {llmInfoMap[result.llm_id].role === 'reviewer' ? '评议者' : '分析者'}
+                              </Badge>
+                            </>
+                          ) : (
+                            `LLM #${result.llm_id}`
+                          )}
                         </CardTitle>
                         <span className="text-sm text-muted-foreground">
                           {getResultTypeName(result.is_review_result)}
