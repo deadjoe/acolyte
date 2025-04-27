@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Trash2, X, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TaskResponse } from '@/api';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { TaskResponse, getTasks, deleteTask, deleteTasks, clearAllTasks } from '@/api';
 import { useTask } from '@/context/TaskContext';
 import { formatDateTime } from '@/utils/date';
 
@@ -15,6 +17,10 @@ export function HistoryPage() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   // 任务列表状态
   const [tasks, setTasks] = useState<TaskResponse[]>([]);
@@ -24,115 +30,21 @@ export function HistoryPage() {
     try {
       setLoading(true);
 
+      // 退出选择模式
+      setSelectMode(false);
+      setSelectedTasks([]);
+
       console.log('开始获取任务列表, 状态过滤:', statusFilter);
 
-      // 添加硬编码的测试数据，以便验证渲染逻辑是否正常
-      const testData = [
-        {
-          id: 999,
-          content: "测试任务内容 - 这是一个硬编码的测试数据，用于验证渲染逻辑",
-          processing_mode: "SINGLE",
-          status: "completed",
-          prompt_id: 1,
-          created_at: "2025-04-26 20:00:00",
-          updated_at: "2025-04-26 20:01:00"
-        },
-        {
-          id: 998,
-          content: "另一个测试任务 - 处理中状态",
-          processing_mode: "multiple",
-          status: "processing",
-          prompt_id: 1,
-          created_at: "2025-04-26 19:50:00",
-          updated_at: "2025-04-26 19:51:00"
-        },
-        {
-          id: 997,
-          content: "第三个测试任务 - 评议模式",
-          processing_mode: "multiple_with_review",
-          status: "completed",
-          prompt_id: 1,
-          created_at: "2025-04-26 19:40:00",
-          updated_at: "2025-04-26 19:41:00"
-        },
-        {
-          id: 996,
-          content: "第四个测试任务 - 失败状态",
-          processing_mode: "single",
-          status: "failed",
-          prompt_id: 1,
-          created_at: "2025-04-26 19:30:00",
-          updated_at: "2025-04-26 19:31:00"
-        },
-        {
-          id: 995,
-          content: "第五个测试任务 - 等待中状态",
-          processing_mode: "multiple",
-          status: "pending",
-          prompt_id: 1,
-          created_at: "2025-04-26 19:20:00",
-          updated_at: "2025-04-26 19:21:00"
-        }
-      ];
+      // 使用API函数获取任务列表
+      const data = await getTasks(statusFilter);
+      console.log('获取到的任务数据:', data);
 
-      console.log('使用测试数据:', testData);
-      setTasks(testData);
+      setTasks(data);
+      toast.success(`成功获取${data.length}条任务记录`);
 
-      // 直接更新本地状态，不使用Context
-      // dispatch({ type: 'SET_TASKS', payload: testData });
-
-      // 显示成功通知
-      toast.success(`已加载测试数据`);
-
-      // 直接使用fetch API获取数据
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/tasks${statusFilter ? `?status=${statusFilter}` : ''}`;
-      console.log('请求URL:', apiUrl);
-
-      // 尝试从API获取真实数据
-      try {
-        console.log('尝试从API获取真实数据');
-        const response = await fetch(apiUrl);
-        console.log('API响应状态:', response.status);
-
-        if (!response.ok) {
-          console.error(`HTTP error! status: ${response.status}`);
-          toast.error(`API请求失败: ${response.status}`);
-        } else {
-          const responseText = await response.text();
-          console.log('API响应文本:', responseText);
-
-          try {
-            if (responseText.trim()) {
-              const data = JSON.parse(responseText);
-              console.log('解析后的数据:', data);
-
-              if (Array.isArray(data)) {
-                console.log('数据是数组, 长度:', data.length);
-                setTasks(data);
-                // dispatch({ type: 'SET_TASKS', payload: data });
-
-                // 显示成功通知
-                toast.success(`成功获取${data.length}条任务记录`);
-              } else {
-                console.error('数据不是数组:', data);
-                toast.error('获取的数据格式不正确');
-              }
-            } else {
-              console.warn('API响应为空');
-              toast.warning('API响应为空');
-            }
-          } catch (parseError) {
-            console.error('解析JSON失败:', parseError);
-            toast.error('解析响应数据失败');
-          }
-        }
-      } catch (fetchError) {
-        console.error('fetch请求失败:', fetchError);
-        toast.error(`API请求失败: ${fetchError.message}`);
-      }
     } catch (error) {
       console.error('获取任务列表失败:', error);
-      // dispatch({ type: 'SET_ERROR', payload: '获取任务列表失败' });
 
       // 只在第一次加载失败时显示错误通知
       if (tasks.length === 0) {
@@ -140,7 +52,6 @@ export function HistoryPage() {
       }
     } finally {
       setLoading(false);
-      // dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -217,13 +128,146 @@ export function HistoryPage() {
     }
   };
 
+  // 切换选择模式
+  const toggleSelectMode = () => {
+    setSelectMode(!selectMode);
+    setSelectedTasks([]);
+  };
+
+  // 处理任务选择
+  const handleTaskSelect = (taskId: number) => {
+    setSelectedTasks(prev => {
+      if (prev.includes(taskId)) {
+        return prev.filter(id => id !== taskId);
+      } else {
+        return [...prev, taskId];
+      }
+    });
+  };
+
+  // 全选/取消全选
+  const toggleSelectAll = () => {
+    if (selectedTasks.length === filteredTasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(filteredTasks.map(task => task.id));
+    }
+  };
+
+  // 删除单个任务
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      setDeleteLoading(true);
+      await deleteTask(taskId);
+      toast.success('任务删除成功');
+      loadTasks();
+    } catch (error) {
+      console.error('删除任务失败:', error);
+      toast.error('删除任务失败');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // 批量删除任务
+  const handleDeleteSelected = async () => {
+    if (selectedTasks.length === 0) {
+      toast.warning('请先选择要删除的任务');
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      await deleteTasks(selectedTasks);
+      toast.success(`成功删除${selectedTasks.length}条任务记录`);
+      setSelectedTasks([]);
+      loadTasks();
+    } catch (error) {
+      console.error('批量删除任务失败:', error);
+      toast.error('批量删除任务失败');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // 清空所有历史记录
+  const handleClearAll = async () => {
+    try {
+      setDeleteLoading(true);
+      await clearAllTasks();
+      toast.success('所有历史记录已清空');
+      setClearDialogOpen(false);
+      loadTasks();
+    } catch (error) {
+      console.error('清空历史记录失败:', error);
+      toast.error('清空历史记录失败');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">历史记录</h1>
-        <Button onClick={loadTasks} variant="outline" size="icon">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex space-x-2">
+          {selectMode ? (
+            <>
+              <Button
+                onClick={handleDeleteSelected}
+                variant="destructive"
+                size="sm"
+                disabled={selectedTasks.length === 0 || deleteLoading}
+              >
+                {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                删除选中 ({selectedTasks.length})
+              </Button>
+              <Button onClick={toggleSelectMode} variant="outline" size="sm">
+                <X className="h-4 w-4 mr-2" />
+                取消选择
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={toggleSelectMode} variant="outline" size="sm">
+                <CheckSquare className="h-4 w-4 mr-2" />
+                多选
+              </Button>
+              <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    清空
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>确认清空所有历史记录</DialogTitle>
+                    <DialogDescription>
+                      此操作将删除所有历史记录，且无法恢复。确定要继续吗？
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleClearAll}
+                      disabled={deleteLoading}
+                    >
+                      {deleteLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      确认清空
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <Button onClick={loadTasks} variant="outline" size="icon">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -263,6 +307,15 @@ export function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                {selectMode && (
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="全选"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>ID</TableHead>
                 <TableHead>内容</TableHead>
                 <TableHead>处理模式</TableHead>
@@ -274,13 +327,22 @@ export function HistoryPage() {
             <TableBody>
               {filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={selectMode ? 7 : 6} className="text-center py-8 text-muted-foreground">
                     没有找到任务记录
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredTasks.map((task) => (
                   <TableRow key={task.id}>
+                    {selectMode && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedTasks.includes(task.id)}
+                          onCheckedChange={() => handleTaskSelect(task.id)}
+                          aria-label={`选择任务 ${task.id}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>{task.id}</TableCell>
                     <TableCell className="max-w-[300px] truncate">{task.content}</TableCell>
                     <TableCell>{getModeName(task.processing_mode)}</TableCell>
@@ -291,11 +353,24 @@ export function HistoryPage() {
                     </TableCell>
                     <TableCell>{formatDateTime(task.created_at)}</TableCell>
                     <TableCell>
-                      <Link to={`/result/${task.id}`}>
-                        <Button variant="outline" size="sm">
-                          查看结果
-                        </Button>
-                      </Link>
+                      <div className="flex space-x-2">
+                        <Link to={`/result/${task.id}`}>
+                          <Button variant="outline" size="sm">
+                            查看结果
+                          </Button>
+                        </Link>
+                        {!selectMode && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteTask(task.id)}
+                            disabled={deleteLoading}
+                          >
+                            {deleteLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                            删除
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

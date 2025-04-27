@@ -61,3 +61,21 @@ export const getTaskResults = async (taskId: number, includeRawResponse = false)
   const response = await apiClient.get<TaskResultResponse[]>(`/tasks/${taskId}/results`, { params });
   return response.data;
 };
+
+// 删除特定任务
+export const deleteTask = async (taskId: number) => {
+  const response = await apiClient.delete(`/tasks/${taskId}`);
+  return response.data;
+};
+
+// 批量删除任务
+export const deleteTasks = async (taskIds: number[]) => {
+  const response = await apiClient.post('/tasks/batch-delete', { task_ids: taskIds });
+  return response.data;
+};
+
+// 清空所有历史记录
+export const clearAllTasks = async () => {
+  const response = await apiClient.post('/tasks/clear-all');
+  return response.data;
+};
