@@ -66,3 +66,9 @@ export const testLlmConnection = async (llmId: number) => {
   const response = await apiClient.post(`/llms/${llmId}/test`);
   return response.data;
 };
+
+// 设置默认LLM
+export const setDefaultLlm = async (llmId: number) => {
+  const response = await apiClient.post(`/llms/${llmId}/set-default`);
+  return response.data;
+};

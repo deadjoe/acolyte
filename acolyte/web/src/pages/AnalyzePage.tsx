@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createTask, getLlms, getPrompts, getLatestPrompt, updateLlm } from '@/api';
+import { createTask, getLlms, getPrompts, getLatestPrompt, setDefaultLlm } from '@/api';
 import { useLlm } from '@/context/LlmContext';
 import { usePrompt } from '@/context/PromptContext';
 
@@ -105,23 +105,38 @@ export function AnalyzePage() {
       if (selectedLlm && defaultLlm && llmId !== defaultLlm.id) {
         try {
           // 显示加载状态
-          toast.loading('正在设置默认LLM...');
+          const loadingToast = toast.loading('正在设置默认LLM...');
 
-          // 先将当前默认LLM的is_default设置为false
-          await updateLlm(defaultLlm.id, { is_default: false });
-          console.log(`已将原默认LLM ${defaultLlm.name} (ID=${defaultLlm.id}) 的is_default设置为false`);
+          try {
+            // 使用专门的API端点设置默认LLM
+            const result = await setDefaultLlm(llmId);
+            console.log(`已将选中的LLM ${selectedLlm.name} (ID=${llmId}) 设置为默认LLM`, result);
 
-          // 再将选中的LLM的is_default设置为true
-          const updatedLlm = await updateLlm(llmId, { is_default: true });
-          console.log(`已将选中的LLM ${selectedLlm.name} (ID=${llmId}) 的is_default设置为true`);
+            // 刷新LLM列表
+            const updatedLlms = await getLlms();
+            llmDispatch({ type: 'SET_LLMS', payload: updatedLlms });
 
-          // 更新Context中的默认LLM
-          llmDispatch({ type: 'SET_DEFAULT_LLM', payload: updatedLlm });
+            // 找到新的默认LLM
+            const newDefaultLlm = updatedLlms.find(llm => llm.is_default);
+            if (newDefaultLlm) {
+              llmDispatch({ type: 'SET_DEFAULT_LLM', payload: newDefaultLlm });
+            }
 
-          // 显示成功消息
-          toast.success(`已将 ${selectedLlm.name} 设置为默认LLM`);
+            // 关闭加载提示并显示成功消息
+            toast.dismiss(loadingToast);
+            toast.success(`已将 ${selectedLlm.name} 设置为默认LLM`);
+          } catch (error) {
+            console.error('设置默认LLM失败:', error);
+
+            // 关闭加载提示并显示错误消息
+            toast.dismiss(loadingToast);
+            toast.error('设置默认LLM失败，但已选择该LLM用于当前任务');
+
+            // 即使API调用失败，也将该LLM设置为选中状态
+            setSelectedLlms([llmId]);
+          }
         } catch (error) {
-          console.error('设置默认LLM失败:', error);
+          console.error('设置默认LLM过程中发生错误:', error);
           toast.error('设置默认LLM失败');
         }
       }
