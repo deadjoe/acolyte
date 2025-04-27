@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskResponse, TaskResultResponse } from '@/api';
 import { useTask } from '@/context/TaskContext';
+import { formatDateTime } from '@/utils/date';
 
 export function TaskResultPage() {
   const { id } = useParams<{ id: string }>();
@@ -230,17 +231,7 @@ export function TaskResultPage() {
     }
   };
 
-  // 格式化日期
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // 使用导入的formatDateTime函数，不再需要本地定义
 
   // 获取结果类型名称
   const getResultTypeName = (isReviewResult: boolean) => {
@@ -429,7 +420,7 @@ export function TaskResultPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">创建时间</h3>
-                  <p>{formatDate(task.created_at)}</p>
+                  <p>{formatDateTime(task.created_at)}</p>
                 </div>
               </div>
             </CardContent>

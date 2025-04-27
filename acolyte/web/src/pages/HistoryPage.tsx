@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TaskResponse } from '@/api';
 import { useTask } from '@/context/TaskContext';
+import { formatDateTime } from '@/utils/date';
 
 export function HistoryPage() {
   const { state, dispatch } = useTask();
@@ -167,17 +168,7 @@ export function HistoryPage() {
     task.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 格式化日期
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // 使用导入的formatDateTime函数，不再需要本地定义
 
   // 获取状态标签样式
   const getStatusStyle = (status: string) => {
@@ -298,7 +289,7 @@ export function HistoryPage() {
                         {getStatusName(task.status)}
                       </span>
                     </TableCell>
-                    <TableCell>{formatDate(task.created_at)}</TableCell>
+                    <TableCell>{formatDateTime(task.created_at)}</TableCell>
                     <TableCell>
                       <Link to={`/result/${task.id}`}>
                         <Button variant="outline" size="sm">
