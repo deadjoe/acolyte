@@ -38,6 +38,12 @@ Acolyte is a content analysis and evaluation system focused on detecting bias, m
 - **History and Record Management**:
   - Task record storage and retrieval
   - Result visualization
+- **Modern Web Interface**:
+  - Responsive design with Tailwind CSS and shadcn UI
+  - Content analysis submission form
+  - LLM configuration management
+  - Task history and results visualization
+  - Prompt template management
 
 ## Installation
 
@@ -74,6 +80,42 @@ ACOLYTE_LOG_DIR=/path/to/logs ACOLYTE_LOG_TO_FILE=1 uv run -m acolyte.main
 # Specify custom port
 ACOLYTE_PORT=8080 uv run -m acolyte.main
 ```
+
+### Starting the Web Interface
+
+```bash
+# Navigate to the web directory
+cd acolyte/web
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Start development server with host binding (accessible from other devices)
+pnpm dev --host
+
+# Build for production
+pnpm build
+
+# Run tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Check code formatting
+pnpm format:check
+
+# Format code
+pnpm format
+
+# Lint code
+pnpm lint
+```
+
+The web interface will be available at `http://localhost:5173` by default. Make sure the API service is running before using the web interface.
 
 ### Using the CLI Tool
 
