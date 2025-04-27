@@ -11,7 +11,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // 当主题变化时，更新HTML元素的类
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {

@@ -8,9 +8,7 @@ const TestComponent = () => {
   return (
     <div>
       <div data-testid="theme">{theme}</div>
-      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-        Toggle Theme
-      </button>
+      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>Toggle Theme</button>
     </div>
   );
 };
@@ -22,7 +20,7 @@ describe('AppContext', () => {
         <TestComponent />
       </AppProvider>
     );
-    
+
     // 默认主题应该是light或dark
     const themeElement = screen.getByTestId('theme');
     expect(['light', 'dark']).toContain(themeElement.textContent);

@@ -56,11 +56,7 @@ function promptReducer(state: PromptState, action: PromptAction): PromptState {
 export function PromptProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(promptReducer, initialState);
 
-  return (
-    <PromptContext.Provider value={{ state, dispatch }}>
-      {children}
-    </PromptContext.Provider>
-  );
+  return <PromptContext.Provider value={{ state, dispatch }}>{children}</PromptContext.Provider>;
 }
 
 // 自定义Hook，用于访问上下文

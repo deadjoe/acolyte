@@ -48,17 +48,16 @@ function llmReducer(state: LlmState, action: LlmAction): LlmState {
     case 'UPDATE_LLM':
       return {
         ...state,
-        llms: state.llms.map((llm) =>
-          llm.id === action.payload.id ? action.payload : llm
-        ),
-        defaultLlm: state.defaultLlm?.id === action.payload.id && action.payload.is_default
-          ? action.payload
-          : state.defaultLlm,
+        llms: state.llms.map(llm => (llm.id === action.payload.id ? action.payload : llm)),
+        defaultLlm:
+          state.defaultLlm?.id === action.payload.id && action.payload.is_default
+            ? action.payload
+            : state.defaultLlm,
       };
     case 'REMOVE_LLM':
       return {
         ...state,
-        llms: state.llms.filter((llm) => llm.id !== action.payload),
+        llms: state.llms.filter(llm => llm.id !== action.payload),
         defaultLlm: state.defaultLlm?.id === action.payload ? null : state.defaultLlm,
       };
     case 'SET_LOADING':
@@ -74,11 +73,7 @@ function llmReducer(state: LlmState, action: LlmAction): LlmState {
 export function LlmProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(llmReducer, initialState);
 
-  return (
-    <LlmContext.Provider value={{ state, dispatch }}>
-      {children}
-    </LlmContext.Provider>
-  );
+  return <LlmContext.Provider value={{ state, dispatch }}>{children}</LlmContext.Provider>;
 }
 
 // 自定义Hook，用于访问上下文

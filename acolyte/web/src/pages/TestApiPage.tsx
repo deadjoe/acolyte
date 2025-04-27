@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 export function TestApiPage() {
-  const [apiUrl, setApiUrl] = useState(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks`);
+  const [apiUrl, setApiUrl] = useState(
+    `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks`
+  );
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
 
@@ -32,7 +41,6 @@ export function TestApiPage() {
       } else {
         toast.error(`API请求失败: ${fetchResponse.status}`);
       }
-
     } catch (error) {
       console.error('API请求失败:', error);
       setResponse(`错误: ${error instanceof Error ? error.message : String(error)}`);
@@ -51,16 +59,14 @@ export function TestApiPage() {
       <Card>
         <CardHeader>
           <CardTitle>测试API调用</CardTitle>
-          <CardDescription>
-            输入API URL并测试连接
-          </CardDescription>
+          <CardDescription>输入API URL并测试连接</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">API URL</label>
             <Input
               value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
+              onChange={e => setApiUrl(e.target.value)}
               placeholder="输入API URL"
             />
           </div>
@@ -78,11 +84,7 @@ export function TestApiPage() {
         </CardContent>
         <CardFooter className="flex flex-col items-start">
           <h3 className="text-sm font-medium mb-2">响应结果</h3>
-          <Textarea
-            value={response}
-            readOnly
-            className="min-h-[200px] font-mono text-sm"
-          />
+          <Textarea value={response} readOnly className="min-h-[200px] font-mono text-sm" />
         </CardFooter>
       </Card>
     </div>

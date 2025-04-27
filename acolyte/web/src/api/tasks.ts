@@ -51,14 +51,18 @@ export const getTask = async (taskId: number) => {
 // 获取任务最终结果
 export const getTaskFinalResult = async (taskId: number, includeRawResponse = false) => {
   const params = { include_raw_response: includeRawResponse };
-  const response = await apiClient.get<TaskResultResponse>(`/tasks/${taskId}/final-result`, { params });
+  const response = await apiClient.get<TaskResultResponse>(`/tasks/${taskId}/final-result`, {
+    params,
+  });
   return response.data;
 };
 
 // 获取任务所有结果
 export const getTaskResults = async (taskId: number, includeRawResponse = false) => {
   const params = { include_raw_response: includeRawResponse };
-  const response = await apiClient.get<TaskResultResponse[]>(`/tasks/${taskId}/results`, { params });
+  const response = await apiClient.get<TaskResultResponse[]>(`/tasks/${taskId}/results`, {
+    params,
+  });
   return response.data;
 };
 
@@ -84,11 +88,11 @@ export const deleteTasks = async (taskIds: number[]) => {
     // 根据API文档，confirm参数应该在查询参数中，而不是请求体中
     const response = await apiClient.delete('/tasks', {
       params: {
-        confirm: true
+        confirm: true,
       },
       data: {
-        task_ids: taskIds
-      }
+        task_ids: taskIds,
+      },
     });
 
     console.log(`批量删除任务成功: 数量=${taskIds.length}`, response.data);
@@ -107,8 +111,8 @@ export const clearAllTasks = async () => {
     // 根据API文档，清空所有任务应该使用DELETE /tasks端点，并且confirm参数应该在查询参数中
     const response = await apiClient.delete('/tasks', {
       params: {
-        confirm: true
-      }
+        confirm: true,
+      },
     });
 
     console.log('清空所有历史记录成功', response.data);

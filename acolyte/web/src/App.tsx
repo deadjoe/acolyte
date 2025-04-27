@@ -11,7 +11,7 @@ import {
   PromptConfigPage,
   TaskResultPage,
   SystemConfigPage,
-  TestApiPage
+  TestApiPage,
 } from '@/pages';
 
 function App() {

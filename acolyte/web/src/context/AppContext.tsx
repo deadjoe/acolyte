@@ -44,7 +44,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, theme: action.payload };
     case 'SET_LANGUAGE':
       return { ...state, language: action.payload };
-    case 'ADD_NOTIFICATION':
+    case 'ADD_NOTIFICATION': {
       const newNotification = {
         id: Date.now().toString(),
         ...action.payload,
@@ -53,11 +53,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         notifications: [...state.notifications, newNotification],
       };
+    }
     case 'REMOVE_NOTIFICATION':
       return {
         ...state,
         notifications: state.notifications.filter(
-          (notification) => notification.id !== action.payload
+          notification => notification.id !== action.payload
         ),
       };
     default:
@@ -69,11 +70,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  return (
-    <AppContext.Provider value={{ state, dispatch }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>;
 }
 
 // 自定义Hook，用于访问上下文
@@ -91,7 +88,8 @@ export function useTheme() {
   return {
     theme: state.theme,
     setTheme: (theme: 'light' | 'dark') => dispatch({ type: 'SET_THEME', payload: theme }),
-    toggleTheme: () => dispatch({ type: 'SET_THEME', payload: state.theme === 'light' ? 'dark' : 'light' }),
+    toggleTheme: () =>
+      dispatch({ type: 'SET_THEME', payload: state.theme === 'light' ? 'dark' : 'light' }),
   };
 }
 
@@ -107,9 +105,8 @@ export function useNotifications() {
   const { state, dispatch } = useApp();
   return {
     notifications: state.notifications,
-    addNotification: (notification: Omit<Notification, 'id'>) => 
+    addNotification: (notification: Omit<Notification, 'id'>) =>
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification }),
-    removeNotification: (id: string) => 
-      dispatch({ type: 'REMOVE_NOTIFICATION', payload: id }),
+    removeNotification: (id: string) => dispatch({ type: 'REMOVE_NOTIFICATION', payload: id }),
   };
 }

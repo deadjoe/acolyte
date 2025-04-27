@@ -64,11 +64,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 export function TaskProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
 
-  return (
-    <TaskContext.Provider value={{ state, dispatch }}>
-      {children}
-    </TaskContext.Provider>
-  );
+  return <TaskContext.Provider value={{ state, dispatch }}>{children}</TaskContext.Provider>;
 }
 
 // 自定义Hook，用于访问上下文

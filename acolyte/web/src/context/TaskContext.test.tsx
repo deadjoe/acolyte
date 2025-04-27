@@ -21,7 +21,7 @@ describe('TaskContext', () => {
         <TestComponent />
       </TaskProvider>
     );
-    
+
     // 验证初始状态
     expect(document.querySelector('[data-testid="task-count"]')?.textContent).toBe('0');
     expect(document.querySelector('[data-testid="loading"]')?.textContent).toBe('false');

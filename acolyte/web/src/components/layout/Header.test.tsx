@@ -8,8 +8,8 @@ import { useTheme } from '@/context/AppContext';
 vi.mock('@/context/AppContext', () => ({
   useTheme: vi.fn(() => ({
     theme: 'light',
-    setTheme: vi.fn()
-  }))
+    setTheme: vi.fn(),
+  })),
 }));
 
 describe('Header', () => {
@@ -19,10 +19,10 @@ describe('Header', () => {
         <Header />
       </BrowserRouter>
     );
-    
+
     // 验证logo存在
     expect(screen.getByText('Acolyte')).toBeInTheDocument();
-    
+
     // 验证导航链接存在
     expect(screen.getByText('分析')).toBeInTheDocument();
     expect(screen.getByText('历史')).toBeInTheDocument();

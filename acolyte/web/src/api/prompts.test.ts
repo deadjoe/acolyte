@@ -6,8 +6,8 @@ import { getPrompts, getPrompt, syncPrompts } from './prompts';
 vi.mock('./config', () => ({
   default: {
     get: vi.fn(),
-    post: vi.fn()
-  }
+    post: vi.fn(),
+  },
 }));
 
 describe('Prompts API', () => {
@@ -18,10 +18,10 @@ describe('Prompts API', () => {
   it('should call getPrompts correctly', async () => {
     // 模拟响应
     (apiClient.get as any).mockResolvedValue({ data: [] });
-    
+
     // 调用API
     await getPrompts();
-    
+
     // 验证API调用
     expect(apiClient.get).toHaveBeenCalledWith('/prompts');
   });
@@ -29,10 +29,10 @@ describe('Prompts API', () => {
   it('should call getPrompt with correct parameters', async () => {
     // 模拟响应
     (apiClient.get as any).mockResolvedValue({ data: {} });
-    
+
     // 调用API
     await getPrompt(123);
-    
+
     // 验证API调用
     expect(apiClient.get).toHaveBeenCalledWith('/prompts/123');
   });
@@ -40,10 +40,10 @@ describe('Prompts API', () => {
   it('should call syncPrompts correctly', async () => {
     // 模拟响应
     (apiClient.post as any).mockResolvedValue({ data: {} });
-    
+
     // 调用API
     await syncPrompts();
-    
+
     // 验证API调用
     expect(apiClient.post).toHaveBeenCalledWith('/prompts/sync');
   });

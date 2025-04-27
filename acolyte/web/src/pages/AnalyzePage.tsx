@@ -5,9 +5,22 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { createTask, getLlms, getPrompts, getLatestPrompt, setDefaultLlm } from '@/api';
 import { useLlm } from '@/context/LlmContext';
@@ -23,7 +36,8 @@ interface AnalyzeFormData {
 export function AnalyzePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get('mode') as 'single' | 'multiple' | 'multiple_with_review' || 'single';
+  const initialMode =
+    (searchParams.get('mode') as 'single' | 'multiple' | 'multiple_with_review') || 'single';
 
   const { state: llmState, dispatch: llmDispatch } = useLlm();
   const { state: promptState, dispatch: promptDispatch } = usePrompt();
@@ -149,12 +163,16 @@ export function AnalyzePage() {
       if (selectedLlms.includes(llmId)) {
         // 如果已经选中，则取消选择
         const newSelectedLlms = selectedLlms.filter(id => id !== llmId);
-        console.log(`多LLM模式: 取消选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`);
+        console.log(
+          `多LLM模式: 取消选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`
+        );
         setSelectedLlms(newSelectedLlms);
       } else {
         // 如果未选中，则添加到选中列表
         const newSelectedLlms = [...selectedLlms, llmId];
-        console.log(`多LLM模式: 添加选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`);
+        console.log(
+          `多LLM模式: 添加选择LLM ${llmId}, 新的选中列表: [${newSelectedLlms.join(', ')}]`
+        );
         setSelectedLlms(newSelectedLlms);
       }
     }
@@ -215,7 +233,9 @@ export function AnalyzePage() {
             setTaskProgress(newProgress);
 
             // 获取任务状态
-            const taskStatus = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${result.id}`).then(res => res.json());
+            const taskStatus = await fetch(
+              `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks/${result.id}`
+            ).then(res => res.json());
 
             if (taskStatus.status === 'completed') {
               taskCompleted = true;
@@ -248,7 +268,6 @@ export function AnalyzePage() {
         setAnalyzing(false);
         toast.error('创建任务失败');
       }
-
     } catch (error) {
       console.error('创建任务失败:', error);
       toast.error('创建任务失败');
@@ -269,16 +288,14 @@ export function AnalyzePage() {
         <Card>
           <CardHeader>
             <CardTitle>分析设置</CardTitle>
-            <CardDescription>
-              选择处理模式、LLM和提示词模板
-            </CardDescription>
+            <CardDescription>选择处理模式、LLM和提示词模板</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">处理模式</label>
               <Tabs
                 defaultValue={initialMode}
-                onValueChange={(value) => {
+                onValueChange={value => {
                   console.log(`切换处理模式: ${value}`);
                   setValue('processing_mode', value as any);
 
@@ -303,9 +320,7 @@ export function AnalyzePage() {
                 </TabsList>
                 <TabsContent value="single" className="mt-2">
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      使用单个LLM进行内容分析。
-                    </p>
+                    <p className="text-sm text-muted-foreground">使用单个LLM进行内容分析。</p>
                     <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-md">
                       <p className="text-sm text-blue-800 dark:text-blue-200">
                         <strong>提示：</strong> 在单LLM模式下，选择LLM时会自动将其设置为默认LLM。
@@ -329,11 +344,11 @@ export function AnalyzePage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">选择LLM</label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {llmState.llms.map((llm) => (
+                {llmState.llms.map(llm => (
                   <Button
                     key={llm.id}
                     type="button"
-                    variant={selectedLlms.includes(llm.id) ? "default" : "outline"}
+                    variant={selectedLlms.includes(llm.id) ? 'default' : 'outline'}
                     onClick={() => handleLlmSelect(llm.id)}
                     className="justify-start"
                   >
@@ -350,13 +365,13 @@ export function AnalyzePage() {
               <label className="text-sm font-medium">提示词模板</label>
               <Select
                 value={selectedPromptId?.toString()}
-                onValueChange={(value) => setSelectedPromptId(parseInt(value))}
+                onValueChange={value => setSelectedPromptId(parseInt(value))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="选择提示词模板" />
                 </SelectTrigger>
                 <SelectContent>
-                  {promptState.prompts.map((prompt) => (
+                  {promptState.prompts.map(prompt => (
                     <SelectItem key={prompt.id} value={prompt.id.toString()}>
                       {prompt.version} {prompt.model_target ? `(${prompt.model_target})` : ''}
                     </SelectItem>
@@ -390,11 +405,7 @@ export function AnalyzePage() {
                 开始分析
               </Button>
               {analyzing && taskId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(`/history`)}
-                >
+                <Button type="button" variant="outline" onClick={() => navigate(`/history`)}>
                   在后台处理
                 </Button>
               )}

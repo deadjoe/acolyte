@@ -3,10 +3,37 @@ import { toast } from 'sonner';
 import { Loader2, Plus, RefreshCw, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getLlms, createLlm, updateLlm, deleteLlm, testLlmConnection, setDefaultLlm, LlmConfigCreateRequest, LlmConfigUpdateRequest } from '@/api';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  getLlms,
+  createLlm,
+  deleteLlm,
+  setDefaultLlm,
+  LlmConfigCreateRequest,
+} from '@/api';
 import { useLlm } from '@/context/LlmContext';
 
 export function LlmConfigPage() {
@@ -37,7 +64,6 @@ export function LlmConfigPage() {
       if (defaultLlm) {
         dispatch({ type: 'SET_DEFAULT_LLM', payload: defaultLlm });
       }
-
     } catch (error) {
       console.error('获取LLM列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取LLM列表失败' });
@@ -51,6 +77,7 @@ export function LlmConfigPage() {
   // 初始加载
   useEffect(() => {
     loadLlms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 处理表单输入变化
@@ -91,7 +118,6 @@ export function LlmConfigPage() {
         role: 'normal',
         is_default: false,
       });
-
     } catch (error) {
       console.error('创建LLM配置失败:', error);
       toast.error('创建LLM配置失败');
@@ -123,7 +149,6 @@ export function LlmConfigPage() {
       }
 
       toast.success(`已将 ${llmName} 设为默认LLM`);
-
     } catch (error) {
       console.error('设置默认LLM失败:', error);
       toast.error('设置默认LLM失败');
@@ -147,7 +172,6 @@ export function LlmConfigPage() {
       dispatch({ type: 'REMOVE_LLM', payload: llmId });
 
       toast.success('LLM配置已删除');
-
     } catch (error) {
       console.error('删除LLM配置失败:', error);
       toast.error('删除LLM配置失败');
@@ -250,7 +274,7 @@ export function LlmConfigPage() {
                     </label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value) => handleSelectChange('role', value)}
+                      onValueChange={value => handleSelectChange('role', value)}
                     >
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="选择角色" />
@@ -317,14 +341,12 @@ export function LlmConfigPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                state.llms.map((llm) => (
+                state.llms.map(llm => (
                   <TableRow key={llm.id}>
                     <TableCell>{llm.id}</TableCell>
                     <TableCell>{llm.name}</TableCell>
                     <TableCell>{llm.model_name}</TableCell>
-                    <TableCell>
-                      {llm.role === 'normal' ? '普通评估者' : '评议者'}
-                    </TableCell>
+                    <TableCell>{llm.role === 'normal' ? '普通评估者' : '评议者'}</TableCell>
                     <TableCell>
                       {llm.is_default ? (
                         <Check className="h-4 w-4 text-green-500" />

@@ -33,20 +33,25 @@ const apiClient = axios.create({
 
 // 请求拦截器
 apiClient.interceptors.request.use(
-  (config) => {
+  config => {
     // 可以在这里添加认证信息等
-    console.log('发送API请求:', config.method?.toUpperCase(), config.url, config.params || config.data);
+    console.log(
+      '发送API请求:',
+      config.method?.toUpperCase(),
+      config.url,
+      config.params || config.data
+    );
 
     // 确保请求头包含正确的Content-Type
     config.headers = {
       ...config.headers,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
 
     return config;
   },
-  (error) => {
+  error => {
     console.error('请求拦截器错误:', error);
     return Promise.reject(error);
   }
@@ -54,11 +59,11 @@ apiClient.interceptors.request.use(
 
 // 响应拦截器
 apiClient.interceptors.response.use(
-  (response) => {
+  response => {
     console.log('API响应成功:', response.config.url, response.data);
     return response;
   },
-  (error) => {
+  error => {
     // 处理错误响应
     if (error.response) {
       // 服务器返回了错误状态码

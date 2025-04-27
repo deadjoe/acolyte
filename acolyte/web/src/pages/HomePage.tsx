@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getTasks } from '@/api';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { TaskCard } from '@/components/tasks';
 import { LoadingSpinner } from '@/components/common';
 import { useTask } from '@/context/TaskContext';
 
 export function HomePage() {
-  const { state, dispatch } = useTask();
+  const { dispatch } = useTask();
   const [loading, setLoading] = useState(false);
   // 添加本地状态来管理任务列表
   const [localTasks, setLocalTasks] = useState<TaskResponse[]>([]);
@@ -63,7 +69,6 @@ export function HomePage() {
         } catch (apiError) {
           console.error('API获取最近任务失败:', apiError);
         }
-
       } catch (error) {
         console.error('获取最近任务失败:', error);
       } finally {
@@ -90,7 +95,9 @@ export function HomePage() {
                 <Button size="lg">开始分析</Button>
               </Link>
               <Link to="/history">
-                <Button variant="outline" size="lg">查看历史</Button>
+                <Button variant="outline" size="lg">
+                  查看历史
+                </Button>
               </Link>
             </div>
           </div>
@@ -106,7 +113,9 @@ export function HomePage() {
                 <CardDescription>使用单个LLM进行内容分析</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>使用默认或指定的LLM对内容进行分析，获取偏见指数、误导性指数、隐藏意图指数和综合可信度评分。</p>
+                <p>
+                  使用默认或指定的LLM对内容进行分析，获取偏见指数、误导性指数、隐藏意图指数和综合可信度评分。
+                </p>
               </CardContent>
               <CardFooter>
                 <Link to="/analyze?mode=single">
@@ -134,7 +143,9 @@ export function HomePage() {
                 <CardDescription>使用评议者LLM对多个分析结果进行评估</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>先使用多个LLM分析内容，然后由评议者LLM对这些结果进行评估，选出最佳结果或综合多个结果。</p>
+                <p>
+                  先使用多个LLM分析内容，然后由评议者LLM对这些结果进行评估，选出最佳结果或综合多个结果。
+                </p>
               </CardContent>
               <CardFooter>
                 <Link to="/analyze?mode=multiple_with_review">
@@ -151,7 +162,9 @@ export function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold tracking-tight">最近分析</h2>
             <Link to="/history">
-              <Button variant="ghost" size="sm">查看全部</Button>
+              <Button variant="ghost" size="sm">
+                查看全部
+              </Button>
             </Link>
           </div>
 
@@ -161,7 +174,7 @@ export function HomePage() {
             </div>
           ) : localTasks.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {localTasks.map((task) => (
+              {localTasks.map(task => (
                 <TaskCard key={task.id} task={task} />
               ))}
             </div>

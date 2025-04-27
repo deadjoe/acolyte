@@ -1,10 +1,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TaskResponse } from '@/api';
-import { formatDate, truncateText, getProcessingModeName, getTaskStatusName, getTaskStatusStyle } from '@/lib/utils';
+import {
+  formatDate,
+  truncateText,
+  getProcessingModeName,
+  getTaskStatusName,
+  getTaskStatusStyle,
+} from '@/lib/utils';
 
 interface TaskCardProps {
   task: TaskResponse;

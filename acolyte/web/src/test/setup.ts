@@ -1,7 +1,7 @@
 // 这个文件将在每个测试文件之前运行
 
-// 当我们安装了@testing-library/jest-dom后，可以取消下面这行的注释
-// import '@testing-library/jest-dom';
+// 导入jest-dom扩展断言
+import '@testing-library/jest-dom';
 
 // 全局模拟
 vi.mock('@/api/config', () => ({
@@ -22,7 +22,7 @@ beforeAll(() => {
     removeItem: vi.fn(),
     clear: vi.fn(),
   };
-  
+
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
   });

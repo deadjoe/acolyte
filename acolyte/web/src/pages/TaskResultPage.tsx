@@ -69,9 +69,9 @@ export function TaskResultPage() {
             misleading_index: 40,
             hidden_intent_index: 15,
             credibility_score: 75,
-            raw_response: "这是一个测试的原始响应内容，用于验证渲染逻辑是否正常。",
-            created_at: "2025-04-26 20:00:00",
-            updated_at: "2025-04-26 20:01:00"
+            raw_response: '这是一个测试的原始响应内容，用于验证渲染逻辑是否正常。',
+            created_at: '2025-04-26 20:00:00',
+            updated_at: '2025-04-26 20:01:00',
           },
           {
             id: 1002,
@@ -82,10 +82,10 @@ export function TaskResultPage() {
             misleading_index: 50,
             hidden_intent_index: 20,
             credibility_score: 65,
-            raw_response: "这是另一个测试的原始响应内容，用于验证多个结果的显示。",
-            created_at: "2025-04-26 20:00:00",
-            updated_at: "2025-04-26 20:01:00"
-          }
+            raw_response: '这是另一个测试的原始响应内容，用于验证多个结果的显示。',
+            created_at: '2025-04-26 20:00:00',
+            updated_at: '2025-04-26 20:01:00',
+          },
         ];
 
         console.log('使用测试数据:', testData);
@@ -149,13 +149,12 @@ export function TaskResultPage() {
               base_url: '',
               model_name: '',
               role: 'unknown',
-              is_default: false
+              is_default: false,
             };
           }
 
           setLlmInfoMap(defaultLlmInfoMap);
         }
-
       } catch (error) {
         console.error('加载任务和结果失败:', error);
         toast.error('加载任务和结果失败');
@@ -306,11 +305,7 @@ export function TaskResultPage() {
           <div className="mt-4 h-2 w-full rounded-full bg-gray-200">
             <div
               className={`h-2 rounded-full ${
-                score < 30
-                  ? 'bg-green-500'
-                  : score < 60
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                score < 30 ? 'bg-green-500' : score < 60 ? 'bg-yellow-500' : 'bg-red-500'
               }`}
               style={{ width: `${score}%` }}
             />
@@ -345,11 +340,7 @@ export function TaskResultPage() {
           <div className="mt-4 h-3 w-full rounded-full bg-gray-200">
             <div
               className={`h-3 rounded-full ${
-                score > 70
-                  ? 'bg-green-500'
-                  : score > 40
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                score > 70 ? 'bg-green-500' : score > 40 ? 'bg-yellow-500' : 'bg-red-500'
               }`}
               style={{ width: `${score}%` }}
             />
@@ -497,7 +488,7 @@ export function TaskResultPage() {
               </TabsList>
 
               <TabsContent value="results" className="space-y-4">
-                {results.map((result) => (
+                {results.map(result => (
                   <Card key={result.id} className="overflow-hidden">
                     <CardHeader className="bg-muted/50">
                       <div className="flex items-center justify-between">
@@ -506,7 +497,9 @@ export function TaskResultPage() {
                             <>
                               {llmInfoMap[result.llm_id].name}
                               <Badge variant="outline" className="ml-2">
-                                {llmInfoMap[result.llm_id].role === 'reviewer' ? '评议者' : '分析者'}
+                                {llmInfoMap[result.llm_id].role === 'reviewer'
+                                  ? '评议者'
+                                  : '分析者'}
                               </Badge>
                             </>
                           ) : (
@@ -520,16 +513,8 @@ export function TaskResultPage() {
                     </CardHeader>
                     <CardContent className="pt-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {renderScoreCard(
-                          '偏见指数',
-                          result.bias_index,
-                          '内容中的偏见程度'
-                        )}
-                        {renderScoreCard(
-                          '误导性指数',
-                          result.misleading_index,
-                          '内容的误导性程度'
-                        )}
+                        {renderScoreCard('偏见指数', result.bias_index, '内容中的偏见程度')}
+                        {renderScoreCard('误导性指数', result.misleading_index, '内容的误导性程度')}
                         {renderScoreCard(
                           '隐藏意图指数',
                           result.hidden_intent_index,
@@ -543,7 +528,7 @@ export function TaskResultPage() {
               </TabsContent>
 
               <TabsContent value="raw" className="space-y-4">
-                {results.map((result) => (
+                {results.map(result => (
                   <Card key={`raw-${result.id}`}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -552,7 +537,9 @@ export function TaskResultPage() {
                             <>
                               {llmInfoMap[result.llm_id].name}
                               <Badge variant="outline" className="ml-2">
-                                {llmInfoMap[result.llm_id].role === 'reviewer' ? '评议者' : '分析者'}
+                                {llmInfoMap[result.llm_id].role === 'reviewer'
+                                  ? '评议者'
+                                  : '分析者'}
                               </Badge>
                             </>
                           ) : (
@@ -576,11 +563,7 @@ export function TaskResultPage() {
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
-                {task.status === 'completed' ? (
-                  '没有找到分析结果'
-                ) : (
-                  '任务尚未完成，请稍后查看结果'
-                )}
+                {task.status === 'completed' ? '没有找到分析结果' : '任务尚未完成，请稍后查看结果'}
               </CardContent>
             </Card>
           )}
@@ -590,9 +573,7 @@ export function TaskResultPage() {
               <CardTitle>原始分析内容</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap rounded-md border p-4 text-sm">
-                {task.content}
-              </p>
+              <p className="whitespace-pre-wrap rounded-md border p-4 text-sm">{task.content}</p>
             </CardContent>
           </Card>
         </>

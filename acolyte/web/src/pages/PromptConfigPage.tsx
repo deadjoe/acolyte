@@ -2,9 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, RefreshCw, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getPrompts, syncPrompts, getPrompt } from '@/api';
 import { usePrompt } from '@/context/PromptContext';
 
@@ -22,7 +34,6 @@ export function PromptConfigPage() {
 
       const prompts = await getPrompts();
       dispatch({ type: 'SET_PROMPTS', payload: prompts });
-
     } catch (error) {
       console.error('获取提示词列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取提示词列表失败' });
@@ -47,7 +58,6 @@ export function PromptConfigPage() {
       } else {
         toast.error(`同步失败: ${result.message || '未知错误'}`);
       }
-
     } catch (error) {
       console.error('同步提示词失败:', error);
       toast.error('同步提示词失败');
@@ -68,13 +78,13 @@ export function PromptConfigPage() {
       // 更新提示词内容
       setViewPrompt({
         id,
-        content: promptDetail.content || '此提示词没有内容'
+        content: promptDetail.content || '此提示词没有内容',
       });
     } catch (error) {
       console.error('获取提示词内容失败:', error);
       setViewPrompt({
         id,
-        content: '获取提示词内容失败，请重试'
+        content: '获取提示词内容失败，请重试',
       });
       toast.error('获取提示词内容失败');
     }
@@ -83,6 +93,7 @@ export function PromptConfigPage() {
   // 初始加载
   useEffect(() => {
     loadPrompts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 格式化日期
@@ -106,11 +117,7 @@ export function PromptConfigPage() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button onClick={handleSyncPrompts} disabled={syncing}>
-            {syncing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              '同步提示词'
-            )}
+            {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : '同步提示词'}
           </Button>
         </div>
       </div>
@@ -141,7 +148,7 @@ export function PromptConfigPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                state.prompts.map((prompt) => (
+                state.prompts.map(prompt => (
                   <TableRow key={prompt.id}>
                     <TableCell>{prompt.id}</TableCell>
                     <TableCell>{prompt.version}</TableCell>
@@ -180,13 +187,11 @@ export function PromptConfigPage() {
       )}
 
       {/* 查看提示词内容对话框 */}
-      <Dialog open={!!viewPrompt} onOpenChange={(open) => !open && setViewPrompt(null)}>
+      <Dialog open={!!viewPrompt} onOpenChange={open => !open && setViewPrompt(null)}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>提示词内容</DialogTitle>
-            <DialogDescription>
-              ID: {viewPrompt?.id}
-            </DialogDescription>
+            <DialogDescription>ID: {viewPrompt?.id}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="border rounded-md overflow-auto h-[400px] p-4 font-mono text-sm whitespace-pre-wrap">

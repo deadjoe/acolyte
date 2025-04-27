@@ -4,10 +4,31 @@ import { toast } from 'sonner';
 import { Loader2, Search, RefreshCw, Trash2, X, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { TaskResponse, getTasks, deleteTask, deleteTasks, clearAllTasks } from '@/api';
 import { useTask } from '@/context/TaskContext';
 import { formatDateTime } from '@/utils/date';
@@ -43,7 +64,6 @@ export function HistoryPage() {
 
       setTasks(data);
       toast.success(`成功获取${data.length}条任务记录`);
-
     } catch (error) {
       console.error('获取任务列表失败:', error);
 
@@ -243,7 +263,11 @@ export function HistoryPage() {
                 size="sm"
                 disabled={selectedTasks.length === 0 || deleteLoading}
               >
-                {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                {deleteLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
                 删除选中 ({selectedTasks.length})
               </Button>
               <Button onClick={toggleSelectMode} variant="outline" size="sm">
@@ -275,11 +299,7 @@ export function HistoryPage() {
                     <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
                       取消
                     </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleClearAll}
-                      disabled={deleteLoading}
-                    >
+                    <Button variant="destructive" onClick={handleClearAll} disabled={deleteLoading}>
                       {deleteLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                       确认清空
                     </Button>
@@ -302,12 +322,12 @@ export function HistoryPage() {
             placeholder="搜索内容..."
             className="pl-8"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
         <Select
-          value={statusFilter || "all"}
-          onValueChange={(value) => setStatusFilter(value === "all" ? undefined : value)}
+          value={statusFilter || 'all'}
+          onValueChange={value => setStatusFilter(value === 'all' ? undefined : value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="所有状态" />
@@ -334,7 +354,9 @@ export function HistoryPage() {
                 {selectMode && (
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
+                      checked={
+                        selectedTasks.length === filteredTasks.length && filteredTasks.length > 0
+                      }
                       onCheckedChange={toggleSelectAll}
                       aria-label="全选"
                     />
@@ -351,12 +373,15 @@ export function HistoryPage() {
             <TableBody>
               {filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={selectMode ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell
+                    colSpan={selectMode ? 7 : 6}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     没有找到任务记录
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTasks.map((task) => (
+                filteredTasks.map(task => (
                   <TableRow key={task.id}>
                     {selectMode && (
                       <TableCell>
@@ -371,7 +396,9 @@ export function HistoryPage() {
                     <TableCell className="max-w-[300px] truncate">{task.content}</TableCell>
                     <TableCell>{getModeName(task.processing_mode)}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(task.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusStyle(task.status)}`}
+                      >
                         {getStatusName(task.status)}
                       </span>
                     </TableCell>
@@ -387,14 +414,19 @@ export function HistoryPage() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
                               handleDeleteTask(task.id);
                             }}
-                            disabled={deleteLoading && (deletingTaskId === task.id || deletingTaskId === null)}
+                            disabled={
+                              deleteLoading &&
+                              (deletingTaskId === task.id || deletingTaskId === null)
+                            }
                           >
-                            {deleteLoading && deletingTaskId === task.id && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                            {deleteLoading && deletingTaskId === task.id && (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            )}
                             删除
                           </Button>
                         )}

@@ -21,7 +21,7 @@ describe('PromptContext', () => {
         <TestComponent />
       </PromptProvider>
     );
-    
+
     // 验证初始状态
     expect(document.querySelector('[data-testid="prompt-count"]')?.textContent).toBe('0');
     expect(document.querySelector('[data-testid="loading"]')?.textContent).toBe('false');
