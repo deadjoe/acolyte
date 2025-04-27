@@ -145,6 +145,14 @@ export function LlmConfigPage() {
       // 显示正确的API URL
       console.log(`测试LLM连接: ${llmName}, API端点: ${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/llms/${llmId}/test`);
 
+      // 先获取最新的LLM列表，确保数据是最新的
+      try {
+        await loadLlms();
+      } catch (refreshError) {
+        console.warn('刷新LLM列表失败，继续使用当前数据:', refreshError);
+      }
+
+      // 使用专用的测试连接API
       const result = await testLlmConnection(llmId);
 
       if (result.success) {
