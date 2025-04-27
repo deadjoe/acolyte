@@ -33,9 +33,34 @@ export const getPrompts = async (modelTarget?: string, version?: string) => {
 
 // 获取最新版本的提示词
 export const getLatestPrompt = async (modelTarget?: string) => {
-  const params = { model_target: modelTarget };
-  const response = await apiClient.get<PromptResponse>('/prompts/latest', { params });
-  return response.data;
+  try {
+    // 首先尝试使用专门的API端点获取最新提示词
+    const params = { model_target: modelTarget };
+    const response = await apiClient.get<PromptResponse>('/prompts/latest', { params });
+    return response.data;
+  } catch (error) {
+    console.warn('获取最新提示词失败，尝试从所有提示词中选择最新的一个', error);
+
+    // 如果失败，获取所有提示词并选择最新的一个
+    const allPrompts = await getPrompts(modelTarget);
+
+    if (allPrompts.length === 0) {
+      throw new Error('没有找到任何提示词');
+    }
+
+    // 按照创建时间或ID排序，选择最新的一个
+    const sortedPrompts = [...allPrompts].sort((a, b) => {
+      // 如果有创建时间，按创建时间排序
+      if (a.created_at && b.created_at) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      // 否则按ID排序，假设ID越大越新
+      return b.id - a.id;
+    });
+
+    // 返回第一个（最新的）提示词
+    return sortedPrompts[0];
+  }
 };
 
 // 获取特定提示词
