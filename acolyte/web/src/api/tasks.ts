@@ -80,9 +80,12 @@ export const deleteTasks = async (taskIds: number[]) => {
   try {
     console.log(`批量删除任务: IDs=${taskIds.join(',')}`);
 
-    // 使用正确的端点和方法
+    // 使用正确的端点和方法，添加confirm=true参数
     const response = await apiClient.delete('/tasks', {
-      data: { task_ids: taskIds }
+      data: {
+        task_ids: taskIds,
+        confirm: true
+      }
     });
 
     console.log(`批量删除任务成功: 数量=${taskIds.length}`, response.data);
@@ -98,8 +101,10 @@ export const clearAllTasks = async () => {
   try {
     console.log('清空所有历史记录');
 
-    // 使用正确的端点和方法
-    const response = await apiClient.post('/tasks/clear-all');
+    // 使用正确的端点和方法，添加confirm=true参数
+    const response = await apiClient.post('/tasks/clear-all', {
+      confirm: true
+    });
 
     console.log('清空所有历史记录成功', response.data);
     return response.data;
