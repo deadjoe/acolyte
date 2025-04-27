@@ -23,10 +23,10 @@ export function HomePage() {
         setLocalTasks([]);
         dispatch({ type: 'SET_TASKS', payload: [] });
 
-        // 获取最近5个已完成的任务
+        // 获取最近5条任务，不限制状态
         try {
-          // 使用API模块中的getTasks函数获取任务列表
-          const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks?status=completed&limit=5`;
+          // 获取最近5条任务，不限制状态，按创建时间降序排序
+          const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/tasks?limit=5&sort=created_at:desc`;
           console.log('请求URL:', apiUrl);
 
           const response = await fetch(apiUrl);
