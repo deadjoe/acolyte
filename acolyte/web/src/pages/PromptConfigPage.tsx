@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { getPrompts, syncPrompts } from '@/api';
+import { getPrompts, syncPrompts, getPrompt } from '@/api';
 import { usePrompt } from '@/context/PromptContext';
 
 export function PromptConfigPage() {
@@ -13,16 +13,16 @@ export function PromptConfigPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [viewPrompt, setViewPrompt] = useState<{ id: number; content: string } | null>(null);
-  
+
   // 加载提示词列表
   const loadPrompts = async () => {
     try {
       setLoading(true);
       dispatch({ type: 'SET_LOADING', payload: true });
-      
+
       const prompts = await getPrompts();
       dispatch({ type: 'SET_PROMPTS', payload: prompts });
-      
+
     } catch (error) {
       console.error('获取提示词列表失败:', error);
       dispatch({ type: 'SET_ERROR', payload: '获取提示词列表失败' });
@@ -32,14 +32,14 @@ export function PromptConfigPage() {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
-  
+
   // 同步提示词
   const handleSyncPrompts = async () => {
     try {
       setSyncing(true);
-      
+
       const result = await syncPrompts();
-      
+
       if (result.success) {
         toast.success(`同步成功: ${result.message || '提示词已同步'}`);
         // 重新加载提示词列表
@@ -47,7 +47,7 @@ export function PromptConfigPage() {
       } else {
         toast.error(`同步失败: ${result.message || '未知错误'}`);
       }
-      
+
     } catch (error) {
       console.error('同步提示词失败:', error);
       toast.error('同步提示词失败');
@@ -55,17 +55,36 @@ export function PromptConfigPage() {
       setSyncing(false);
     }
   };
-  
+
   // 查看提示词内容
-  const handleViewPrompt = (id: number, content: string) => {
-    setViewPrompt({ id, content });
+  const handleViewPrompt = async (id: number) => {
+    try {
+      // 显示加载状态
+      setViewPrompt({ id, content: '加载中...' });
+
+      // 获取完整的提示词内容
+      const promptDetail = await getPrompt(id);
+
+      // 更新提示词内容
+      setViewPrompt({
+        id,
+        content: promptDetail.content || '此提示词没有内容'
+      });
+    } catch (error) {
+      console.error('获取提示词内容失败:', error);
+      setViewPrompt({
+        id,
+        content: '获取提示词内容失败，请重试'
+      });
+      toast.error('获取提示词内容失败');
+    }
   };
-  
+
   // 初始加载
   useEffect(() => {
     loadPrompts();
   }, []);
-  
+
   // 格式化日期
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -77,7 +96,7 @@ export function PromptConfigPage() {
       minute: '2-digit',
     });
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -95,7 +114,7 @@ export function PromptConfigPage() {
           </Button>
         </div>
       </div>
-      
+
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -146,7 +165,7 @@ export function PromptConfigPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleViewPrompt(prompt.id, prompt.content)}
+                        onClick={() => handleViewPrompt(prompt.id)}
                       >
                         <Eye className="mr-2 h-4 w-4" />
                         查看内容
@@ -159,7 +178,7 @@ export function PromptConfigPage() {
           </Table>
         </div>
       )}
-      
+
       {/* 查看提示词内容对话框 */}
       <Dialog open={!!viewPrompt} onOpenChange={(open) => !open && setViewPrompt(null)}>
         <DialogContent className="sm:max-w-[700px]">
