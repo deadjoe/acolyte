@@ -63,6 +63,7 @@ export const deleteLlm = async (llmId: number) => {
 
 // 测试LLM连接
 export const testLlmConnection = async (llmId: number) => {
+  // 使用正确的API端点
   const response = await apiClient.post(`/llms/${llmId}/test`);
   return response.data;
 };

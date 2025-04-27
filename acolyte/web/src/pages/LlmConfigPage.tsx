@@ -138,6 +138,13 @@ export function LlmConfigPage() {
     try {
       setTestingId(llmId);
 
+      // 获取LLM信息，用于显示正确的API URL
+      const llm = state.llms.find(l => l.id === llmId);
+      const llmName = llm ? llm.name : `ID为${llmId}的LLM`;
+
+      // 显示正确的API URL
+      console.log(`测试LLM连接: ${llmName}, API端点: ${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/llms/${llmId}/test`);
+
       const result = await testLlmConnection(llmId);
 
       if (result.success) {
