@@ -1,25 +1,39 @@
-.PHONY: setup dev format lint test run clean
+.PHONY: setup dev format lint test run clean web-setup web-dev web-test
+
+# === Backend (uv) ===
 
 setup:
-	uv venv
-	uv pip install -e .
+	uv sync
 
 dev:
-	uv pip install -e ".[dev]"
+	uv sync --extra dev
 
 format:
-	uv run -m black .
-	uv run -m isort .
+	uv run black .
+	uv run isort .
 
 lint:
-	uv run -m ruff check .
-	uv run -m mypy .
+	uv run ruff check .
+	uv run mypy .
 
 test:
-	uv run -m pytest
+	uv run pytest
 
 run:
-	uv run -m acolyte.main
+	uv run acolyte
+
+# === Frontend (bun) ===
+
+web-setup:
+	cd acolyte/web && bun install
+
+web-dev:
+	cd acolyte/web && bun run dev
+
+web-test:
+	cd acolyte/web && bun run test
+
+# === Cleanup ===
 
 clean:
 	rm -rf .venv
@@ -28,8 +42,11 @@ clean:
 	rm -rf dist
 	rm -rf __pycache__
 	rm -rf .pytest_cache
+	rm -rf .mypy_cache
+	rm -rf .ruff_cache
 	rm -rf .coverage
 	rm -rf htmlcov
+	rm -rf coverage_html_report
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete

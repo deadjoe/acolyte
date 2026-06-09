@@ -28,7 +28,6 @@ ENV/
 .venv/
 
 # Package management
-uv.lock
 .uv/
 
 # IDE
@@ -62,6 +61,7 @@ yarn-error.log*
 # Testing
 .coverage
 htmlcov/
+coverage_html_report/
 
 *.pid
 .syncthing.*.tmp

@@ -4,21 +4,39 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acolyte"
-# 注意: 此版本号应与 acolyte/__init__.py 中的 __version__ 保持一致
 version = "0.2.0"
 description = "内容分析评估系统"
-authors = [
-    {name = "Acolyte Team"}
-]
+authors = [{ name = "Acolyte Team" }]
 requires-python = ">=3.9"
 readme = "README.md"
-license = {text = "MIT"}
-dynamic = ["dependencies", "optional-dependencies"]
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.95.0",
+    "uvicorn>=0.21.0",
+    "sqlalchemy>=2.0.0",
+    "httpx>=0.24.0",
+    "click>=8.1.3",
+    "rich>=13.3.4",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.0.260",
+]
+
+[project.scripts]
+acolyte = "acolyte.cli.main:cli"
 
 [tool.black]
 line-length = 100
 target-version = ["py39"]
-include = '\.pyi?$'
 
 [tool.isort]
 profile = "black"
@@ -35,17 +53,59 @@ disallow_incomplete_defs = true
 line-length = 100
 target-version = "py39"
 select = ["E", "F", "B", "I"]
-ignore = []
-
-# 添加以下配置来排除 tools 目录
 exclude = [
     "tools",
     ".git",
     ".venv",
     "__pycache__",
     "build",
-    "dist"
+    "dist",
 ]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+addopts = "--verbose"
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::RuntimeWarning:unittest.mock",
+]
+
+[tool.coverage.run]
+source = ["acolyte"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+    "*/__pycache__/*",
+    "*/.pytest_cache/*",
+    "*/.coverage",
+    "*/setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+    "except ImportError",
+    "def __str__",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
