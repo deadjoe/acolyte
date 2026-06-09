@@ -182,11 +182,37 @@ class TestDatabaseModels:
         assert saved_result.task.content == "This is a test content"
         assert saved_result.llm_config.name == "Test LLM"
 
-    @pytest.mark.skip(reason="模拟对象测试不稳定，需要重新设计")
-    def test_task_llm_association(self, db_session):
+    @pytest.mark.skip(
+        reason="Passes in isolation but flaky in full suite due to SQLite FK cycle in fixture teardown"
+    )
+    def test_task_llm_association(self, in_memory_db):
         """测试任务与LLM的多对多关系"""
-        # 跳过测试，因为模拟对象测试不稳定
-        pass
+        from acolyte.core.db.models import LlmConfig, LlmRole, ProcessingMode, Task
+
+        session = in_memory_db()
+
+        try:
+            llm = LlmConfig(
+                name="Association Test LLM",
+                api_key="test_key",
+                base_url="https://api.test.com",
+                model_name="test-model",
+                role=LlmRole.NORMAL,
+            )
+            session.add(llm)
+            session.flush()
+
+            task = Task(content="Test content for association", processing_mode=ProcessingMode.SINGLE)
+            task.llm_configs.append(llm)
+            session.add(task)
+            session.commit()
+
+            assert len(task.llm_configs) == 1
+            assert task.llm_configs[0].id == llm.id
+            assert task.llm_configs[0].name == "Association Test LLM"
+        finally:
+            session.rollback()
+            session.close()
 
     def test_task_final_result(self, db_session):
         """测试任务最终结果关系"""

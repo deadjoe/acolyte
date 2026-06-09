@@ -657,10 +657,6 @@ class TestCliCommands:
             # 验证结果
             assert result.exit_code == 0
 
-    def test_analyze_command_with_file(self, runner):
-        """测试使用文件进行分析命令执行"""
-        # 我们将跳过这个测试，因为它需要更复杂的模拟
-        pytest.skip("This test requires more complex mocking")
 
     @patch("acolyte.cli.commands.AcolyteClient")
     def test_analyze_command_api_error(self, mock_client_class, runner):
@@ -928,7 +924,7 @@ class TestCliCommands:
         # 应用补丁
         with patch("acolyte.cli.commands.asyncio.run", fake_asyncio_run):
             # 执行命令
-            result = runner.invoke(cli, [test_file_path, "--mode", "single", "--wait"])
+            result = runner.invoke(cli, ["analyze", test_file_path, "--mode", "single", "--wait"])
 
             # 验证结果
             assert result.exit_code == 0

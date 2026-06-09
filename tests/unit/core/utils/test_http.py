@@ -179,24 +179,6 @@ class TestHttpClient:
             # 验证客户端调用次数
             assert mock_client.return_value.request.call_count == 3  # 初始请求 + 2次重试
 
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_request_success(self):
-        """测试成功异步请求"""
-        pass
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_request_retry(self):
-        """测试异步请求重试"""
-        pass
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_request_max_retries_exceeded(self):
-        """测试异步请求超过最大重试次数"""
-        pass
-
     def test_get(self):
         """测试GET请求"""
         # 使用模拟替换httpx.Client
@@ -272,27 +254,3 @@ class TestHttpClient:
 
             # 验证request调用
             client.request.assert_called_once()
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_get(self):
-        """测试异步GET请求"""
-        pass
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_post(self):
-        """测试异步POST请求"""
-        pass
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_put(self):
-        """测试异步PUT请求"""
-        pass
-
-    @pytest.mark.skip(reason="HttpClient类没有async_request方法")
-    @pytest.mark.asyncio
-    async def test_async_delete(self):
-        """测试异步DELETE请求"""
-        pass

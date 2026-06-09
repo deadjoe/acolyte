@@ -229,12 +229,24 @@ class TestLlmService:
             mock_set_default.assert_called_once_with(1)
             mock_get_llm.assert_called_once_with(1)
 
-    @pytest.mark.skip(reason="测试连接测试需要更复杂的模拟")
     @pytest.mark.asyncio
     async def test_test_connection(self, service):
         """测试LLM连接测试"""
-        # 由于测试连接测试需要更复杂的模拟，暂时跳过该测试
-        pass
+        mock_config = MagicMock()
+        mock_config.id = 1
+
+        mock_client = MagicMock()
+        mock_client._test_connection = AsyncMock(return_value={"success": True})
+
+        with patch(
+            "acolyte.core.services.llm_service.run_in_session",
+            return_value=mock_config,
+        ), patch(
+            "acolyte.core.llm.client.get_client_for_llm",
+            return_value=mock_client,
+        ):
+            result = await service.test_connection(1)
+            assert result["success"] is True
 
     @pytest.mark.asyncio
     async def test_get_nonexistent_llm(self, service):
