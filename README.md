@@ -6,181 +6,74 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.95+-green.svg)](https://fastapi.tiangolo.com/)
-[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-orange.svg)](https://www.sqlalchemy.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![LLM: Claude](https://img.shields.io/badge/LLM-Claude-blueviolet)](https://www.anthropic.com/)
-[![LLM: OpenAI](https://img.shields.io/badge/LLM-OpenAI-lightgrey)](https://openai.com/)
-[![LLM: Gemini](https://img.shields.io/badge/LLM-Gemini-blue)](https://ai.google.dev/)
-[![Package Manager: uv](https://img.shields.io/badge/Package%20Manager-uv-purple)](https://github.com/astral-sh/uv)
-[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red)]()
+[![Backend: uv](https://img.shields.io/badge/Backend-uv-purple)](https://github.com/astral-sh/uv)
+[![Frontend: bun](https://img.shields.io/badge/Frontend-bun-orange)](https://bun.sh)
 
 *[English](README.md) | [中文](README_zh.md)*
 
-Acolyte is a content analysis and evaluation system focused on detecting bias, misleading content, and hidden intent in text. The system supports content submission through Web interface, CLI, and API, which is then analyzed by single or multiple LLMs.
+Acolyte is a content analysis and evaluation system that detects bias, misleading content, and hidden intent in text. Submit content via Web UI, CLI, or API — analyzed by single or multiple LLMs.
 
-## Key Features
+## Features
 
-- **Multiple Access Methods**: Web interface, CLI, and API
-- **Flexible LLM Integration**: Support for multiple LLM providers (Anthropic Claude, OpenAI, Google Gemini)
-- **Advanced Analysis Workflows**:
-  - Single LLM processing
-  - Multiple LLM parallel processing
-  - Multi-LLM review aggregation with voting mechanism
-- **Comprehensive Content Analysis**:
-  - Bias detection
-  - Misleading content detection
-  - Hidden intent detection
-  - Quantitative scoring system with multiple indices
-- **Unified Logging System**:
-  - Configurable log levels
-  - Multiple output destinations (console, file)
-  - Detailed diagnostic information
-- **History and Record Management**:
-  - Task record storage and retrieval
-  - Result visualization
-- **Modern Web Interface**:
-  - Responsive design with Tailwind CSS and shadcn UI
-  - Content analysis submission form
-  - LLM configuration management
-  - Task history and results visualization
-  - Prompt template management
+- **Web UI, CLI, and API** access
+- **Multi-LLM support**: Anthropic Claude, OpenAI, Google Gemini
+- **Analysis modes**: single LLM, multi-LLM parallel, multi-LLM with review/voting
+- **Scoring**: bias index, misleading index, hidden intent index, credibility score
+- **History**: task records, result visualization
+- **Modern web stack**: React + TypeScript + Tailwind CSS v4 + shadcn UI
 
-## Installation
+## Quick Start
 
-Create a virtual environment and install dependencies using [uv](https://github.com/astral-sh/uv) (recommended package manager):
+### Prerequisites
+
+- Python 3.10+
+- [uv](https://github.com/astral-sh/uv)
+- [bun](https://bun.sh)
+
+### Backend
 
 ```bash
-# Create virtual environment
-uv venv
-
-# Install dependencies
-uv pip install -r requirements.txt
-
-# Install in development mode
-uv pip install -e .
+uv sync --extra dev   # install all dependencies
+uv run acolyte        # start API server (http://localhost:8000)
 ```
 
-## Usage
-
-### Starting the API Service
+### Frontend
 
 ```bash
-# Basic start
-uv run -m acolyte.main
-
-# Start with custom log level
-ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.main
-
-# Enable file logging
-ACOLYTE_LOG_TO_FILE=1 uv run -m acolyte.main
-
-# Specify log directory
-ACOLYTE_LOG_DIR=/path/to/logs ACOLYTE_LOG_TO_FILE=1 uv run -m acolyte.main
-
-# Specify custom port
-ACOLYTE_PORT=8080 uv run -m acolyte.main
-```
-
-### Starting the Web Interface
-
-```bash
-# Navigate to the web directory
 cd acolyte/web
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Start development server with host binding (accessible from other devices)
-pnpm dev --host
-
-# Build for production
-pnpm build
-
-# Run tests
-pnpm test
-
-# Run tests with coverage
-pnpm test:coverage
-
-# Check code formatting
-pnpm format:check
-
-# Format code
-pnpm format
-
-# Lint code
-pnpm lint
+bun install           # install dependencies
+bun run dev           # start dev server (http://localhost:5173)
 ```
 
-The web interface will be available at `http://localhost:5173` by default. Make sure the API service is running before using the web interface.
-
-### Using the CLI Tool
+### CLI
 
 ```bash
-# Analyze content
-uv run -m acolyte.cli.main analyze content.txt --mode=single
-
-# Use a specific LLM from the configuration file
-uv run -m acolyte.cli.main analyze content.txt --llm-config "Claude-3"
-
-# Use multiple LLMs with review
-uv run -m acolyte.cli.main analyze content.txt --mode=multiple_with_review --llm 1 --llm 2
-
-# View history
-uv run -m acolyte.cli.main history list --limit=5
-
-# Show specific task results
-uv run -m acolyte.cli.main history show 123 --raw
-
-# Show results from a specific LLM in multiple mode
-uv run -m acolyte.cli.main history show 123 --llm 2
-
-# Show all results in multiple mode with different format
-uv run -m acolyte.cli.main history show 123 --all --format summary
+uv run acolyte analyze content.txt --mode=single
+uv run acolyte history list --limit=5
+uv run acolyte config add-llm -n "My LLM" -k "sk-..." -u "https://api.openai.com/v1" -m "gpt-4o"
 ```
 
-### Configuration Management
+## Project Structure
 
-```bash
-# Add LLM configuration
-uv run -m acolyte.cli.main config add-llm -n "Claude-3" -k "your-api-key" -u "https://api.anthropic.com/v1" -m "claude-3-opus-20240229"
-
-# Export LLM configuration to file
-uv run -m acolyte.cli.main config export-config
-
-# Import LLM configuration from file
-uv run -m acolyte.cli.main config import-config --name "Claude-3"
-
-# List LLM configurations
-uv run -m acolyte.cli.main config list-llms
-
-# Set default LLM
-uv run -m acolyte.cli.main config set-default 1
-
-# List Prompt configurations
-uv run -m acolyte.cli.main config list-prompts
-
-# Show specific Prompt content
-uv run -m acolyte.cli.main config show-prompt 1
-
-# Synchronize Prompt files
-uv run -m acolyte.cli.main config sync-prompts
-
-# Delete LLM configuration
-uv run -m acolyte.cli.main config delete-llm 1
-
-# Set log level for CLI operations
-ACOLYTE_LOG_LEVEL=debug uv run -m acolyte.cli.main analyze content.txt
+```
+acolyte/
+├── acolyte/              # backend Python package
+│   ├── core/             # LLM, DB, task processing
+│   ├── api/              # FastAPI routes
+│   ├── cli/              # CLI (Click)
+│   └── web/              # React + Vite frontend
+├── tests/                # Python tests (424 passed)
+├── prompt/               # bias detection prompt templates
+├── tools/                # utility scripts
+├── pyproject.toml        # project config + dependencies
+├── uv.lock               # pinned dependency versions
+└── Makefile              # convenience commands
 ```
 
 ## Configuration
 
-The configuration file is located by default at `~/.config/acolyte/config.json`, and you can specify another location through the environment variable `ACOLYTE_CONFIG_PATH`.
-
-### Configuration File Example
+Config file at `~/.config/acolyte/config.json` (override with `ACOLYTE_CONFIG_PATH`):
 
 ```json
 {
@@ -189,106 +82,47 @@ The configuration file is located by default at `~/.config/acolyte/config.json`,
   "llm_configs": [
     {
       "name": "Claude-Sonnet",
-      "api_key": "your-anthropic-api-key",
+      "api_key": "your-api-key",
       "base_url": "https://api.anthropic.com/v1",
-      "model_name": "claude-3-7-sonnet-latest",
-      "description": "Anthropic Claude 3.7 Sonnet",
+      "model_name": "claude-sonnet-4-20250514",
       "role": "normal",
       "is_default": true
-    },
-    {
-      "name": "GPT-4o",
-      "api_key": "your-openai-api-key",
-      "base_url": "https://api.openai.com/v1",
-      "model_name": "gpt-4o",
-      "description": "OpenAI GPT-4o",
-      "role": "normal",
-      "is_default": false
-    },
-    {
-      "name": "Gemini-Pro",
-      "api_key": "your-google-api-key",
-      "base_url": "https://generativelanguage.googleapis.com/v1beta",
-      "model_name": "gemini-2.5-pro",
-      "description": "Google Gemini 2.5 Pro",
-      "role": "normal",
-      "is_default": false
-    },
-    {
-      "name": "Claude-Reviewer",
-      "api_key": "your-anthropic-api-key",
-      "base_url": "https://api.anthropic.com/v1",
-      "model_name": "claude-3-7-sonnet-latest",
-      "description": "Claude 3.7 Sonnet as reviewer",
-      "role": "reviewer",
-      "is_default": false
     }
   ]
 }
 ```
 
-## Development Notes
-
-### Configuration File Format
-The configuration file must use the following format:
-```json
-{
-  "database_url": "sqlite:///acolyte.db",
-  "default_prompt_version": "",
-  "llm_configs": [...]
-}
-```
-
-Do not use the legacy nested format `{"llms": {...}}`, which will cause the configuration to fail to load correctly. If you encounter this issue, you can use the `tools/convert_config.py` script to convert the format.
-
-### Database Session Management
-When using SQLAlchemy, ensure you don't use database objects outside of a session, especially in asynchronous operations. Always acquire and operate on database objects within a session context.
-
-### LLM API URL Format
-Different LLM providers have different URL format requirements:
-- Anthropic Claude: `https://api.anthropic.com/v1`
-- OpenAI: `https://api.openai.com/v1`
-- Google Gemini: `https://generativelanguage.googleapis.com/v1beta`
-
-### Prompt Templates
-The bias detection prompts used by the system are located in the `prompt/` directory and support model-specific versions. After adding new prompts, you need to run the `config sync-prompts` command to synchronize them to the database. The naming format is `bias-detection-prompt_vX.Y.md` or `bias-detection-prompt_vX.Y_modelname.md`.
-
-### Utility Scripts
-The project includes several useful utility scripts in the `tools/` directory:
-- `convert_config.py`: Convert configuration file format
-- `check_prompts.py`: Check prompt records in the database
-- `direct_task_process.py`: Process tasks directly, bypassing the API
-- `show_result.py`: Display task result content
-
-### Startup Sequence
-1. Start the API server: `uv run -m acolyte.main`
-2. Import LLM configurations: `uv run -m acolyte.cli.main config import-config`
-3. Synchronize prompts: `uv run -m acolyte.cli.main config sync-prompts`
-4. Start analyzing content with the system
-
-## Testing
-
-Acolyte includes a comprehensive test suite to ensure code quality and functionality:
+## Development
 
 ```bash
-# Install test dependencies
-uv pip install pytest pytest-asyncio pytest-cov
+# Backend
+uv sync --extra dev     # install with dev deps
+uv run pytest           # run tests (424 passed)
+uv run ruff check .     # lint
+uv run black .          # format
 
-# Run all tests
-uv run pytest tests/unit/
+# Frontend
+cd acolyte/web
+bun run dev             # dev server
+bun run build           # production build
+bun run test            # run tests (26 passed)
+bun run lint            # ESLint
 
-# Run specific test modules
-uv run pytest tests/unit/core/llm/test_response_parser.py
-uv run pytest tests/unit/core/db/test_models.py
-uv run pytest tests/unit/core/task/test_base_processor.py
-
-# Run tests with coverage report
-uv run pytest tests/unit/ --cov=acolyte --cov-report=term --cov-report=html
-
-# Run a specific test function
-uv run pytest tests/unit/core/task/test_review_processor.py::TestReviewProcessor::test_save_votes -v
+# Convenience (from repo root)
+make test               # backend tests
+make web-test           # frontend tests
+make lint               # backend lint
+make clean              # remove build artifacts
 ```
 
-The project currently has a test coverage of approximately 50%, with higher coverage in core modules like LLM client implementation and lower coverage in CLI and service layers. Future development will focus on improving test coverage in these areas.
+## Prompt Templates
 
-See [tests/README.md](tests/README.md) for more details on the testing framework and best practices.
+Bias detection prompts in `prompt/` follow the naming convention `bias-detection-prompt_vX.Y[_modelname].md`. After adding prompts, sync to database:
+
+```bash
+uv run acolyte config sync-prompts
+```
+
+## License
+
+MIT
