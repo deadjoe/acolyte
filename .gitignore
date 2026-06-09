@@ -54,6 +54,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+bun-debug.log*
 /acolyte/web/build/
 /acolyte/web/dist/
 .vite/
