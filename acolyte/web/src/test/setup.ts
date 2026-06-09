@@ -1,5 +1,7 @@
 // 这个文件将在每个测试文件之前运行
 
+import { vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+
 // 导入jest-dom扩展断言
 import '@testing-library/jest-dom';
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Header } from './Header';
 import { BrowserRouter } from 'react-router-dom';
-import { useTheme } from '@/context/AppContext';
+import '@/context/AppContext';
 
 // 模拟useTheme钩子
 vi.mock('@/context/AppContext', () => ({

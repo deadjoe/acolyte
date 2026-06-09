@@ -51,6 +51,7 @@ describe('LLMs API', () => {
       provider: 'openai',
       model_name: 'gpt-4',
       api_key: 'test-key',
+      base_url: '',
     };
     await createLlm(llmData);
 
@@ -68,6 +69,7 @@ describe('LLMs API', () => {
       provider: 'openai',
       model_name: 'gpt-4',
       api_key: 'updated-key',
+      base_url: '',
     };
     await updateLlm(123, llmData);
 

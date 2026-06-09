@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, FileText, BarChart, RefreshCw } from 'lucide-react';
