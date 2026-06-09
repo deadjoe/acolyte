@@ -43,11 +43,8 @@ apiClient.interceptors.request.use(
     );
 
     // 确保请求头包含正确的Content-Type
-    config.headers = {
-      ...config.headers,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
+    config.headers['Content-Type'] = 'application/json';
+    config.headers['Accept'] = 'application/json';
 
     return config;
   },

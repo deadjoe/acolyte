@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -213,9 +213,6 @@ export function AnalyzePage() {
         setTaskProgress(10); // 任务创建成功，进度设为10%
 
         // 创建任务后，添加轮询逻辑检查任务状态
-        // 使用下划线前缀表示有意未使用的变量，保留以便跟踪任务状态
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        let _taskCompleted = false;
         let attempts = 0;
         const maxAttempts = 30; // 最多轮询30次
         const pollInterval = 2000; // 每2秒轮询一次
@@ -241,13 +238,11 @@ export function AnalyzePage() {
             ).then(res => res.json());
 
             if (taskStatus.status === 'completed') {
-              _taskCompleted = true;
               setTaskProgress(100); // 任务完成，进度设为100%
               setAnalyzing(false);
               toast.success('任务处理完成');
               navigate(`/result/${result.id}`);
             } else if (taskStatus.status === 'failed') {
-              _taskCompleted = true;
               setTaskProgress(0); // 任务失败，进度重置为0
               setAnalyzing(false);
               toast.error('任务处理失败');

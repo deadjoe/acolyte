@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
 import { TaskCard } from '@/components/tasks';
 import { LoadingSpinner } from '@/components/common';
 import { useTask } from '@/context/TaskContext';
+import { TaskResponse } from '@/api';
 
 export function HomePage() {
   const { dispatch } = useTask();
